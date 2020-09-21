@@ -16,9 +16,9 @@ Move to somewhere in `$PATH`. Need sudo if not already root. Or put it in your u
 
 Verify that it runs
 
-    qbt help
+    qbt
 
-This should print `Could not read config file`.
+This should print out basic usage.
 
 ## Configuration
 
@@ -30,10 +30,10 @@ A bare minimum config.
 
 ```toml
 [qbittorrent]
-host     = "127.0.0.1" # deluge daemon hostname/ip
-port     = 6776        # deluge daemon port
-login    = "user"      # deluge daemon user
-password = "password"  # deluge daemon password
+host     = "127.0.0.1" # qbittorrent webui-api hostname/ip
+port     = 6776        # qbittorrent webui-api port
+login    = "user"      # qbittorrent webui-api user
+password = "password"  # qbittorrent webui-api password
 ```
 
 ### rutorrent-autodl-irssi setup

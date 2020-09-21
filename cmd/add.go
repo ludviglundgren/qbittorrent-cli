@@ -18,7 +18,7 @@ func RunAdd() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "add",
 		Short: "Add torrent",
-		Long:  `Add new torrent to Deluge from file`,
+		Long:  `Add new torrent to qBittorrent from file`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a torrent file as first argument")
