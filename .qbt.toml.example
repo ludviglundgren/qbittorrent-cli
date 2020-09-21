@@ -1,0 +1,5 @@
+[qbittorrent]
+host     = "127.0.0.1" # deluge daemon hostname/ip
+port     = 6776        # deluge daemon port
+login    = "user"      # deluge daemon user
+password = "password"  # deluge daemon password
