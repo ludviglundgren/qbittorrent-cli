@@ -16,6 +16,7 @@ func RunAdd() *cobra.Command {
 		dry           bool
 		paused        bool
 		skipHashCheck bool
+		savePath      string
 		category      string
 	)
 
@@ -34,6 +35,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
+	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -60,6 +62,10 @@ func RunAdd() *cobra.Command {
 			}
 			if skipHashCheck != false {
 				options["skip_checking"] = "true"
+			}
+			if savePath != "" {
+				options["savepath"] = savePath
+				options["autoTMM"] = "false"
 			}
 			if category != "" {
 				options["category"] = category
