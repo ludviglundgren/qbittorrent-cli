@@ -3,6 +3,7 @@ module github.com/ludviglundgren/qbittorrent-cli
 go 1.15
 
 require (
+	github.com/anacrolix/torrent v1.15.2
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/l3uddz/go-qbittorrent v1.0.2
 	github.com/magiconair/properties v1.8.3 // indirect

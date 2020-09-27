@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"errors"
-	"fmt"
-	"os"
+	"log"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
-	"github.com/l3uddz/go-qbittorrent/qbt"
 	"github.com/spf13/cobra"
 )
 
@@ -35,33 +34,27 @@ func RunAdd() *cobra.Command {
 		filePath := args[0]
 
 		if !dry {
-			connStr := fmt.Sprintf("http://%v:%v/", config.Qbit.Host, config.Qbit.Port)
-			qb := qbt.NewClient(connStr)
-
-			err := qb.Login(qbt.LoginOptions{
+			qbtSettings := qbittorrent.Settings{
+				Hostname: config.Qbit.Host,
+				Port:     config.Qbit.Port,
 				Username: config.Qbit.Login,
 				Password: config.Qbit.Password,
-			})
+			}
+			qb := qbittorrent.NewClient(qbtSettings)
+			err := qb.Login()
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-				os.Exit(1)
-
+				log.Fatalf("connection failed %v", err)
 			}
 
 			options := map[string]string{}
-			success, err := qb.DownloadFromFile(filePath, options)
+			res, err := qb.AddTorrentFromFile(filePath, options)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: adding torrent failed: %v\n", err)
-				os.Exit(1)
+				log.Fatalf("adding torrent failed: %v", err)
 			}
 
-			if !success {
-				fmt.Fprintf(os.Stderr, "ERROR: adding torrent failed: %v\n", err)
-			}
-
-			fmt.Print("Torrent successfully added!\n")
+			log.Printf("torrent successfully added: %v", res)
 		} else {
-			fmt.Println("dry-run: Torrent successfully added!")
+			log.Println("dry-run: torrent successfully added!")
 		}
 	}
 

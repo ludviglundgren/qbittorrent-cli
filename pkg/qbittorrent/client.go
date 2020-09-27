@@ -1,23 +1,25 @@
 package qbittorrent
 
 import (
+	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/anacrolix/torrent/metainfo"
+
 	"golang.org/x/net/publicsuffix"
 )
-
-type QbittorrentClient interface {
-	Login() error
-	GetTorrents() ([]Torrent, error)
-}
 
 type Client struct {
 	settings Settings
@@ -92,6 +94,67 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	return resp, nil
 }
 
+func (c *Client) postFile(endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
+	file, err := os.Open(fileName)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+	}
+	// Close the file later
+	defer file.Close()
+
+	// Buffer to store our request body as bytes
+	var requestBody bytes.Buffer
+
+	// Create a multipart writer
+	multiPartWriter := multipart.NewWriter(&requestBody)
+
+	// Initialize file field
+	fileWriter, err := multiPartWriter.CreateFormFile("torrents", fileName)
+	if err != nil {
+		log.Fatalf("error initializing file field %v", err)
+	}
+
+	// Copy the actual file content to the fields writer
+	_, err = io.Copy(fileWriter, file)
+	if err != nil {
+		log.Fatalf("could not copy file to writer %v", err)
+	}
+
+	// Populate other fields
+	if opts != nil {
+		for key, val := range opts {
+			fieldWriter, err := multiPartWriter.CreateFormField(key)
+			if err != nil {
+				log.Fatalf("could not add other fields %v", err)
+			}
+
+			_, err = fieldWriter.Write([]byte(val))
+			if err != nil {
+				log.Fatalf("could not write field %v", err)
+			}
+		}
+	}
+
+	// Close multipart writer
+	multiPartWriter.Close()
+
+	reqUrl := fmt.Sprintf("http://%v:%v/api/v2/%v", c.settings.Hostname, c.settings.Port, endpoint)
+	req, err := http.NewRequest("POST", reqUrl, &requestBody)
+	if err != nil {
+		log.Fatalf("could not create request object %v", err)
+	}
+
+	// Set correct content type
+	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
+
+	res, err := c.http.Do(req)
+	if err != nil {
+		log.Fatalf("could not perform request %v", err)
+	}
+
+	return res, nil
+}
+
 func (c *Client) Login() error {
 	credentials := make(map[string]string)
 	credentials["username"] = c.settings.Username
@@ -99,9 +162,9 @@ func (c *Client) Login() error {
 
 	resp, err := c.post("auth/login", credentials)
 	if err != nil {
-		log.Fatalf("login error", err)
+		log.Fatalf("login error: %v", err)
 	} else if resp.StatusCode != http.StatusOK { // check for correct status code
-		log.Fatalf("login error bad status %v\n", err)
+		log.Fatalf("login error bad status %v", err)
 	}
 
 	// place cookies in jar for future requests
@@ -118,7 +181,7 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
-		log.Fatalf("error fetching torrents", err)
+		log.Fatalf("error fetching torrents: %v", err)
 	}
 
 	defer resp.Body.Close()
@@ -139,7 +202,7 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 func (c *Client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
-		log.Fatalf("error fetching torrents", err)
+		log.Fatalf("error fetching torrents: %v", err)
 	}
 
 	defer resp.Body.Close()
@@ -149,6 +212,29 @@ func (c *Client) GetTorrentsRaw() (string, error) {
 	return string(data), nil
 }
 
-func (c *Client) AddTorrentsFromFile() error {
-	return nil
+// AddTorrentFromFile add new torrent from torrent file
+func (c *Client) AddTorrentFromFile(file string, options map[string]string) (hash string, err error) {
+	// Get meta info from file to find out the hash for later use
+	t, err := metainfo.LoadFromFile(file)
+	if err != nil {
+		log.Fatalf("could not open file %v", err)
+	}
+
+	// Get hash from info
+	torrentHash := metainfo.HashBytes(t.InfoBytes)
+	hash = torrentHash.String()
+	if hash == "" {
+		return "", errors.New("could not stringify torrent hash")
+	}
+
+	res, err := c.postFile("torrents/add", file, options)
+	if err != nil {
+		return "", err
+	} else if res.StatusCode != http.StatusOK {
+		return "", err
+	}
+
+	defer res.Body.Close()
+
+	return hash, nil
 }
