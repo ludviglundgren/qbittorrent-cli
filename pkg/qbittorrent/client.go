@@ -137,7 +137,7 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 }
 
 func (c *Client) GetTorrentsRaw() (string, error) {
-	resp, err := c.http.Get("http://192.168.60.5:10039/api/v2/torrents/info")
+	resp, err := c.get("torrents/info", nil)
 	if err != nil {
 		log.Fatalf("error fetching torrents", err)
 	}
