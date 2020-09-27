@@ -13,6 +13,7 @@ import (
 // RunAdd cmd to add torrents
 func RunAdd() *cobra.Command {
 	var dry bool
+	var paused bool
 
 	var command = &cobra.Command{
 		Use:   "add",
@@ -27,6 +28,7 @@ func RunAdd() *cobra.Command {
 		},
 	}
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		// args
@@ -47,6 +49,9 @@ func RunAdd() *cobra.Command {
 			}
 
 			options := map[string]string{}
+			if paused != false {
+				options["paused"] = "true"
+			}
 			res, err := qb.AddTorrentFromFile(filePath, options)
 			if err != nil {
 				log.Fatalf("adding torrent failed: %v", err)
