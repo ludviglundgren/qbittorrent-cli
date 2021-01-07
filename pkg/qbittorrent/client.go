@@ -238,3 +238,22 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) (has
 
 	return hash, nil
 }
+
+func (c *Client) AddTorrentFromMagnet(u string, options map[string]string) (hash string, err error) {
+	m, err := metainfo.ParseMagnetURI(u)
+	if err != nil {
+		log.Fatalf("could not parse magnet URI %v", err)
+	}
+
+	options["urls"] = u
+	res, err := c.post("torrents/add", options)
+	if err != nil {
+		return "", err
+	} else if res.StatusCode != http.StatusOK {
+		return "", err
+	}
+
+	defer res.Body.Close()
+
+	return m.InfoHash.HexString(), nil
+}
