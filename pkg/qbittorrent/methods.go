@@ -2,7 +2,6 @@ package qbittorrent
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -106,13 +105,6 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) (has
 		log.Fatalf("could not open file %v", err)
 	}
 
-	// Get hash from info
-	torrentHash := metainfo.HashBytes(t.InfoBytes)
-	hash = torrentHash.String()
-	if hash == "" {
-		return "", errors.New("could not stringify torrent hash")
-	}
-
 	res, err := c.postFile("torrents/add", file, options)
 	if err != nil {
 		return "", err
@@ -122,7 +114,7 @@ func (c *Client) AddTorrentFromFile(file string, options map[string]string) (has
 
 	defer res.Body.Close()
 
-	return hash, nil
+	return t.HashInfoBytes().HexString(), nil
 }
 
 func (c *Client) AddTorrentFromMagnet(u string, options map[string]string) (hash string, err error) {
