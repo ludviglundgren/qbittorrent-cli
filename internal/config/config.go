@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	CfgFile string
-	Config  domain.AppConfig
-	Qbit    domain.QbitConfig
+	CfgFile    string
+	Config     domain.AppConfig
+	Qbit       domain.QbitConfig
+	Reannounce domain.ReannounceSettings
 )
 
 // InitConfig initialize config
@@ -46,4 +47,5 @@ func InitConfig() {
 		os.Exit(1)
 	}
 	Qbit = Config.Qbit
+	Reannounce = Config.Reannounce
 }

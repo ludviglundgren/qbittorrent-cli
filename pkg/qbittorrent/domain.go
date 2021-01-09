@@ -45,6 +45,21 @@ type Torrent struct {
 	UpSpeed            int          `json:"upspeed"`
 }
 
+type TorrentTrackersResponse struct {
+	Trackers []TorrentTracker `json:"trackers"`
+}
+
+type TorrentTracker struct {
+	Url           string `json:"url"`
+	Status        int    `json:"status"`
+	Tier          uint   `json:"tier"`
+	NumPeers      int    `json:"num_peers"`
+	NumSeeds      int    `json:"num_seeds"`
+	NumLeechers   int    `json:"num_leechers"`
+	NumDownloaded int    `json:"num_downloaded"`
+	Message       string `json:"msg"`
+}
+
 type TorrentState string
 
 const (
@@ -97,7 +112,7 @@ const (
 	TorrentStateForceDl TorrentState = "forceDL"
 
 	// Checking resume data on qBt startup
-	TorrentstateCheckingResumeData TorrentState = "checkingResumeData"
+	TorrentStateCheckingResumeData TorrentState = "checkingResumeData"
 
 	// Torrent is moving to another location
 	TorrentStateMoving TorrentState = "moving"
