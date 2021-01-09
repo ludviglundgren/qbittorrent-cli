@@ -50,9 +50,9 @@ type TorrentTrackersResponse struct {
 }
 
 type TorrentTracker struct {
+	//Tier          uint   `json:"tier"` // can be both empty "" and int
 	Url           string `json:"url"`
 	Status        int    `json:"status"`
-	Tier          uint   `json:"tier"`
 	NumPeers      int    `json:"num_peers"`
 	NumSeeds      int    `json:"num_seeds"`
 	NumLeechers   int    `json:"num_leechers"`

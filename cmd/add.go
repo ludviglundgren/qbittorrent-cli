@@ -120,7 +120,7 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 				return err
 			}
 
-			time.Sleep(3000 * time.Millisecond)
+			time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
 			attempts++
 			continue
 		} else {

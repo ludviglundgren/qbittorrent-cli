@@ -8,4 +8,4 @@ password = "password"  # qbittorrent webui-api password
 [reannounce]
 enabled = true  # true or false
 attempts = 10   # attempts to run. Run max 10-30 times
-interval = 3000 # interval between attempts in milliseconds
+interval = 7000 # interval between attempts in milliseconds
