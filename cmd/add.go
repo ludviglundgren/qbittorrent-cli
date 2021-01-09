@@ -13,6 +13,7 @@ import (
 // RunAdd cmd to add torrents
 func RunAdd() *cobra.Command {
 	var (
+		magnet        bool
 		dry           bool
 		paused        bool
 		skipHashCheck bool
@@ -32,6 +33,7 @@ func RunAdd() *cobra.Command {
 			return nil
 		},
 	}
+	command.Flags().BoolVar(&magnet, "magnet", false, "Add magnet link instead of torrent file")
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
@@ -70,7 +72,13 @@ func RunAdd() *cobra.Command {
 			if category != "" {
 				options["category"] = category
 			}
-			res, err := qb.AddTorrentFromFile(filePath, options)
+
+			var res string
+			if magnet {
+				res, err = qb.AddTorrentFromMagnet(filePath, options)
+			} else {
+				res, err = qb.AddTorrentFromFile(filePath, options)
+			}
 			if err != nil {
 				log.Fatalf("adding torrent failed: %v", err)
 			}
