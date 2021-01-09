@@ -70,6 +70,7 @@ Flags:
   * `--skip-hash-check` - Skip hash check
   * `--save-path` - Add torrent to the specified path
   * `--category` - Add torrent to the specified category
+  * `--tags` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+ 
 
 Add a new torrent to qBittorrent.
 

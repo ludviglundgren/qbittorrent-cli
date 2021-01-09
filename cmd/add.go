@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -20,6 +21,7 @@ func RunAdd() *cobra.Command {
 		skipHashCheck bool
 		savePath      string
 		category      string
+		tags          []string
 	)
 
 	var command = &cobra.Command{
@@ -40,6 +42,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
+	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		// args
@@ -72,6 +75,9 @@ func RunAdd() *cobra.Command {
 			}
 			if category != "" {
 				options["category"] = category
+			}
+			if tags != nil {
+				options["tags"] = strings.Join(tags, ",")
 			}
 
 			var res string
