@@ -63,6 +63,14 @@ Use "qbt [command] --help" for more information about a command.
 
 ### Add
 
+Flags:
+  * `--dry-run` - Run without doing anything
+  * `--magnet` - Add magnet link instead of torrent file
+  * `--paused` - Add torrent in paused state
+  * `--skip-hash-check` - Skip hash check
+  * `--save-path` - Add torrent to the specified path
+  * `--category` - Add torrent to the specified category
+
 Add a new torrent to qBittorrent.
 
     qbt add my-torrent-file.torrent
