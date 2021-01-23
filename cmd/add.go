@@ -22,6 +22,7 @@ func RunAdd() *cobra.Command {
 		savePath      string
 		category      string
 		tags          []string
+		ignoreRules   bool
 	)
 
 	var command = &cobra.Command{
@@ -40,6 +41,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
+	command.Flags().BoolVar(&ignoreRules, "ignore-rules", false, "Ignore rules from config")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
@@ -60,6 +62,17 @@ func RunAdd() *cobra.Command {
 			err := qb.Login()
 			if err != nil {
 				log.Fatalf("connection failed %v", err)
+			}
+
+			if config.Rules.Enabled && !ignoreRules {
+				activeDownloads, err := qb.GetTorrentsFilter(qbittorrent.TorrentFilterDownloading)
+				if err != nil {
+					log.Fatalf("could not fetch torrents: %v", err)
+				}
+
+				if len(activeDownloads) >= config.Rules.MaxActiveDownloads {
+					log.Fatalf("max active downloads reached, skip adding: %v", err)
+				}
 			}
 
 			options := map[string]string{}

@@ -15,6 +15,7 @@ var (
 	Config     domain.AppConfig
 	Qbit       domain.QbitConfig
 	Reannounce domain.ReannounceSettings
+	Rules      domain.Rules
 )
 
 // InitConfig initialize config
@@ -48,4 +49,5 @@ func InitConfig() {
 	}
 	Qbit = Config.Qbit
 	Reannounce = Config.Reannounce
+	Rules = Config.Rules
 }

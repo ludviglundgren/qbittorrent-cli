@@ -13,8 +13,14 @@ type ReannounceSettings struct {
 	Interval int  `mapstructure:"interval"`
 }
 
+type Rules struct {
+	Enabled            bool `mapstructure:"enabled"`
+	MaxActiveDownloads int  `mapstructure:"max_active_downloads"`
+}
+
 type AppConfig struct {
 	Debug      bool               `mapstructure:"debug"`
 	Qbit       QbitConfig         `mapstructure:"qbittorrent"`
 	Reannounce ReannounceSettings `mapstructure:"reannounce"`
+	Rules      Rules              `mapstructure:"rules"`
 }
