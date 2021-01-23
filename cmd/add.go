@@ -23,8 +23,8 @@ func RunAdd() *cobra.Command {
 		category      string
 		tags          []string
 		ignoreRules   bool
-		uploadLimit   int
-		downloadLimit int
+		uploadLimit   uint64
+		downloadLimit uint64
 	)
 
 	var command = &cobra.Command{
@@ -46,8 +46,8 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&ignoreRules, "ignore-rules", false, "Ignore rules from config")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
-	command.Flags().IntVar(&uploadLimit, "ul-limit", 0, "Set torrent upload speed limit. Unit in bytes/second")
-	command.Flags().IntVar(&downloadLimit, "dl-limit", 0, "Set torrent download speed limit. Unit in bytes/second")
+	command.Flags().Uint64Var(&uploadLimit, "ul-limit", 0, "Set torrent upload speed limit. Unit in bytes/second")
+	command.Flags().Uint64Var(&downloadLimit, "dl-limit", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -96,10 +96,10 @@ func RunAdd() *cobra.Command {
 			if tags != nil {
 				options["tags"] = strings.Join(tags, ",")
 			}
-			if uploadLimit != 0 {
+			if uploadLimit > 0 {
 				options["upLimit"] = string(uploadLimit)
 			}
-			if downloadLimit != 0 {
+			if downloadLimit > 0 {
 				options["dlLimit"] = string(uploadLimit)
 			}
 
