@@ -3,6 +3,7 @@ package cmd
 import (
 	"errors"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -46,8 +47,8 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&ignoreRules, "ignore-rules", false, "Ignore rules from config")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
-	command.Flags().Uint64Var(&uploadLimit, "ul-limit", 0, "Set torrent upload speed limit. Unit in bytes/second")
-	command.Flags().Uint64Var(&downloadLimit, "dl-limit", 0, "Set torrent download speed limit. Unit in bytes/second")
+	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
+	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -97,10 +98,10 @@ func RunAdd() *cobra.Command {
 				options["tags"] = strings.Join(tags, ",")
 			}
 			if uploadLimit > 0 {
-				options["upLimit"] = string(uploadLimit)
+				options["upLimit"] = strconv.FormatUint(uploadLimit, 10)
 			}
 			if downloadLimit > 0 {
-				options["dlLimit"] = string(uploadLimit)
+				options["dlLimit"] = strconv.FormatUint(uploadLimit, 10)
 			}
 
 			var res string

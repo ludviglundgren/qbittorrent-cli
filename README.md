@@ -79,8 +79,8 @@ Flags:
   * `--category` - Add torrent to the specified category
   * `--tags` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+ 
   * `--ingore-rules` - Ignore rules set in config
-  * `--ul-limit` - Set torrent upload speed limit. Unit in bytes/second
-  * `--dl-limit` - Set torrent download speed limit. Unit in bytes/second
+  * `--limit-ul` - Set torrent upload speed limit. Unit in bytes/second
+  * `--limit-dl` - Set torrent download speed limit. Unit in bytes/second
 
 Add a new torrent to qBittorrent.
 
