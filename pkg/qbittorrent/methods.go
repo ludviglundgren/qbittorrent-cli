@@ -56,6 +56,33 @@ func (c *Client) GetTorrents() ([]Torrent, error) {
 	return torrents, nil
 }
 
+func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
+	var torrents []Torrent
+
+	v := url.Values{}
+	v.Add("filter", string(filter))
+	params := v.Encode()
+
+	resp, err := c.get("torrents/info?"+params, nil)
+	if err != nil {
+		log.Fatalf("error fetching torrents: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	err = json.Unmarshal(body, &torrents)
+	if err != nil {
+		log.Fatalf("could not unmarshal json: %v", err)
+	}
+
+	return torrents, nil
+}
+
 func (c *Client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {

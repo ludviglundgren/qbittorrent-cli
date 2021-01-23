@@ -120,3 +120,40 @@ const (
 	// Unknown status
 	TorrentStateUnknown TorrentState = "unknown"
 )
+
+type TorrentFilter string
+
+const (
+	// Torrent is paused
+	TorrentFilterAll TorrentFilter = "all"
+
+	// Torrent is active
+	TorrentFilterActive TorrentFilter = "active"
+
+	// Torrent is inactive
+	TorrentFilterInactive TorrentFilter = "inactive"
+
+	// Torrent is completed
+	TorrentFilterCompleted TorrentFilter = "completed"
+
+	// Torrent is resumed
+	TorrentFilterResumed TorrentFilter = "resumed"
+
+	// Torrent is paused
+	TorrentFilterPaused TorrentFilter = "paused"
+
+	// Torrent is stalled
+	TorrentFilterStalled TorrentFilter = "stalled"
+
+	// Torrent is being seeded and data is being transferred
+	TorrentFilterUploading TorrentFilter = "uploading"
+
+	// Torrent is being seeded, but no connection were made
+	TorrentFilterStalledUploading TorrentFilter = "stalled_uploading"
+
+	// Torrent is being downloaded and data is being transferred
+	TorrentFilterDownloading TorrentFilter = "downloading"
+
+	// Torrent is being downloaded, but no connection were made
+	TorrentFilterStalledDownloading TorrentFilter = "stalled_downloading"
+)

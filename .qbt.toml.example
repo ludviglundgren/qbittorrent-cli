@@ -9,3 +9,7 @@ password = "password"  # qbittorrent webui-api password
 enabled = true  # true or false
 attempts = 10   # attempts to run. Run max 10-30 times
 interval = 7000 # interval between attempts in milliseconds
+
+[rules]
+enabled              = true   # enable or disable rules
+max_active_downloads = 2      # set max active downloads
