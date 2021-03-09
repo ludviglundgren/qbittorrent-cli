@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"time"
 
 	"github.com/zeebo/bencode"
 )
@@ -46,7 +47,7 @@ func (di *DelugeImport) Import(opts Options) error {
 	}
 
 	totalJobs := len(fastresumeFile)
-	log.Printf("total jobs: %v\n", totalJobs)
+	log.Printf("Total torrents to process: %v\n", totalJobs)
 
 	positionNum := 0
 	for key, value := range fastresumeFile {
@@ -70,13 +71,14 @@ func (di *DelugeImport) Import(opts Options) error {
 			log.Printf("Can't decode row %v with torrent %v. Continue", key, torrentName)
 		}
 
-		processFile(key, decodedVal, opts, &torrentsPath, positionNum)
+		processFile(key, decodedVal, opts, &torrentsPath, positionNum, totalJobs)
+		time.Sleep(250 * time.Millisecond)
 	}
 
 	return nil
 }
 
-func processFile(key string, newStructure NewTorrentStructure, opts Options, torrentsPath *string, position int) error {
+func processFile(key string, newStructure NewTorrentStructure, opts Options, torrentsPath *string, position int, totalJobs int) error {
 	var err error
 
 	newStructure.torrentFilePath = *torrentsPath + key + ".torrent"
@@ -90,6 +92,13 @@ func processFile(key string, newStructure NewTorrentStructure, opts Options, tor
 		log.Printf("Can't find torrent file %v for %v", newStructure.torrentFilePath, key)
 		return err
 	}
+
+	if _, ok := newStructure.torrentFile["info"].(map[string]interface{})["files"]; ok {
+		newStructure.QbtHasRootFolder = 1
+	} else {
+		newStructure.QbtHasRootFolder = 0
+	}
+
 	newStructure.QbtQueuePosition = position
 	newStructure.QbtQueuePosition = 1
 	newStructure.QbtRatioLimit = -2000
@@ -100,6 +109,7 @@ func processFile(key string, newStructure NewTorrentStructure, opts Options, tor
 	newStructure.QbtHasRootFolder = 0
 
 	newStructure.QbtSavePath = newStructure.SavePath
+	// TODO handle replace paths
 
 	if err = encodeTorrentFile(opts.QbitDir+key+".fastresume", &newStructure); err != nil {
 		log.Printf("Can't create qBittorrent fastresume file %v", opts.QbitDir+key+".fastresume")
@@ -111,7 +121,7 @@ func processFile(key string, newStructure NewTorrentStructure, opts Options, tor
 		return err
 	}
 
-	log.Printf("Sucessfully imported %v", newStructure.torrentFile["info"].(map[string]interface{})["name"].(string))
+	log.Printf("%v/%v Sucessfully imported %v", position, totalJobs, newStructure.torrentFile["info"].(map[string]interface{})["name"].(string))
 
 	return nil
 }
