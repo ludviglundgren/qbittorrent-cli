@@ -17,13 +17,18 @@ type Options struct {
 	StateDir  string
 }
 
-type DelugeImporter interface {
+//type opts struct {
+//	Source      string
+//	Destination string
+//}
+
+type Importer interface {
 	Import(opts Options) error
 }
 
 type DelugeImport struct{}
 
-func NewDelugeImporter() DelugeImporter {
+func NewDelugeImporter() Importer {
 	return &DelugeImport{}
 }
 
@@ -50,6 +55,7 @@ func (di *DelugeImport) Import(opts Options) error {
 	log.Printf("Total torrents to process: %v\n", totalJobs)
 
 	positionNum := 0
+	// TODO rename key to id
 	for key, value := range fastresumeFile {
 		positionNum++
 		var decodedVal NewTorrentStructure
@@ -70,6 +76,8 @@ func (di *DelugeImport) Import(opts Options) error {
 			torrentName := torrentFile["info"].(map[string]interface{})["name"].(string)
 			log.Printf("Can't decode row %v with torrent %v. Continue", key, torrentName)
 		}
+
+		// TODO check if file already exists
 
 		processFile(key, decodedVal, opts, &torrentsPath, positionNum, totalJobs)
 		time.Sleep(250 * time.Millisecond)
@@ -111,13 +119,13 @@ func processFile(key string, newStructure NewTorrentStructure, opts Options, tor
 	newStructure.QbtSavePath = newStructure.SavePath
 	// TODO handle replace paths
 
-	if err = encodeTorrentFile(opts.QbitDir+key+".fastresume", &newStructure); err != nil {
-		log.Printf("Can't create qBittorrent fastresume file %v", opts.QbitDir+key+".fastresume")
+	if err = encodeFastResumeFile(opts.QbitDir+key+".fastresume", &newStructure); err != nil {
+		log.Printf("Can't create qBittorrent fastresume file %v error: %v", opts.QbitDir+key+".fastresume", err)
 		return err
 	}
 
 	if err = copyFile(newStructure.torrentFilePath, opts.QbitDir+key+".torrent"); err != nil {
-		log.Printf("Can't create qBittorrent torrent file %v", opts.QbitDir+key+".torrent")
+		log.Printf("Can't create qBittorrent torrent file %v error %v", opts.QbitDir+key+".torrent", err)
 		return err
 	}
 
@@ -138,22 +146,33 @@ func decodeTorrentFile(path string) (map[string]interface{}, error) {
 	return torrent, nil
 }
 
-func encodeTorrentFile(path string, newStructure *NewTorrentStructure) error {
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.Create(path)
-		if err != nil {
-			return err
-		}
+func encodeFastResumeFile(path string, newStructure *NewTorrentStructure) error {
+	// TODO if file exist, what to do
+	//if _, err := os.Stat(path); os.IsNotExist(err) {
+	//	log.Printf("os stat error: %v", err)
+	//	//_, err2 := os.Create(path)
+	//	//if err2 != nil {
+	//	//	log.Printf("os create error: %v", err2)
+	//	//	return err2
+	//	//}
+	//}
+
+	_, err2 := os.Create(path)
+	if err2 != nil {
+		log.Printf("os create error: %v", err2)
+		return err2
 	}
 
 	file, err := os.OpenFile(path, os.O_WRONLY, 0666)
 	if err != nil {
+		log.Printf("os open file error: %v", err)
 		return err
 	}
 	defer file.Close()
 	bufferedWriter := bufio.NewWriter(file)
 	enc := bencode.NewEncoder(bufferedWriter)
 	if err := enc.Encode(newStructure); err != nil {
+		log.Printf("encode error: %v", err)
 		return err
 	}
 	bufferedWriter.Flush()
