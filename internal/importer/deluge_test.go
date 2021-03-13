@@ -9,20 +9,12 @@ func TestDelugeImport_Import(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "good_deluge_dir",
+			name: "import_from_deluge",
 			opts: Options{
 				DelugeDir: "../../test/import/deluge",
 				QbitDir:   "../../test/output/",
 			},
 			wantErr: false,
-		},
-		{
-			name: "bad_deluge_dir",
-			opts: Options{
-				DelugeDir: "../../test/import/",
-				QbitDir:   "../../test/output/",
-			},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
