@@ -64,6 +64,8 @@ func (di *DelugeImport) Import(opts Options) error {
 			continue
 		}
 
+		// TODO check if torrent exist in fastresume data, but not on disk
+
 		if err := bencode.DecodeString(value.(string), &decodedVal); err != nil {
 			torrentFile := map[string]interface{}{}
 			torrentFilePath := torrentsStateDir + torrentID + ".torrent"
