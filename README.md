@@ -85,3 +85,16 @@ Flags:
 Add a new torrent to qBittorrent.
 
     qbt add my-torrent-file.torrent
+
+### Import
+
+Flags:
+* `--from` - Import from client (only deluge supported currently)
+* `--deluge-dir` - Deluge dir (~/.config/deluge)
+* `--qbit-dir` - Qbittorrent dir (~/.local/share/data/qBittorrent/BT_backup)
+
+> WARNING: Make sure to stop both Deluge and qBittorrent before importing.
+
+Import torrents from another client into qBittorrent. Example with Deluge.
+
+    qbt import --from deluge --deluge-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
