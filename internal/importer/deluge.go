@@ -14,7 +14,6 @@ import (
 type Options struct {
 	DelugeDir string
 	QbitDir   string
-	StateDir  string
 }
 
 //type opts struct {
@@ -33,13 +32,13 @@ func NewDelugeImporter() Importer {
 }
 
 func (di *DelugeImport) Import(opts Options) error {
-	torrentsPath := opts.DelugeDir + "/state/"
-	if _, err := os.Stat(torrentsPath); os.IsNotExist(err) {
+	torrentsStateDir := opts.DelugeDir + "/state/"
+	if _, err := os.Stat(torrentsStateDir); os.IsNotExist(err) {
 		log.Println("Can't find deluge state directory")
 		return err
 	}
 
-	resumeFilePath := opts.DelugeDir + "/state/torrents.fastresume"
+	resumeFilePath := torrentsStateDir + "torrents.fastresume"
 	if _, err := os.Stat(resumeFilePath); os.IsNotExist(err) {
 		log.Println("Can't find deluge fastresume file")
 		return err
@@ -55,81 +54,84 @@ func (di *DelugeImport) Import(opts Options) error {
 	log.Printf("Total torrents to process: %v\n", totalJobs)
 
 	positionNum := 0
-	// TODO rename key to id
-	for key, value := range fastresumeFile {
+	for torrentID, value := range fastresumeFile {
 		positionNum++
-		var decodedVal NewTorrentStructure
+		var decodedVal NewFastResumeFile
+
+		// If file already exists, skip
+		if _, err = os.Stat(opts.QbitDir + "/" + torrentID + ".torrent"); err == nil {
+			log.Printf("Torrent already exists, skipping: %v", torrentID)
+			continue
+		}
 
 		if err := bencode.DecodeString(value.(string), &decodedVal); err != nil {
 			torrentFile := map[string]interface{}{}
-			torrentFilePath := opts.DelugeDir + "/state/" + key + ".torrent"
+			torrentFilePath := torrentsStateDir + torrentID + ".torrent"
 
 			if _, err = os.Stat(torrentFilePath); os.IsNotExist(err) {
-				log.Printf("Can't find torrent file %v. Can't decode string %v. Continue", torrentFilePath, key)
+				log.Printf("Can't find torrent file %v. Can't decode string %v. Continue", torrentFilePath, torrentID)
 				continue
 			}
 			torrentFile, err = decodeTorrentFile(torrentFilePath)
 			if err != nil {
-				log.Printf("Can't decode torrent file %v. Can't decode string %v. Continue", torrentFilePath, key)
+				log.Printf("Can't decode torrent file %v. Can't decode string %v. Continue", torrentFilePath, torrentID)
 				continue
 			}
 			torrentName := torrentFile["info"].(map[string]interface{})["name"].(string)
-			log.Printf("Can't decode row %v with torrent %v. Continue", key, torrentName)
+			log.Printf("Can't decode row %v with torrent %v. Continue", torrentID, torrentName)
 		}
 
-		// TODO check if file already exists
-
-		processFile(key, decodedVal, opts, &torrentsPath, positionNum, totalJobs)
-		time.Sleep(250 * time.Millisecond)
+		go processFiles(torrentID, decodedVal, opts, &torrentsStateDir, positionNum, totalJobs)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	return nil
 }
 
-func processFile(key string, newStructure NewTorrentStructure, opts Options, torrentsPath *string, position int, totalJobs int) error {
+func processFiles(torrentID string, fastResume NewFastResumeFile, opts Options, torrentsPath *string, position int, totalJobs int) error {
 	var err error
 
-	newStructure.torrentFilePath = *torrentsPath + key + ".torrent"
-	if _, err = os.Stat(newStructure.torrentFilePath); os.IsNotExist(err) {
-		log.Printf("Can't find torrent file %v for %v", newStructure.torrentFilePath, key)
+	fastResume.torrentFilePath = *torrentsPath + torrentID + ".torrent"
+	if _, err = os.Stat(fastResume.torrentFilePath); os.IsNotExist(err) {
+		log.Printf("Can't find torrent file %v for %v", fastResume.torrentFilePath, torrentID)
 		return err
 	}
 
-	newStructure.torrentFile, err = decodeTorrentFile(newStructure.torrentFilePath)
+	fastResume.torrentFile, err = decodeTorrentFile(fastResume.torrentFilePath)
 	if err != nil {
-		log.Printf("Can't find torrent file %v for %v", newStructure.torrentFilePath, key)
+		log.Printf("Can't find torrent file %v for %v", fastResume.torrentFilePath, torrentID)
 		return err
 	}
 
-	if _, ok := newStructure.torrentFile["info"].(map[string]interface{})["files"]; ok {
-		newStructure.QbtHasRootFolder = 1
+	if _, ok := fastResume.torrentFile["info"].(map[string]interface{})["files"]; ok {
+		fastResume.QbtHasRootFolder = 1
 	} else {
-		newStructure.QbtHasRootFolder = 0
+		fastResume.QbtHasRootFolder = 0
 	}
 
-	newStructure.QbtQueuePosition = position
-	newStructure.QbtQueuePosition = 1
-	newStructure.QbtRatioLimit = -2000
-	newStructure.QbtSeedStatus = 1
-	newStructure.QbtSeedingTimeLimit = -2
-	newStructure.QbtTempPathDisabled = 0
-	newStructure.QbtName = ""
-	newStructure.QbtHasRootFolder = 0
+	//fastResume.QbtQueuePosition = position
+	fastResume.QbtQueuePosition = 1
+	fastResume.QbtRatioLimit = -2000
+	fastResume.QbtSeedStatus = 1
+	fastResume.QbtSeedingTimeLimit = -2
+	fastResume.QbtTempPathDisabled = 0
+	fastResume.QbtName = ""
+	fastResume.QbtHasRootFolder = 0
 
-	newStructure.QbtSavePath = newStructure.SavePath
+	fastResume.QbtSavePath = fastResume.SavePath
 	// TODO handle replace paths
 
-	if err = encodeFastResumeFile(opts.QbitDir+key+".fastresume", &newStructure); err != nil {
-		log.Printf("Can't create qBittorrent fastresume file %v error: %v", opts.QbitDir+key+".fastresume", err)
+	if err = encodeFastResumeFile(opts.QbitDir+"/"+torrentID+".fastresume", &fastResume); err != nil {
+		log.Printf("Can't create qBittorrent fastresume file %v error: %v", opts.QbitDir+torrentID+".fastresume", err)
 		return err
 	}
 
-	if err = copyFile(newStructure.torrentFilePath, opts.QbitDir+key+".torrent"); err != nil {
-		log.Printf("Can't create qBittorrent torrent file %v error %v", opts.QbitDir+key+".torrent", err)
+	if err = copyFile(fastResume.torrentFilePath, opts.QbitDir+"/"+torrentID+".torrent"); err != nil {
+		log.Printf("Can't create qBittorrent torrent file %v error %v", opts.QbitDir+torrentID+".torrent", err)
 		return err
 	}
 
-	log.Printf("%v/%v Sucessfully imported %v", position, totalJobs, newStructure.torrentFile["info"].(map[string]interface{})["name"].(string))
+	log.Printf("%v/%v Sucessfully imported: %v", position, totalJobs, fastResume.torrentFile["info"].(map[string]interface{})["name"].(string))
 
 	return nil
 }
@@ -146,16 +148,7 @@ func decodeTorrentFile(path string) (map[string]interface{}, error) {
 	return torrent, nil
 }
 
-func encodeFastResumeFile(path string, newStructure *NewTorrentStructure) error {
-	// TODO if file exist, what to do
-	//if _, err := os.Stat(path); os.IsNotExist(err) {
-	//	log.Printf("os stat error: %v", err)
-	//	//_, err2 := os.Create(path)
-	//	//if err2 != nil {
-	//	//	log.Printf("os create error: %v", err2)
-	//	//	return err2
-	//	//}
-	//}
+func encodeFastResumeFile(path string, newStructure *NewFastResumeFile) error {
 
 	_, err2 := os.Create(path)
 	if err2 != nil {
@@ -199,7 +192,7 @@ func copyFile(src string, dst string) error {
 	return nil
 }
 
-type NewTorrentStructure struct {
+type NewFastResumeFile struct {
 	ActiveTime         int64     `bencode:"active_time"`
 	AddedTime          int64     `bencode:"added_time"`
 	AnnounceToDht      int64     `bencode:"announce_to_dht"`
@@ -259,7 +252,7 @@ type NewTorrentStructure struct {
 	sizeAndPrio     [][]int64
 	torrentFileList []string
 	nPieces         int64
-	pieceLenght     int64
+	pieceLength     int64
 	replace         []Replace
 }
 
