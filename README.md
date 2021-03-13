@@ -98,3 +98,5 @@ Flags:
 Import torrents from another client into qBittorrent. Example with Deluge.
 
     qbt import --from deluge --deluge-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
+
+After the import you will have to manually delete the torrents from Deluge, but don't check the "also delete files" as currently the import DOES NOT move the actual data.
