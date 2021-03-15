@@ -11,9 +11,10 @@ import (
 // RunImport cmd import torrents
 func RunImport() *cobra.Command {
 	var (
-		from      string
-		delugeDir string
-		qbitDir   string
+		from        string
+		delugeDir   string
+		qbitDir     string
+		rtorrentDir string
 	)
 
 	var command = &cobra.Command{
@@ -24,6 +25,7 @@ func RunImport() *cobra.Command {
 	command.Flags().StringVar(&from, "from", "", "from client")
 	command.Flags().StringVar(&delugeDir, "deluge-dir", "", "deluge dir")
 	command.Flags().StringVar(&qbitDir, "qbit-dir", "", "qbit dir")
+	command.Flags().StringVar(&rtorrentDir, "rtorrent-dir", "", "rTorrent dir")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 
@@ -38,6 +40,16 @@ func RunImport() *cobra.Command {
 			}
 
 			d.Import(opts)
+
+		case "rtorrent":
+			r := importer.NewRTorrentImporter()
+			opts := importer.Options{
+				QbitDir:     qbitDir,
+				RTorrentDir: rtorrentDir,
+			}
+
+			r.Import(opts)
+
 		default:
 			fmt.Println("WARNING: Unsupported client!")
 			break
