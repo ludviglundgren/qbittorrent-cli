@@ -12,8 +12,9 @@ import (
 )
 
 type Options struct {
-	DelugeDir string
-	QbitDir   string
+	DelugeDir   string
+	QbitDir     string
+	RTorrentDir string
 }
 
 //type opts struct {
