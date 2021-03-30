@@ -23,9 +23,13 @@ func RunImport() *cobra.Command {
 		Long:  `Import torrents which state from other clients [rtorrent, deluge]`,
 	}
 	command.Flags().StringVar(&source, "source", "", "source client [deluge, rtorrent]")
-	command.Flags().StringVar(&sourceDir, "source-dir", "", "source state dir")
+	command.Flags().StringVar(&sourceDir, "source-dir", "", "source client state dir")
 	command.Flags().StringVar(&qbitDir, "qbit-dir", "", "qbit dir")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Run without doing anything")
+
+	command.MarkFlagRequired("source")
+	command.MarkFlagRequired("source-dir")
+	command.MarkFlagRequired("qbit-dir")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 
