@@ -20,7 +20,7 @@ func RunImport() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "import",
 		Short: "import torrents",
-		Long:  `Import torrents source other client`,
+		Long:  `Import torrents which state from other clients [rtorrent, deluge]`,
 	}
 	command.Flags().StringVar(&source, "source", "", "source client [deluge, rtorrent]")
 	command.Flags().StringVar(&sourceDir, "source-dir", "", "source state dir")
