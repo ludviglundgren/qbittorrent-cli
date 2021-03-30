@@ -89,14 +89,14 @@ Add a new torrent to qBittorrent.
 ### Import
 
 Flags:
-* `--from` - Import from client (only deluge supported currently)
-* `--deluge-dir` - Deluge dir (~/.config/deluge)
-* `--qbit-dir` - Qbittorrent dir (~/.local/share/data/qBittorrent/BT_backup)
+* `--source` - Import from client [deluge, rtorrent]
+* `--source-dir` - State/session dir for client
+* `--qbit-dir` - qBittorrent dir (~/.local/share/data/qBittorrent/BT_backup)
 
-> WARNING: Make sure to stop both Deluge and qBittorrent before importing.
+> WARNING: Make sure to stop both the source client and qBittorrent before importing.
 
-Import torrents from another client into qBittorrent. Example with Deluge.
+Import torrents from other client into qBittorrent. Example with Deluge.
 
-    qbt import --from deluge --deluge-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
+    qbt import --source deluge --source-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
 
-After the import you will have to manually delete the torrents from Deluge, but don't check the "also delete files" as currently the import DOES NOT move the actual data.
+After the import you will have to manually delete the torrents from the source client, but don't check the "also delete files" as currently the import DOES NOT move the actual data.

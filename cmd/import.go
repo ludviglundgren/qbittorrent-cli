@@ -11,33 +11,31 @@ import (
 // RunImport cmd import torrents
 func RunImport() *cobra.Command {
 	var (
-		from        string
-		delugeDir   string
-		qbitDir     string
-		rtorrentDir string
-		dryRun      bool
+		source    string
+		sourceDir string
+		qbitDir   string
+		dryRun    bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "import",
 		Short: "import torrents",
-		Long:  `Import torrents from other client`,
+		Long:  `Import torrents source other client`,
 	}
-	command.Flags().StringVar(&from, "from", "", "from client")
-	command.Flags().StringVar(&delugeDir, "deluge-dir", "", "deluge dir")
+	command.Flags().StringVar(&source, "source", "", "source client [deluge, rtorrent]")
+	command.Flags().StringVar(&sourceDir, "source-dir", "", "source state dir")
 	command.Flags().StringVar(&qbitDir, "qbit-dir", "", "qbit dir")
-	command.Flags().StringVar(&rtorrentDir, "rtorrent-dir", "", "rTorrent dir")
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Run without doing anything")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 
 		// TODO check if program is running, if true exit
 
-		switch from {
+		switch source {
 		case "deluge":
 			d := importer.NewDelugeImporter()
 			opts := importer.Options{
-				DelugeDir: delugeDir,
+				DelugeDir: sourceDir,
 				QbitDir:   qbitDir,
 			}
 
@@ -47,7 +45,7 @@ func RunImport() *cobra.Command {
 			r := importer.NewRTorrentImporter()
 			opts := importer.Options{
 				QbitDir:     qbitDir,
-				RTorrentDir: rtorrentDir,
+				RTorrentDir: sourceDir,
 			}
 
 			r.Import(opts)
