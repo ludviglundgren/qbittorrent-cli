@@ -29,7 +29,7 @@ var (
 )
 
 func (i *RTorrentImport) Import(opts Options) error {
-	torrentsSessionDir := opts.RTorrentDir
+	torrentsSessionDir := opts.SourceDir
 
 	info, err := os.Stat(torrentsSessionDir)
 	if os.IsNotExist(err) {

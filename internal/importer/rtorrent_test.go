@@ -18,8 +18,8 @@ func TestRTorrentImport_Import(t *testing.T) {
 		{
 			name: "import_from_rtorrent",
 			opts: Options{
-				QbitDir:     "../../test/output/rtorrent",
-				RTorrentDir: "../../test/import/sessions/",
+				QbitDir:   "../../test/output/rtorrent",
+				SourceDir: "../../test/import/sessions/",
 			},
 			wantErr: false,
 		},
@@ -43,8 +43,8 @@ func TestRTorrentImport_ImportFastResume(t *testing.T) {
 		{
 			name: "import_from_rtorrent",
 			opts: Options{
-				QbitDir:     "../../test/output/rtorrent",
-				RTorrentDir: "../../test/import/sessions/",
+				QbitDir:   "../../test/output/rtorrent",
+				SourceDir: "../../test/import/sessions/",
 			},
 			wantErr: false,
 		},

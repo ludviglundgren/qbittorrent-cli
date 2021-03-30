@@ -31,22 +31,20 @@ func RunImport() *cobra.Command {
 
 		// TODO check if program is running, if true exit
 
+		opts := importer.Options{
+			SourceDir: sourceDir,
+			QbitDir:   qbitDir,
+			DryRun:    dryRun,
+		}
+
 		switch source {
 		case "deluge":
 			d := importer.NewDelugeImporter()
-			opts := importer.Options{
-				DelugeDir: sourceDir,
-				QbitDir:   qbitDir,
-			}
 
 			d.Import(opts)
 
 		case "rtorrent":
 			r := importer.NewRTorrentImporter()
-			opts := importer.Options{
-				QbitDir:     qbitDir,
-				RTorrentDir: sourceDir,
-			}
 
 			r.Import(opts)
 
