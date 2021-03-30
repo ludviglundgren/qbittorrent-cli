@@ -12,7 +12,7 @@ func TestDelugeImport_Import(t *testing.T) {
 			name: "import_from_deluge",
 			opts: Options{
 				DelugeDir: "test/import/deluge",
-				QbitDir:   "test/output/",
+				QbitDir:   "test/output/deluge",
 			},
 			wantErr: false,
 		},

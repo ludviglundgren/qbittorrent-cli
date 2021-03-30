@@ -15,12 +15,8 @@ type Options struct {
 	DelugeDir   string
 	QbitDir     string
 	RTorrentDir string
+	DryRun      bool
 }
-
-//type opts struct {
-//	Source      string
-//	Destination string
-//}
 
 type Importer interface {
 	Import(opts Options) error

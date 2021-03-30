@@ -3,8 +3,6 @@ package qbittorrent
 import (
 	"bufio"
 	"crypto/sha1"
-	"fmt"
-	"io"
 	"log"
 	"os"
 	"strings"
@@ -14,35 +12,34 @@ import (
 	"github.com/zeebo/bencode"
 )
 
+// Fastresume represents a qBittorrent fastresume file
 type Fastresume struct {
-	ActiveTime        int64    `bencode:"active_time"`
-	AddedTime         int64    `bencode:"added_time"`
-	Allocation        string   `bencode:"allocation"`
-	ApplyIpFilter     int64    `bencode:"apply_ip_filter"`
-	AutoManaged       int64    `bencode:"auto_managed"`
-	CompletedTime     int64    `bencode:"completed_time"`
-	DisableDHT        int64    `bencode:"disable_dht"`
-	DisableLSD        int64    `bencode:"disable_lsd"`
-	DisablePEX        int64    `bencode:"disable_pex"`
-	DownloadRateLimit int64    `bencode:"download_rate_limit"`
-	FileFormat        string   `bencode:"file-format"`
-	FileVersion       int64    `bencode:"file-version"`
-	FilePriority      []int    `bencode:"file_priority"`
-	FinishedTime      int64    `bencode:"finished_time"`
-	HttpSeeds         []string `bencode:"httpseeds"`
-	//InfoHash          string   `bencode:"info-hash"`
-	InfoHash          []byte `bencode:"info-hash"`
-	LastDownload      int64  `bencode:"last_download"`
-	LastSeenComplete  int64  `bencode:"last_seen_complete"`
-	LastUpload        int64  `bencode:"last_upload"`
-	LibTorrentVersion string `bencode:"libtorrent-version"`
-	MaxConnections    int64  `bencode:"max_connections"`
-	MaxUploads        int64  `bencode:"max_uploads"`
-	NumComplete       int64  `bencode:"num_complete"`
-	NumDownloaded     int64  `bencode:"num_downloaded"`
-	NumIncomplete     int64  `bencode:"num_incomplete"`
-	Paused            int64  `bencode:"paused"`
-	//Pieces                    []byte                 `bencode:"pieces"`
+	ActiveTime                int64                  `bencode:"active_time"`
+	AddedTime                 int64                  `bencode:"added_time"`
+	Allocation                string                 `bencode:"allocation"`
+	ApplyIpFilter             int64                  `bencode:"apply_ip_filter"`
+	AutoManaged               int64                  `bencode:"auto_managed"`
+	CompletedTime             int64                  `bencode:"completed_time"`
+	DisableDHT                int64                  `bencode:"disable_dht"`
+	DisableLSD                int64                  `bencode:"disable_lsd"`
+	DisablePEX                int64                  `bencode:"disable_pex"`
+	DownloadRateLimit         int64                  `bencode:"download_rate_limit"`
+	FileFormat                string                 `bencode:"file-format"`
+	FileVersion               int64                  `bencode:"file-version"`
+	FilePriority              []int                  `bencode:"file_priority"`
+	FinishedTime              int64                  `bencode:"finished_time"`
+	HttpSeeds                 []string               `bencode:"httpseeds"`
+	InfoHash                  []byte                 `bencode:"info-hash"`
+	LastDownload              int64                  `bencode:"last_download"`
+	LastSeenComplete          int64                  `bencode:"last_seen_complete"`
+	LastUpload                int64                  `bencode:"last_upload"`
+	LibTorrentVersion         string                 `bencode:"libtorrent-version"`
+	MaxConnections            int64                  `bencode:"max_connections"`
+	MaxUploads                int64                  `bencode:"max_uploads"`
+	NumComplete               int64                  `bencode:"num_complete"`
+	NumDownloaded             int64                  `bencode:"num_downloaded"`
+	NumIncomplete             int64                  `bencode:"num_incomplete"`
+	Paused                    int64                  `bencode:"paused"`
 	Pieces                    string                 `bencode:"pieces"`
 	PiecePriority             []byte                 `bencode:"piece_priority"`
 	Peers                     string                 `bencode:"peers"`
@@ -83,12 +80,9 @@ type Fastresume struct {
 	NumPieces                 int64                  `bencode:"-"`
 	PieceLength               int64                  `bencode:"-"`
 	MappedFiles               []string               `bencode:"mapped_files,omitempty"`
-	//MappedFiles []string `bencode:"-"`
-	//Replace             []replace.Replace      `bencode:"-"`
-	Separator string `bencode:"-"`
 }
 
-// Encode fastresume file
+// Encode qBittorrent fastresume file
 func (fr *Fastresume) Encode(path string) error {
 	_, err := os.Create(path)
 	if err != nil {
@@ -119,7 +113,12 @@ func (fr *Fastresume) Encode(path string) error {
 func (fr *Fastresume) ConvertFilePriority(files []torrent.TorrentInfoFile) {
 	var newPrioList []int
 
-	// 0 Do not download, 1 Normal, 2 High
+	/*
+		File priority:
+		0 Do not download
+		1 Normal
+		2 High
+	*/
 	for i := 0; i < len(files); i++ {
 		newPrioList = append(newPrioList, 1)
 	}
@@ -128,66 +127,32 @@ func (fr *Fastresume) ConvertFilePriority(files []torrent.TorrentInfoFile) {
 }
 
 func (fr *Fastresume) FillPieces() {
-	//var newPieces = []string{}
-	var pieces = make([]byte, 0, fr.NumPieces)
-	//nchr, _ := strconv.Atoi(chr)
-
-	for i := int64(0); i < fr.NumPieces; i++ {
-		//pieces = append(pieces, byte(nchr))
-		pieces = append(pieces, byte(1))
-		//newPieces = append(newPieces, "\u0001")
-	}
-	fr.Pieces = string(pieces)
-
-	//ret := strings.Join(newPieces, "")
-}
-
-func (fr *Fastresume) FillWholePieces() {
-	var pieces = make([]byte, 0, fr.NumPieces)
-	for i := int64(0); i < fr.NumPieces; i++ {
-		pieces = append(pieces, byte(1))
-	}
-	fr.Pieces = string(pieces)
-}
-
-func (fr *Fastresume) FillWholePieces2() {
 	var pieces = make([]string, 0, fr.NumPieces)
 	for i := int64(0); i < fr.NumPieces; i++ {
 		pieces = append(pieces, "\x01")
 	}
-	//fr.Pieces = string(pieces)
 	fr.Pieces = strings.Join(pieces, "")
 }
 
-//func (newstructure *NewTorrentStructure) FillWholePieces(chr string) []byte {
-//	var newpieces = make([]byte, 0, newstructure.NumPieces)
-//	nchr, _ := strconv.Atoi(chr)
-//	for i := int64(0); i < newstructure.NumPieces; i++ {
-//		newpieces = append(newpieces, byte(nchr))
-//	}
-//	return newpieces
-//}
-
-func (fr *Fastresume) GetInfoHash() (hash string) {
-	torInfo, _ := bencode.EncodeString(fr.TorrentFile["info"].(map[string]interface{}))
-	h := sha1.New()
-	io.WriteString(h, torInfo)
-
-	hash = fmt.Sprintf("<hex>% X</hex>", h.Sum(nil))
-	return
-}
 func (fr *Fastresume) GetInfoHashSHA1() (hash []byte) {
 	torInfo, _ := bencode.EncodeString(fr.TorrentFile["info"].(map[string]interface{}))
 	h := sha1.New()
 	_, _ = h.Write([]byte(torInfo))
-	//io.WriteString(h, torInfo)
 
 	ab := h.Sum(nil)
 	return ab
-	//fmt.Println(ab)
-	//
-	//a := hex.EncodeToString(h.Sum(nil))
-	//
-	////hash = fmt.Sprintf("<hex>% X</hex>", h.Sum(nil))
-	//return a
 }
+
+//func (newstructure *NewTorrentStructure) GetTrackers(trackers interface{}) {
+//	switch strct := trackers.(type) {
+//	case []interface{}:
+//		for _, st := range strct {
+//			newstructure.GetTrackers(st)
+//		}
+//	case string:
+//		for _, str := range strings.Fields(strct) {
+//			newstructure.Trackers = append(newstructure.Trackers, []string{str})
+//		}
+//
+//	}
+//}

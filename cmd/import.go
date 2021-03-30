@@ -15,6 +15,7 @@ func RunImport() *cobra.Command {
 		delugeDir   string
 		qbitDir     string
 		rtorrentDir string
+		dryRun      bool
 	)
 
 	var command = &cobra.Command{
@@ -26,6 +27,7 @@ func RunImport() *cobra.Command {
 	command.Flags().StringVar(&delugeDir, "deluge-dir", "", "deluge dir")
 	command.Flags().StringVar(&qbitDir, "qbit-dir", "", "qbit dir")
 	command.Flags().StringVar(&rtorrentDir, "rtorrent-dir", "", "rTorrent dir")
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "Run without doing anything")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 
