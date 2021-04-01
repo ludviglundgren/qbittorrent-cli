@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"os"
 
 	"github.com/ludviglundgren/qbittorrent-cli/cmd"
@@ -11,6 +12,8 @@ import (
 
 func main() {
 	cobra.OnInitialize(config.InitConfig)
+
+	log.SetFlags(0)
 
 	var rootCmd = &cobra.Command{
 		Use:   "qbt",

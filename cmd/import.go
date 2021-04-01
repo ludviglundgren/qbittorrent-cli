@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/importer"
 
@@ -20,7 +21,7 @@ func RunImport() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "import",
 		Short: "import torrents",
-		Long:  `Import torrents which state from other clients [rtorrent, deluge]`,
+		Long:  `Import torrents with state from other clients [rtorrent, deluge]`,
 	}
 	command.Flags().StringVar(&source, "source", "", "source client [deluge, rtorrent]")
 	command.Flags().StringVar(&sourceDir, "source-dir", "", "source client state dir")
@@ -35,11 +36,15 @@ func RunImport() *cobra.Command {
 
 		// TODO check if program is running, if true exit
 
+		// TODO backup data before
+
 		opts := importer.Options{
 			SourceDir: sourceDir,
 			QbitDir:   qbitDir,
 			DryRun:    dryRun,
 		}
+
+		start := time.Now()
 
 		switch source {
 		case "deluge":
@@ -56,6 +61,10 @@ func RunImport() *cobra.Command {
 			fmt.Println("WARNING: Unsupported client!")
 			break
 		}
+
+		elapsed := time.Since(start)
+		fmt.Printf("Import finished in: %s\n", elapsed)
+
 	}
 
 	return command

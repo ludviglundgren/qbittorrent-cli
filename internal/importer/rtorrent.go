@@ -56,7 +56,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 		// If file already exists, skip
 		if _, err = os.Stat(opts.QbitDir + "/" + torrentID + ".torrent"); err == nil {
-			log.Printf("%v/%v Torrent already exists, skipping: %v", positionNum, totalJobs, torrentID)
+			log.Printf("%v/%v %v Torrent already exists, skipping", positionNum, totalJobs, torrentID)
 			continue
 		}
 
@@ -122,16 +122,17 @@ func (i *RTorrentImport) Import(opts Options) error {
 			QbtTags:                   []string{},
 			SavePath:                  rtorrentFile.Directory,
 			SeedMode:                  0,
-			SeedingTime:               getActiveTime(rtorrentFile.Custom.SeedingTime),
-			SequentialDownload:        0,
-			ShareMode:                 0,
-			StopWhenReady:             0,
-			SuperSeeding:              0,
-			TotalDownloaded:           rtorrentFile.TotalDownloaded,
-			TotalUploaded:             rtorrentFile.TotalUploaded,
-			UploadMode:                0,
-			UploadRateLimit:           -1,
-			UrlList:                   file.UrlList,
+			//SeedingTime:               getActiveTime(rtorrentFile.Custom.SeedingTime),
+			SeedingTime:        0,
+			SequentialDownload: 0,
+			ShareMode:          0,
+			StopWhenReady:      0,
+			SuperSeeding:       0,
+			TotalDownloaded:    rtorrentFile.TotalDownloaded,
+			TotalUploaded:      rtorrentFile.TotalUploaded,
+			UploadMode:         0,
+			UploadRateLimit:    -1,
+			UrlList:            file.UrlList,
 
 			TorrentFile: torrentFile,
 			Path:        rtorrentFile.Directory,
@@ -139,8 +140,26 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 		if file.Info.Files != nil {
 			newFastResume.HasFiles = true
+
+			// valid QbtContentLayout = Original, Subfolder, NoSubfolder
+			newFastResume.QbtContentLayout = "Original"
+			// legacy and should be removed sometime with 4.3.X
+			newFastResume.QbtHasRootFolder = 1
+
+			// Fix savepath for torrents with subfolder
+			// directory contains the whole torrent path, which gives error in qBit.
+			// remove file.info.name from full path in id.rtorrent directory
+			newPath := strings.ReplaceAll(rtorrentFile.Directory, file.Info.Name, "")
+
+			newFastResume.Path = newPath
+			newFastResume.SavePath = newPath
+			newFastResume.QbtSavePath = newPath
 		} else {
+			// if only single file then use NoSubfolder
 			newFastResume.HasFiles = false
+
+			newFastResume.QbtContentLayout = "NoSubfolder"
+			newFastResume.QbtHasRootFolder = 0
 		}
 
 		// handle trackers
@@ -148,10 +167,10 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 		newFastResume.ConvertFilePriority(file.Info.Files)
 
+		// fill pieces to set as completed
 		newFastResume.FillPieces()
-		//newFastResume.PiecePriority = []byte(newFastResume.Pieces)
 
-		//hash := torrent.CalculateInfoHash(torrentFile)
+		// Set 20 byte SHA1 hash
 		newFastResume.InfoHash = newFastResume.GetInfoHashSHA1()
 
 		// only run if not dry-run
@@ -169,9 +188,9 @@ func (i *RTorrentImport) Import(opts Options) error {
 			//go processFiles(torrentID, decodedVal, opts, &torrentsSessionDir, positionNum, totalJobs)
 		}
 
-		log.Printf("%v/%v Sucessfully imported: %v %v", positionNum, totalJobs, torrentID, file.Info.Name)
+		log.Printf("%v/%v %v Sucessfully imported: %v", positionNum, totalJobs, torrentID, file.Info.Name)
 
-		time.Sleep(100 * time.Millisecond)
+		//time.Sleep(100 * time.Millisecond)
 	}
 
 	return nil

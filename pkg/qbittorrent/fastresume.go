@@ -126,6 +126,7 @@ func (fr *Fastresume) ConvertFilePriority(files []torrent.TorrentInfoFile) {
 	fr.FilePriority = newPrioList
 }
 
+// FillPieces set pieces as complete/done so fastresume doesn't recheck
 func (fr *Fastresume) FillPieces() {
 	var pieces = make([]string, 0, fr.NumPieces)
 	for i := int64(0); i < fr.NumPieces; i++ {
@@ -134,6 +135,7 @@ func (fr *Fastresume) FillPieces() {
 	fr.Pieces = strings.Join(pieces, "")
 }
 
+// GetInfoHashSHA1 returns a 20 byte hash
 func (fr *Fastresume) GetInfoHashSHA1() (hash []byte) {
 	torInfo, _ := bencode.EncodeString(fr.TorrentFile["info"].(map[string]interface{}))
 	h := sha1.New()
