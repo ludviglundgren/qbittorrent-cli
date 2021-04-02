@@ -4,11 +4,11 @@ A cli to manage qBittorrent.
 
 ## Install
 
-Download binary and put somewhere in $PATH.
+Download the [latest binary](https://github.com/ludviglundgren/qbittorrent-cli/releases/latest) and put somewhere in $PATH.
 
 Extract binary
 
-    tar -xzvf qbt.tar.gz
+    tar -xzvf qbt_$VERSION_linux_amd64.tar.gz
 
 Move to somewhere in `$PATH`. Need sudo if not already root. Or put it in your user `$HOME/bin` or similar.
 
@@ -64,39 +64,48 @@ Commands:
   - help
 
 Global flags:
-  * `--config` -override config file
+  * `--config` - override config file
   
 Use "qbt [command] --help" for more information about a command.
 
 ### Add
 
-Flags:
-  * `--dry-run` - Run without doing anything
-  * `--magnet` - Add magnet link instead of torrent file
-  * `--paused` - Add torrent in paused state
-  * `--skip-hash-check` - Skip hash check
-  * `--save-path` - Add torrent to the specified path
-  * `--category` - Add torrent to the specified category
-  * `--tags` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+ 
-  * `--ingore-rules` - Ignore rules set in config
-  * `--limit-ul` - Set torrent upload speed limit. Unit in bytes/second
-  * `--limit-dl` - Set torrent download speed limit. Unit in bytes/second
-
 Add a new torrent to qBittorrent.
 
     qbt add my-torrent-file.torrent
 
+Optional flags:
+* `--dry-run` - Run without doing anything
+* `--magnet <LINK>` - Add magnet link instead of torrent file
+* `--paused` - Add torrent in paused state
+* `--skip-hash-check` - Skip hash check
+* `--save-path <PATH>` - Add torrent to the specified path
+* `--category <CATEGORY>` - Add torrent to the specified category
+* `--tags <TAG,TAG>` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+
+* `--ingore-rules` - Ignore rules set in config
+* `--limit-ul <SPEED>` - Set torrent upload speed limit. Unit in bytes/second
+* `--limit-dl <SPEED>` - Set torrent download speed limit. Unit in bytes/second
+
 ### Import
 
-Flags:
-* `--from` - Import from client (only deluge supported currently)
-* `--deluge-dir` - Deluge dir (~/.config/deluge)
-* `--qbit-dir` - Qbittorrent dir (~/.local/share/data/qBittorrent/BT_backup)
+Import torrents from other client into qBittorrent, and keep state. 
 
-> WARNING: Make sure to stop both Deluge and qBittorrent before importing.
+Required flags:
+* `--source <NAME>` - Import from client [deluge, rtorrent]
+* `--source-dir <PATH>` - State/session dir for client
+* `--qbit-dir <PATH>` - qBittorrent dir (~/.local/share/data/qBittorrent/BT_backup)
 
-Import torrents from another client into qBittorrent. Example with Deluge.
+Supported clients:
+* Deluge
+* rTorrent
 
-    qbt import --from deluge --deluge-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
+Optional flags:
+* `--dry-run` - don't write anything to disk
 
-After the import you will have to manually delete the torrents from Deluge, but don't check the "also delete files" as currently the import DOES NOT move the actual data.
+> WARNING: Make sure to stop both the source client and qBittorrent before importing.
+
+Example with Deluge.
+
+    qbt import --source deluge --source-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
+
+After the import you will have to manually delete the torrents from the source client, but don't check the "also delete files" as currently the import DOES NOT move the actual data.

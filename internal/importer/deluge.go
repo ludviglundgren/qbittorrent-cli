@@ -12,14 +12,11 @@ import (
 )
 
 type Options struct {
-	DelugeDir string
-	QbitDir   string
+	SourceDir   string
+	QbitDir     string
+	RTorrentDir string
+	DryRun      bool
 }
-
-//type opts struct {
-//	Source      string
-//	Destination string
-//}
 
 type Importer interface {
 	Import(opts Options) error
@@ -32,7 +29,7 @@ func NewDelugeImporter() Importer {
 }
 
 func (di *DelugeImport) Import(opts Options) error {
-	torrentsStateDir := opts.DelugeDir + "/state/"
+	torrentsStateDir := opts.SourceDir + "/state/"
 	if _, err := os.Stat(torrentsStateDir); os.IsNotExist(err) {
 		log.Println("Can't find deluge state directory")
 		return err
