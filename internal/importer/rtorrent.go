@@ -200,53 +200,6 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 	return nil
 }
-func (i *RTorrentImport) processFiles(torrentID string, fastResume NewFastResumeFile, opts Options, torrentsPath *string, position int, totalJobs int) error {
-	var err error
-
-	fastResume.torrentFilePath = *torrentsPath + torrentID + ".torrent"
-	if _, err = os.Stat(fastResume.torrentFilePath); os.IsNotExist(err) {
-		log.Printf("Can't find torrent file %v for %v", fastResume.torrentFilePath, torrentID)
-		return err
-	}
-
-	fastResume.torrentFile, err = decodeTorrentFile(fastResume.torrentFilePath)
-	if err != nil {
-		log.Printf("Can't find torrent file %v for %v", fastResume.torrentFilePath, torrentID)
-		return err
-	}
-
-	if _, ok := fastResume.torrentFile["info"].(map[string]interface{})["files"]; ok {
-		fastResume.QbtHasRootFolder = 1
-	} else {
-		fastResume.QbtHasRootFolder = 0
-	}
-
-	//fastResume.QbtQueuePosition = position
-	fastResume.QbtQueuePosition = 1
-	fastResume.QbtRatioLimit = -2000
-	fastResume.QbtSeedStatus = 1
-	fastResume.QbtSeedingTimeLimit = -2
-	fastResume.QbtTempPathDisabled = 0
-	fastResume.QbtName = ""
-	fastResume.QbtHasRootFolder = 0
-
-	fastResume.QbtSavePath = fastResume.SavePath
-	// TODO handle replace paths
-
-	if err = encodeFastResumeFile(opts.QbitDir+"/"+torrentID+".fastresume", &fastResume); err != nil {
-		log.Printf("Can't create qBittorrent fastresume file %v error: %v", opts.QbitDir+torrentID+".fastresume", err)
-		return err
-	}
-
-	if err = copyFile(fastResume.torrentFilePath, opts.QbitDir+"/"+torrentID+".torrent"); err != nil {
-		log.Printf("Can't create qBittorrent torrent file %v error %v", opts.QbitDir+torrentID+".torrent", err)
-		return err
-	}
-
-	log.Printf("%v/%v Sucessfully imported: %v", position, totalJobs, fastResume.torrentFile["info"].(map[string]interface{})["name"].(string))
-
-	return nil
-}
 
 // Takes id.rtorrent custom.seedingtime and converts to int64
 func getActiveTime(t string) int64 {
