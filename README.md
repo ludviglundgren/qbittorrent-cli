@@ -101,11 +101,12 @@ Supported clients:
 
 Optional flags:
 * `--dry-run` - don't write anything to disk
+* `--skip-backup` - skip backup of state dirs before importing data
 
 > WARNING: Make sure to stop both the source client and qBittorrent before importing.
 
 Example with Deluge.
 
-    qbt import --source deluge --source-dir ~/.config/deluge --qbit-dir ~/.local/share/data/qBittorrent/BT_backup
+    qbt import --source deluge --source-dir ~/.config/deluge/state/ --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
 
 After the import you will have to manually delete the torrents from the source client, but don't check the "also delete files" as currently the import DOES NOT move the actual data.
