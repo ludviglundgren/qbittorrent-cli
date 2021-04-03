@@ -3,7 +3,7 @@ module github.com/ludviglundgren/qbittorrent-cli
 go 1.15
 
 require (
-	github.com/anacrolix/torrent v1.15.2
+	github.com/anacrolix/torrent v1.25.1
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/magiconair/properties v1.8.3 // indirect
 	github.com/mitchellh/go-homedir v1.1.0
@@ -17,8 +17,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.7.1
 	github.com/zeebo/bencode v1.0.0
-	golang.org/x/net v0.0.0-20200904194848-62affa334b73
-	golang.org/x/sys v0.0.0-20200918174421-af09f7315aff // indirect
+	golang.org/x/net v0.0.0-20210119194325-5f4716e94777
 	gopkg.in/ini.v1 v1.61.0 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
