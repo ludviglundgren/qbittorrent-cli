@@ -7,8 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
-
 	"github.com/zeebo/bencode"
 )
 
@@ -110,7 +108,7 @@ func (fr *Fastresume) Encode(path string) error {
 }
 
 // ConvertFilePriority for each file set priority
-func (fr *Fastresume) ConvertFilePriority(files []torrent.TorrentInfoFile) {
+func (fr *Fastresume) ConvertFilePriority(numFiles int) {
 	var newPrioList []int
 
 	/*
@@ -119,7 +117,7 @@ func (fr *Fastresume) ConvertFilePriority(files []torrent.TorrentInfoFile) {
 		1 Normal
 		2 High
 	*/
-	for i := 0; i < len(files); i++ {
+	for i := 0; i < numFiles; i++ {
 		newPrioList = append(newPrioList, 1)
 	}
 

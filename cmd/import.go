@@ -50,12 +50,18 @@ func RunImport() *cobra.Command {
 		case "deluge":
 			d := importer.NewDelugeImporter()
 
-			d.Import(opts)
+			err := d.Import(opts)
+			if err != nil {
+				fmt.Printf("import error: %v", err)
+			}
 
 		case "rtorrent":
 			r := importer.NewRTorrentImporter()
 
-			r.Import(opts)
+			err := r.Import(opts)
+			if err != nil {
+				fmt.Printf("import error: %v", err)
+			}
 
 		default:
 			fmt.Println("WARNING: Unsupported client!")
@@ -63,7 +69,7 @@ func RunImport() *cobra.Command {
 		}
 
 		elapsed := time.Since(start)
-		fmt.Printf("Import finished in: %s\n", elapsed)
+		fmt.Printf("\nImport finished in: %s\n", elapsed)
 
 	}
 

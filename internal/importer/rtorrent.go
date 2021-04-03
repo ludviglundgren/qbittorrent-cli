@@ -13,6 +13,7 @@ import (
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
 
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/pkg/errors"
 	"github.com/zeebo/bencode"
 )
@@ -46,7 +47,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 	matches, _ := filepath.Glob(torrentsSessionDir + "*.torrent")
 
 	totalJobs := len(matches)
-	log.Printf("Total torrents to process: %v\n", totalJobs)
+	log.Printf("Total torrents to process: %v \n", totalJobs)
 
 	positionNum := 0
 	for _, match := range matches {
@@ -66,7 +67,11 @@ func (i *RTorrentImport) Import(opts Options) error {
 			continue
 		}
 
-		file, err := torrent.Decode(match)
+		file, err := metainfo.LoadFromFile(match)
+		if err != nil {
+			return err
+		}
+		metaInfo, err := file.UnmarshalInfo()
 		if err != nil {
 			return err
 		}
@@ -107,7 +112,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 			NumComplete:               16777215,
 			NumDownloaded:             16777215,
 			NumIncomplete:             0,
-			NumPieces:                 int64(len(file.Info.Pieces)) / 20,
+			NumPieces:                 int64(metaInfo.NumPieces()),
 			Paused:                    0,
 			Peers:                     "",
 			Peers6:                    "",
@@ -122,23 +127,23 @@ func (i *RTorrentImport) Import(opts Options) error {
 			QbtTags:                   []string{},
 			SavePath:                  rtorrentFile.Directory,
 			SeedMode:                  0,
-			//SeedingTime:               getActiveTime(rtorrentFile.Custom.SeedingTime),
-			SeedingTime:        0,
-			SequentialDownload: 0,
-			ShareMode:          0,
-			StopWhenReady:      0,
-			SuperSeeding:       0,
-			TotalDownloaded:    rtorrentFile.TotalDownloaded,
-			TotalUploaded:      rtorrentFile.TotalUploaded,
-			UploadMode:         0,
-			UploadRateLimit:    -1,
-			UrlList:            file.UrlList,
+			SeedingTime:               0,
+			SequentialDownload:        0,
+			ShareMode:                 0,
+			StopWhenReady:             0,
+			SuperSeeding:              0,
+			TotalDownloaded:           rtorrentFile.TotalDownloaded,
+			TotalUploaded:             rtorrentFile.TotalUploaded,
+			UploadMode:                0,
+			UploadRateLimit:           -1,
+			UrlList:                   file.UrlList,
 
 			TorrentFile: torrentFile,
 			Path:        rtorrentFile.Directory,
 		}
 
-		if file.Info.Files != nil {
+		//if file.Info.Files != nil {
+		if metaInfo.Files != nil {
 			newFastResume.HasFiles = true
 
 			// valid QbtContentLayout = Original, Subfolder, NoSubfolder
@@ -149,7 +154,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 			// Fix savepath for torrents with subfolder
 			// directory contains the whole torrent path, which gives error in qBit.
 			// remove file.info.name from full path in id.rtorrent directory
-			newPath := strings.ReplaceAll(rtorrentFile.Directory, file.Info.Name, "")
+			newPath := strings.ReplaceAll(rtorrentFile.Directory, metaInfo.Name, "")
 
 			newFastResume.Path = newPath
 			newFastResume.SavePath = newPath
@@ -165,7 +170,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 		// handle trackers
 		newFastResume.Trackers = convertTrackers(*resumeFile)
 
-		newFastResume.ConvertFilePriority(file.Info.Files)
+		newFastResume.ConvertFilePriority(len(metaInfo.Files))
 
 		// fill pieces to set as completed
 		newFastResume.FillPieces()
@@ -188,7 +193,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 			//go processFiles(torrentID, decodedVal, opts, &torrentsSessionDir, positionNum, totalJobs)
 		}
 
-		log.Printf("%v/%v %v Sucessfully imported: %v", positionNum, totalJobs, torrentID, file.Info.Name)
+		log.Printf("%v/%v %v Sucessfully imported: %v", positionNum, totalJobs, torrentID, metaInfo.Name)
 
 		//time.Sleep(100 * time.Millisecond)
 	}
@@ -245,7 +250,7 @@ func (i *RTorrentImport) processFiles(torrentID string, fastResume NewFastResume
 
 // Takes id.rtorrent custom.seedingtime and converts to int64
 func getActiveTime(t string) int64 {
-	return int64(time.Since(time.Unix(strToIntClean(t), 0)).Minutes())
+	return int64(time.Since(time.Unix(strToIntClean(t), 0)).Seconds())
 }
 
 // convertTrackers from rtorrent file spec to qBittorrent fastresume
@@ -303,10 +308,14 @@ func decodeRTorrentFile(path string) (*RTorrentTorrentFile, error) {
 
 // Clean and convert string to int from rtorrent.custom.addtime, seedingtime
 func strToIntClean(line string) int64 {
+	if line == "" {
+		return 0
+	}
+
 	s := strings.TrimSuffix(line, "\n")
 	i, err := strconv.ParseInt(s, 10, 64)
 	if err != nil {
-		panic(err)
+		return 0
 	}
 	return i
 }
