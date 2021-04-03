@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mitchellh/go-homedir"
-
 	"github.com/ludviglundgren/qbittorrent-cli/internal/fs"
-
 	"github.com/ludviglundgren/qbittorrent-cli/internal/importer"
+
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
 
