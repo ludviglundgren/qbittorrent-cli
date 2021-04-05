@@ -110,3 +110,21 @@ Example with Deluge.
     qbt import --source deluge --source-dir ~/.config/deluge/state/ --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
 
 After the import you will have to manually delete the torrents from the source client, but don't check the "also delete files" as currently the import DOES NOT move the actual data.
+
+#### Caveats
+
+- Does not support changing paths for data, it expects data to be at same place as the source client.
+- Does not support renamed files either.
+- Does not import labels/categories/tags
+- Use at own caution. The backups are there if something goes wrong.
+
+#### Workflow
+
+Torrents imported into qBittorrent does not have automatic management enabled, because it's default behavior is to move data.
+
+1. Stop source client and qBittorrent.
+2. Start with a dry run and see what it does `qbt import ..... --dry-run`
+3. If it looks ok, run without `--dry-run`
+4. Start clients again, go into the source client and stop everything.
+5. Set categories/tags in batches. Start to add a category, then set "Automatic torrent management" for it to automatically move the files to the categories specified directory.
+
