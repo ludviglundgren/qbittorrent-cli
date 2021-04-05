@@ -117,6 +117,17 @@ func (di *DelugeImport) Import(opts Options) error {
 		fastResume.QbtSeedingTimeLimit = -2
 		fastResume.QbtName = ""
 		fastResume.QbtSavePath = fastResume.SavePath
+		fastResume.QbtQueuePosition = positionNum
+
+		fastResume.AutoManaged = 0
+		fastResume.NumIncomplete = 0
+		fastResume.Paused = 0
+
+		fastResume.ConvertFilePriority(len(metaInfo.Files))
+
+		// fill pieces to set as completed
+		fastResume.NumPieces = int64(metaInfo.NumPieces())
+		fastResume.FillPieces()
 
 		// TODO handle replace paths
 
