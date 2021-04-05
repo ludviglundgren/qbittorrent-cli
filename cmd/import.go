@@ -2,11 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"time"
 
-	"github.com/ludviglundgren/qbittorrent-cli/internal/fs"
 	"github.com/ludviglundgren/qbittorrent-cli/internal/importer"
 
+	"github.com/mholt/archiver/v3"
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
@@ -42,32 +43,30 @@ func RunImport() *cobra.Command {
 
 		// Backup data before running
 		if skipBackup != true {
-			fmt.Print("Prepare to backup data..\n")
-			t := time.Now().Format("2006-01-02_15-04-05")
+			fmt.Print("Prepare to backup torrent data before import..\n")
+			t := time.Now().Format("20060102150405")
 
 			homeDir, err := homedir.Dir()
 			if err != nil {
 				fmt.Printf("could not find home directory: %v", err)
 			}
 
-			sourceBackupDir := homeDir + "/qbt_backup/" + source + "_backup_" + t
-			qbitBackupDir := homeDir + "/qbt_backup/qBittorrent_backup_" + t
+			sourceBackupArchive := fmt.Sprintf(homeDir + "/qbt_backup/" + source + "_backup_" + t + ".tar.gz")
+			qbitBackupArchive := fmt.Sprintf(homeDir + "/qbt_backup/qBittorrent_backup_" + t + ".tar.gz")
 
-			fmt.Printf("Backup %v directory: %v ..\n", source, sourceBackupDir)
-			err = fs.CopyDir(sourceDir, sourceBackupDir)
+			err = archiver.Archive([]string{sourceDir}, sourceBackupArchive)
 			if err != nil {
-				fmt.Printf("could not backup directory: %v", err)
+				log.Fatalf("could not backup directory: %v", err)
 			}
-			fmt.Print("Done!\n")
+			fmt.Printf("Backup %v directory: %v to %v\n", source, sourceDir, sourceBackupArchive)
 
-			fmt.Printf("Backup %v directory: %v .. \n", "qBittorrent", qbitBackupDir)
-			err = fs.CopyDir(qbitDir, qbitBackupDir)
+			err = archiver.Archive([]string{qbitDir}, qbitBackupArchive)
 			if err != nil {
-				fmt.Printf("could not backup directory: %v\n", err)
+				log.Fatalf("could not backup directory: %v", err)
 			}
-			fmt.Print("Done!\n")
+			fmt.Printf("Backup qBittorrent directory: %v to %v\n", qbitDir, qbitBackupArchive)
 
-			fmt.Print("Backup done!\n")
+			fmt.Print("Backup completed!\n")
 		}
 
 		opts := importer.Options{
