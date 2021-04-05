@@ -16,6 +16,9 @@ type Fastresume struct {
 	AddedTime                 int64                  `bencode:"added_time"`
 	Allocation                string                 `bencode:"allocation"`
 	ApplyIpFilter             int64                  `bencode:"apply_ip_filter"`
+	AnnounceToDht             int64                  `bencode:"announce_to_dht,omitempty"`
+	AnnounceToLsd             int64                  `bencode:"announce_to_lsd,omitempty"`
+	AnnounceToTrackers        int64                  `bencode:"announce_to_trackers,omitempty"`
 	AutoManaged               int64                  `bencode:"auto_managed"`
 	CompletedTime             int64                  `bencode:"completed_time"`
 	DisableDHT                int64                  `bencode:"disable_dht"`
@@ -25,6 +28,7 @@ type Fastresume struct {
 	FileFormat                string                 `bencode:"file-format"`
 	FileVersion               int64                  `bencode:"file-version"`
 	FilePriority              []int                  `bencode:"file_priority"`
+	FileSizes                 [][]int64              `bencode:"file sizes,omitempty"`
 	FinishedTime              int64                  `bencode:"finished_time"`
 	HttpSeeds                 []string               `bencode:"httpseeds"`
 	InfoHash                  []byte                 `bencode:"info-hash"`
@@ -52,6 +56,8 @@ type Fastresume struct {
 	QbtSeedStatus             int64                  `bencode:"qBt-seedStatus"`
 	QbtSeedingTimeLimit       int64                  `bencode:"qBt-seedingTimeLimit"`
 	QbtTags                   []string               `bencode:"qBt-tags"`
+	QbtQueuePosition          int                    `bencode:"qBt-queuePosition,omitempty"`
+	QbtTempPathDisabled       int64                  `bencode:"qBt-tempPathDisabled,omitempty"`
 	SavePath                  string                 `bencode:"save_path"`
 	SeedMode                  int64                  `bencode:"seed_mode"`
 	SeedingTime               int64                  `bencode:"seeding_time"`
