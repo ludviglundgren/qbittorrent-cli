@@ -1,6 +1,15 @@
 # qbittorrent-cli
 
-A cli to manage qBittorrent.
+[![goreleaser](https://github.com/ludviglundgren/qbittorrent-cli/actions/workflows/release.yml/badge.svg)](https://github.com/ludviglundgren/qbittorrent-cli/actions/workflows/release.yml)
+
+A cli to manage qBittorrent. Add torrents, reannounce and import from other clients.
+
+## Features
+
+* Add torrents to qBittorrent from file or magnet link. Useful in combination with autodl-irssi
+* Reannounce torrents for troublesome trackers
+* Set limits on how many simultaneously active downloads are allowed
+* Import torrents with state from Deluge and rTorrent
 
 ## Install
 
@@ -20,13 +29,33 @@ Verify that it runs
 
 This should print out basic usage.
 
+Thanks to Go we can build binaries for multiple platforms, but currently only 32 and 64bit linux is built. Add an issue if you need it built for something else.
+
+## Build from source
+
+You can also build it yourself if you have Go installed locally, or with `goreleaser`.
+
+With `make`
+
+    make build
+
+Or with only go
+
+    go build -o bin/qbt cmd/qbt/main.go
+
+### Multi-platform with `goreleaser`
+
+Builds with `goreleaser` will also include version info.
+
+    goreleaser --snapshot --skip-publish --rm-dist
+
 ## Configuration
 
 Create a new configuration file `.qbt.toml` in `$HOME/.config/qbt/`.
 
     mkdir -p ~/.config/qbt && touch ~/.config/qbt/.qbt.toml
 
-A bare minimum config.
+A bare minimum config. Check [full example config](.qbt.toml.example).
 
 ```toml
 [qbittorrent]
@@ -43,9 +72,33 @@ max_active_downloads = 2      # set max active downloads
 * If running on HDDs and 1Gbit - `max_active_downloads = 2` is a good setting to not overload the disks and gives as much bandwidth as possible to the torrents.
 * For SSDs and 1Gbit+ you can increase this value.
 
-### rutorrent-autodl-irssi setup
+### autodl-irssi setup
 
-In rutrorrent, go to autodl-irssi `Preferences`, and then the `Action` tab. Put in the following for the global action. This can be set in a specific filter as well.
+Edit `autodl.cfg`
+
+Global action:
+
+```ini
+[options]
+...
+upload-type = exec
+upload-command = /usr/bin/qbt
+upload-args = add "$(TorrentPathName)"
+```
+
+Per filter:
+
+```ini
+[filter example_filter_action]
+...
+upload-type = exec
+upload-command = /usr/bin/qbt
+upload-args = add "$(TorrentPathName)" --category cat1 --tags tag1
+```
+
+### rutorrent
+
+In rutrorrent, go to autodl-irssi `Preferences`, and then the `Action` tab. Put in the following for the global action. This can be set per filter as well, then you can add category, tags etc.
 
 ```
 Choose .torrent action: Run Program
