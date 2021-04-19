@@ -135,6 +135,8 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 	announceOK := false
 	attempts := 0
 
+	time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
+
 	for attempts < config.Reannounce.Attempts {
 		trackers, err := qb.GetTorrentTrackers(hash)
 		if err != nil {
