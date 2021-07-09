@@ -118,7 +118,7 @@ func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 
 	err = json.Unmarshal(body, &trackers)
 	if err != nil {
-		log.Fatalf("could not unmarshal json: %v", err)
+		log.Fatalf("could not unmarshal json: %v raw: %v", err, body)
 	}
 
 	return trackers, nil
