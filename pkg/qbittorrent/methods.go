@@ -205,3 +205,51 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 
 	return nil
 }
+
+func (c *Client) Pause(hashes []string) error {
+	v := url.Values{}
+	encodedHashes := "all"
+
+	if len(hashes) > 0 {
+		// Add hashes together with | separator
+		hv := strings.Join(hashes, "|")
+		v.Add("hashes", hv)
+
+		encodedHashes = v.Encode()
+	}
+
+	resp, err := c.get("torrents/pause?"+encodedHashes, nil)
+	if err != nil {
+		log.Fatalf("error pausing torrents: %v", err)
+	} else if resp.StatusCode != http.StatusOK {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) Resume(hashes []string) error {
+	v := url.Values{}
+	encodedHashes := "all"
+
+	if len(hashes) > 0 {
+		// Add hashes together with | separator
+		hv := strings.Join(hashes, "|")
+		v.Add("hashes", hv)
+
+		encodedHashes = v.Encode()
+	}
+
+	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
+	if err != nil {
+		log.Fatalf("error resuming torrents: %v", err)
+	} else if resp.StatusCode != http.StatusOK {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
