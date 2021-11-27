@@ -212,11 +212,11 @@ func (c *Client) Pause(hashes []string) error {
 
 	if len(hashes) > 0 {
 		// Add hashes together with | separator
-		hv := strings.Join(hashes, "|")
-		v.Add("hashes", hv)
-
-		encodedHashes = v.Encode()
+		encodedHashes = strings.Join(hashes, "|")
 	}
+
+	v.Add("hashes", encodedHashes)
+	encodedHashes = v.Encode()
 
 	resp, err := c.get("torrents/pause?"+encodedHashes, nil)
 	if err != nil {
@@ -236,11 +236,11 @@ func (c *Client) Resume(hashes []string) error {
 
 	if len(hashes) > 0 {
 		// Add hashes together with | separator
-		hv := strings.Join(hashes, "|")
-		v.Add("hashes", hv)
-
-		encodedHashes = v.Encode()
+		encodedHashes = strings.Join(hashes, "|")
 	}
+
+	v.Add("hashes", encodedHashes)
+	encodedHashes = v.Encode()
 
 	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
 	if err != nil {
