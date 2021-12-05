@@ -115,6 +115,7 @@ Commands:
   - list
   - version
   - help
+  - move
 
 Global flags:
   * `--config` - override config file
@@ -138,6 +139,22 @@ Optional flags:
 * `--ingore-rules` - Ignore rules set in config
 * `--limit-ul <SPEED>` - Set torrent upload speed limit. Unit in bytes/second
 * `--limit-dl <SPEED>` - Set torrent download speed limit. Unit in bytes/second
+ 
+### Move
+
+Move torrents from one or multiple categories to some other category.
+
+By using ATM (Automatic Torrent Mode) and the default behavior of categories mapped to folders this can be used to move from NVME to HDD storage after a `min-seed-time`.
+
+    qbt move --from categroy1 --to category2 --min-seed-time 45
+
+Optional flags:
+* `--dry-run` - Run without doing anything
+* `--min-seed-time` - Only move torrents with a minimum active seedtime of X minutes
+
+Usable with cron as well. Run every 15 min.
+
+    */15 * * * * /usr/bin/qbt move --from nvme --to hdd --min-seed-time 30
 
 ### Import
 
