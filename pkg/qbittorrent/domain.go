@@ -142,6 +142,9 @@ const (
 	// Torrent is paused
 	TorrentFilterPaused TorrentFilter = "paused"
 
+	// Torrent is seeding
+	TorrentFilterSeeding TorrentFilter = "seeding"
+
 	// Torrent is stalled
 	TorrentFilterStalled TorrentFilter = "stalled"
 

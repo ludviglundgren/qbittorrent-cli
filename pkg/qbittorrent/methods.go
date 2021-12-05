@@ -83,6 +83,34 @@ func (c *Client) GetTorrentsFilter(filter TorrentFilter) ([]Torrent, error) {
 	return torrents, nil
 }
 
+func (c *Client) GetTorrentsByCategory(category string) ([]Torrent, error) {
+	var torrents []Torrent
+
+	v := url.Values{}
+	//v.Add("filter", string(TorrentFilterSeeding))
+	v.Add("category", category)
+	params := v.Encode()
+
+	resp, err := c.get("torrents/info?"+params, nil)
+	if err != nil {
+		log.Fatalf("error fetching torrents: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	body, readErr := ioutil.ReadAll(resp.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	err = json.Unmarshal(body, &torrents)
+	if err != nil {
+		log.Fatalf("could not unmarshal json: %v", err)
+	}
+
+	return torrents, nil
+}
+
 func (c *Client) GetTorrentsRaw() (string, error) {
 	resp, err := c.get("torrents/info", nil)
 	if err != nil {
@@ -243,6 +271,33 @@ func (c *Client) Resume(hashes []string) error {
 	encodedHashes = v.Encode()
 
 	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
+	if err != nil {
+		log.Fatalf("error resuming torrents: %v", err)
+	} else if resp.StatusCode != http.StatusOK {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetCategory(hashes []string, category string) error {
+	v := url.Values{}
+	encodedHashes := ""
+
+	if len(hashes) > 0 {
+		// Add hashes together with | separator
+		encodedHashes = strings.Join(hashes, "|")
+	}
+
+	// TODO batch action if more than 25
+
+	v.Add("hashes", encodedHashes)
+	v.Add("category", category)
+	encodedHashes = v.Encode()
+
+	resp, err := c.get("torrents/setCategory?"+encodedHashes, nil)
 	if err != nil {
 		log.Fatalf("error resuming torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
