@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"math"
+	"strconv"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
@@ -51,9 +53,64 @@ func RunList() *cobra.Command {
 				os.Exit(1)
 			}
 
-			fmt.Println(torrents)
+			PrintList(torrents)
 		}
 	}
 
 	return command
+}
+
+func PrintList(torrents []qbittorrent.Torrent) {
+	for _, torrent := range torrents {
+		fmt.Printf("%-60s\t[%s]\n", torrent.Name, torrent.State)
+
+		fmt.Printf(
+			"Downloaded: %s / %s%10s",
+			BytesToHumanReadable(float64(torrent.Completed)),
+			BytesToHumanReadable(float64(torrent.TotalSize)),
+			"",
+		)
+
+		if torrent.DlSpeed > 0 {
+			fmt.Printf(
+				"DL Speed: %s/s%10s\t",
+				BytesToHumanReadable(float64(torrent.DlSpeed)),
+				"",
+			)
+		} else if torrent.UpSpeed > 0 {
+			fmt.Printf(
+				"UP Speed: %s/s%10s\t",
+				BytesToHumanReadable(float64(torrent.UpSpeed)),
+				"",
+			)
+		} else {
+			fmt.Printf("%27s\t", "")
+		}
+
+		hours := (torrent.TimeActive / 60) / 60
+		minutes := (torrent.TimeActive / 60) - (hours * 60)
+		fmt.Printf("Time Active: %dh%dm\n", hours, minutes)
+
+		fmt.Printf("Save Path: %s\n", torrent.SavePath)
+		fmt.Println()
+	}
+}
+
+func BytesToHumanReadable(size float64) string {
+	if size <= 0 {
+		return "0.0KB"
+	}
+
+	var suffixes [5]string
+	suffixes[0] = "B"
+	suffixes[1] = "KB"
+	suffixes[2] = "MB"
+	suffixes[3] = "GB"
+	suffixes[4] = "TB"
+
+	base := math.Log(size) / math.Log(1024)
+	newSize := math.Pow(1024, base - math.Floor(base))
+	suffix := suffixes[int(math.Floor(base))]
+
+	return strconv.FormatFloat(newSize, 'f', 1, 64) + suffix
 }

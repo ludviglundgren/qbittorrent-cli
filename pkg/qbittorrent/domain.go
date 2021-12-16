@@ -9,7 +9,7 @@ type Torrent struct {
 	Completed          int          `json:"completed"`
 	CompletionOn       int          `json:"completion_on"`
 	DlLimit            int          `json:"dl_limit"`
-	DlSpeed            int          `json:"dl_speed"`
+	DlSpeed            int          `json:"dlspeed"`
 	Downloaded         int          `json:"downloaded"`
 	DownloadedSession  int          `json:"downloaded_session"`
 	ETA                int          `json:"eta"`
