@@ -53,34 +53,34 @@ func RunList() *cobra.Command {
 				os.Exit(1)
 			}
 
-			PrintList(torrents)
+			printList(torrents)
 		}
 	}
 
 	return command
 }
 
-func PrintList(torrents []qbittorrent.Torrent) {
+func printList(torrents []qbittorrent.Torrent) {
 	for _, torrent := range torrents {
-		fmt.Printf("%-60s\t[%s]\n", torrent.Name, torrent.State)
+		fmt.Printf("%-60s\t[Status: %s]\n", torrent.Name, torrent.State)
 
 		fmt.Printf(
 			"Downloaded: %s / %s%10s",
-			BytesToHumanReadable(float64(torrent.Completed)),
-			BytesToHumanReadable(float64(torrent.TotalSize)),
+			bytesToHumanReadable(float64(torrent.Completed)),
+			bytesToHumanReadable(float64(torrent.TotalSize)),
 			"",
 		)
 
 		if torrent.DlSpeed > 0 {
 			fmt.Printf(
 				"DL Speed: %s/s%10s\t",
-				BytesToHumanReadable(float64(torrent.DlSpeed)),
+				bytesToHumanReadable(float64(torrent.DlSpeed)),
 				"",
 			)
 		} else if torrent.UpSpeed > 0 {
 			fmt.Printf(
 				"UP Speed: %s/s%10s\t",
-				BytesToHumanReadable(float64(torrent.UpSpeed)),
+				bytesToHumanReadable(float64(torrent.UpSpeed)),
 				"",
 			)
 		} else {
@@ -96,7 +96,7 @@ func PrintList(torrents []qbittorrent.Torrent) {
 	}
 }
 
-func BytesToHumanReadable(size float64) string {
+func bytesToHumanReadable(size float64) string {
 	if size <= 0 {
 		return "0.0KB"
 	}
