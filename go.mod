@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/anacrolix/torrent v1.38.0
 	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/mholt/archiver/v3 v3.5.1

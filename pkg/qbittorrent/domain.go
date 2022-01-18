@@ -38,11 +38,25 @@ type Torrent struct {
 	Tags               string       `json:"tags"`
 	TimeActive         int          `json:"time_active"`
 	TotalSize          int          `json:"total_size"`
-	Tracker            *string      `json:"tracker"`
+	Tracker            string       `json:"tracker"`
 	UpLimit            int          `json:"up_limit"`
 	Uploaded           int          `json:"uploaded"`
 	UploadedSession    int          `json:"uploaded_session"`
 	UpSpeed            int          `json:"upspeed"`
+}
+
+type TorrentBasic struct {
+	Category   string       `json:"category"`
+	Downloaded int          `json:"downloaded"`
+	Hash       string       `json:"hash"`
+	Name       string       `json:"name"`
+	Progress   float32      `json:"progress"`
+	Ratio      float32      `json:"ratio"`
+	Size       int          `json:"size"`
+	State      TorrentState `json:"state"`
+	Tags       string       `json:"tags"`
+	Tracker    string       `json:"tracker"`
+	Uploaded   int          `json:"uploaded"`
 }
 
 type TorrentTrackersResponse struct {

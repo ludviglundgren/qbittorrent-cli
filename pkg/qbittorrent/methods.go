@@ -124,6 +124,23 @@ func (c *Client) GetTorrentsRaw() (string, error) {
 	return string(data), nil
 }
 
+func (c *Client) GetTorrentByHash(hash string) (string, error) {
+	v := url.Values{}
+	v.Add("hashes", hash)
+	params := v.Encode()
+
+	resp, err := c.get("torrents/info?"+params, nil)
+	if err != nil {
+		log.Fatalf("error fetching torrents: %v", err)
+	}
+
+	defer resp.Body.Close()
+
+	data, _ := ioutil.ReadAll(resp.Body)
+
+	return string(data), nil
+}
+
 func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 	var trackers []TorrentTracker
 
@@ -298,6 +315,33 @@ func (c *Client) SetCategory(hashes []string, category string) error {
 	encodedHashes = v.Encode()
 
 	resp, err := c.get("torrents/setCategory?"+encodedHashes, nil)
+	if err != nil {
+		log.Fatalf("error resuming torrents: %v", err)
+	} else if resp.StatusCode != http.StatusOK {
+		return err
+	}
+
+	defer resp.Body.Close()
+
+	return nil
+}
+
+func (c *Client) SetTag(hashes []string, tag string) error {
+	v := url.Values{}
+	encodedHashes := ""
+
+	if len(hashes) > 0 {
+		// Add hashes together with | separator
+		encodedHashes = strings.Join(hashes, "|")
+	}
+
+	// TODO batch action if more than 25
+
+	v.Add("hashes", encodedHashes)
+	v.Add("tags", tag)
+	encodedHashes = v.Encode()
+
+	resp, err := c.get("torrents/addTags?"+encodedHashes, nil)
 	if err != nil {
 		log.Fatalf("error resuming torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
