@@ -33,6 +33,7 @@ Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`
 	rootCmd.AddCommand(cmd.RunPause())
 	rootCmd.AddCommand(cmd.RunResume())
 	rootCmd.AddCommand(cmd.RunMove())
+	rootCmd.AddCommand(cmd.RunCompare())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
