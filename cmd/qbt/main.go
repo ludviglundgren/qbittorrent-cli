@@ -17,8 +17,8 @@ func main() {
 
 	var rootCmd = &cobra.Command{
 		Use:   "qbt",
-		Short: "Manage Qbittorrent with cli",
-		Long: `Manage Qbittorrent from command line.
+		Short: "Manage qBittorrent with cli",
+		Long: `Manage qBittorrent from command line.
 
 Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`,
 	}
@@ -34,6 +34,7 @@ Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`
 	rootCmd.AddCommand(cmd.RunResume())
 	rootCmd.AddCommand(cmd.RunMove())
 	rootCmd.AddCommand(cmd.RunCompare())
+	rootCmd.AddCommand(cmd.RunTag())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
