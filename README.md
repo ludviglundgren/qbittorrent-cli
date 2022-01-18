@@ -116,6 +116,7 @@ Commands:
   - version
   - help
   - move
+  - compare
 
 Global flags:
   * `--config` - override config file
@@ -155,6 +156,27 @@ Optional flags:
 Usable with cron as well. Run every 15 min.
 
     */15 * * * * /usr/bin/qbt move --from nvme --to hdd --min-seed-time 30
+
+### Compare
+
+Compare torrents between two instances. Source instance and `compare` instance.
+
+Required flags:
+* `--host` - Host url, without http
+* `--port` - Host port / webui port
+* `--user` - Host user
+* `--pass` - Host pass
+* `--compare-host` - url, without http
+* `--compare-port` - port / webui port
+* `--compare-user` - user
+* `--compare-pass` - pass
+
+
+Optional flags:
+* `--tag` - Tag duplicates with `duplicate`, only on compare host
+
+
+    qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
 
 ### Import
 
