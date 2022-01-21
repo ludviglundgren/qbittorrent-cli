@@ -6,12 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	Version   string
-	GitCommit string
-)
-
-func RunVersion() *cobra.Command {
+func RunVersion(version, commit, date string) *cobra.Command {
 	var command = &cobra.Command{
 		Use:          "version",
 		Short:        "Print the version",
@@ -19,12 +14,9 @@ func RunVersion() *cobra.Command {
 		SilenceUsage: false,
 	}
 	command.Run = func(cmd *cobra.Command, args []string) {
-		if len(Version) == 0 {
-			fmt.Println("Version: dev")
-		} else {
-			fmt.Println("Version:", Version)
-		}
-		fmt.Println("Git Commit:", GitCommit)
+		fmt.Println("Version:", version)
+		fmt.Println("Commit:", commit)
+		fmt.Println("Date:", date)
 	}
 	return command
 }
