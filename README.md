@@ -117,6 +117,7 @@ Commands:
   - help
   - move
   - compare
+  - edit
 
 Global flags:
   * `--config` - override config file
@@ -177,6 +178,24 @@ Optional flags:
 
 
     qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+
+### Edit
+
+Edit fastresume data like save-path. Make sure to shut down the client and backup the data before running this.
+
+Required flags:
+* `--dir` - Dir to the fastresume data. Usually `~/.local/share/qBittorrent/BT_backup`
+* `--pattern` - The pattern to replace. Eg. `/home/user01/torrents`
+* `--replace` - The replacement text. Eg. `/home/test/torrents`
+
+Optional flags:
+* `--dry-run` - Dry run without editing files
+* `--verbose, -v` - Verbose output
+
+
+```bash
+qbt edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'
+```
 
 ### Import
 
