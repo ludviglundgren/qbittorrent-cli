@@ -10,6 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
 	cobra.OnInitialize(config.InitConfig)
 
@@ -26,7 +32,7 @@ Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`
 	// override config
 	rootCmd.PersistentFlags().StringVar(&config.CfgFile, "config", "", "config file (default is $HOME/.config/qbt/.qbt.toml)")
 
-	rootCmd.AddCommand(cmd.RunVersion())
+	rootCmd.AddCommand(cmd.RunVersion(version, commit, date))
 	rootCmd.AddCommand(cmd.RunList())
 	rootCmd.AddCommand(cmd.RunAdd())
 	rootCmd.AddCommand(cmd.RunImport())
