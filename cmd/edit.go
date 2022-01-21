@@ -10,6 +10,9 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/zeebo/bencode"
+
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 )
 
 func RunEdit() *cobra.Command {
@@ -62,28 +65,11 @@ func RunEdit() *cobra.Command {
 			}
 
 			if matched {
-				read, err := ioutil.ReadFile(path)
-				if err != nil {
-					log.Fatalf("error reading file: %v - %v", path, err)
-				}
-
-				if verbose {
-					fmt.Printf("Found: %v\n", path)
-				}
-
 				matchedFiles++
 
-				if !dry {
-					newContents := strings.Replace(string(read), pattern, replace, -1)
-
-					err = ioutil.WriteFile(path, []byte(newContents), 0)
-					if err != nil {
-						log.Fatalf("error writing file: %v - %v", path, err)
-					}
-				}
-
-				if verbose {
-					fmt.Printf("Replaced: '%v' with '%v' for %v\n", pattern, replace, path)
+				err := processFastResume(path, pattern, replace, verbose, dry)
+				if err != nil {
+					log.Fatalf("error processing file: %v", err)
 				}
 			}
 
@@ -97,4 +83,31 @@ func RunEdit() *cobra.Command {
 	}
 
 	return command
+}
+
+func processFastResume(path, pattern, replace string, verbose, dry bool) error {
+	read, err := ioutil.ReadFile(path)
+	if err != nil {
+		log.Fatalf("error reading file: %v - %v", path, err)
+	}
+
+	var fastResume qbittorrent.Fastresume
+	if err := bencode.DecodeString(string(read), &fastResume); err != nil {
+		log.Printf("could not decode fastresume %v", path)
+	}
+
+	if !dry {
+		fastResume.SavePath = strings.Replace(fastResume.SavePath, pattern, replace, -1)
+
+		if err = fastResume.Encode(path); err != nil {
+			log.Printf("could not create qBittorrent fastresume file %v error: %v", path, err)
+			return err
+		}
+	}
+
+	if verbose {
+		fmt.Printf("Replaced: '%v' with '%v' in %v\n", pattern, replace, path)
+	}
+
+	return nil
 }
