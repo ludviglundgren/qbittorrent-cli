@@ -18,6 +18,7 @@ func RunPause() *cobra.Command {
 		Long:  `Pause all torrents`,
 	}
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
 			Hostname: config.Qbit.Host,
 			Port:     config.Qbit.Port,

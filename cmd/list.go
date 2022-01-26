@@ -24,6 +24,7 @@ func RunList() *cobra.Command {
 	command.Flags().BoolVar(&json, "json", false, "print to json")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
 			Hostname: config.Qbit.Host,
 			Port:     config.Qbit.Port,

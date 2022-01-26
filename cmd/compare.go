@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
+	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 )
 
 // RunCompare cmd to compare torrents between clients
@@ -52,6 +53,7 @@ func RunCompare() *cobra.Command {
 	command.Flags().StringVar(&comparePass, "compare-pass", "", "Secondary pass")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
 			Hostname: sourceHost,
 			Port:     sourcePort,
