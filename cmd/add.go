@@ -52,6 +52,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		// args
 		// first arg is path to torrent file
 		filePath := args[0]

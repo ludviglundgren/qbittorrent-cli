@@ -19,6 +19,7 @@ func RunResume() *cobra.Command {
 	}
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
 			Hostname: config.Qbit.Host,
 			Port:     config.Qbit.Port,

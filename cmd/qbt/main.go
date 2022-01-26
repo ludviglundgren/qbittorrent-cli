@@ -17,7 +17,6 @@ var (
 )
 
 func main() {
-	cobra.OnInitialize(config.InitConfig)
 
 	log.SetFlags(0)
 
