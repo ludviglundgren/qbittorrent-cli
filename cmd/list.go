@@ -3,13 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"math"
-	"strconv"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
 	"github.com/spf13/cobra"
+	"github.com/dustin/go-humanize"
 )
 
 // RunList cmd to list torrents
@@ -62,56 +61,56 @@ func RunList() *cobra.Command {
 }
 
 func printList(torrents []qbittorrent.Torrent) {
+	space := fmt.Sprintf("%*c", 4, ' ')
 	for _, torrent := range torrents {
-		fmt.Printf("%-60s\t[Status: %s]\n", torrent.Name, torrent.State)
+		fmt.Printf("[*] ")
+		fmt.Printf("%-80.80s%s[%s]\n", torrent.Name, space, torrent.State)
 
-		fmt.Printf(
-			"Downloaded: %s / %s%10s",
-			bytesToHumanReadable(float64(torrent.Completed)),
-			bytesToHumanReadable(float64(torrent.TotalSize)),
-			"",
-		)
+		fmt.Printf("%sDownloaded: ", space)
+		if torrent.AmountLeft <= 0 {
+			fmt.Printf("%s%s", humanize.Bytes(uint64(torrent.TotalSize)), space)
+		} else {
+			fmt.Printf(
+				"%s / %s%s",
+				humanize.Bytes(uint64(torrent.Completed)),
+				humanize.Bytes(uint64(torrent.TotalSize)),
+				space,
+			)
+		}
+
+		if torrent.Uploaded > 0 {
+			fmt.Printf("Uploaded: %s%s", humanize.Bytes(uint64(torrent.Uploaded)), space)
+		}
 
 		if torrent.DlSpeed > 0 {
 			fmt.Printf(
-				"DL Speed: %s/s%10s\t",
-				bytesToHumanReadable(float64(torrent.DlSpeed)),
-				"",
+				"DL Speed: %s/s%s",
+				humanize.Bytes(uint64(torrent.DlSpeed)),
+				space,
 			)
 		} else if torrent.UpSpeed > 0 {
 			fmt.Printf(
-				"UP Speed: %s/s%10s\t",
-				bytesToHumanReadable(float64(torrent.UpSpeed)),
-				"",
+				"UP Speed: %s/s%s",
+				humanize.Bytes(uint64(torrent.UpSpeed)),
+				space,
 			)
-		} else {
-			fmt.Printf("%27s\t", "")
 		}
 
-		hours := (torrent.TimeActive / 60) / 60
-		minutes := (torrent.TimeActive / 60) - (hours * 60)
-		fmt.Printf("Time Active: %dh%dm\n", hours, minutes)
+		days := (torrent.TimeActive / (60*60*24))
+		hours := (torrent.TimeActive / (60*60)) - (days * 24)
+		minutes := (torrent.TimeActive / 60) - ((days * 1440) + (hours * 60))
 
-		fmt.Printf("Save Path: %s\n", torrent.SavePath)
+		if days > 0 {
+			fmt.Printf("Time Active: %dd %dh %dm\n", days, hours, minutes)
+		} else if hours > 0 {
+			fmt.Printf("Time Active: %dh %dm\n", hours, minutes)
+		} else {
+			fmt.Printf("Time Active: %dm\n", minutes)
+		}
+
+		fmt.Printf("%sSave Path: %s\n", space, torrent.SavePath)
+		fmt.Printf("%sHash: %s\n", space, torrent.Hash)
+
 		fmt.Println()
 	}
-}
-
-func bytesToHumanReadable(size float64) string {
-	if size <= 0 {
-		return "0.0KB"
-	}
-
-	var suffixes [5]string
-	suffixes[0] = "B"
-	suffixes[1] = "KB"
-	suffixes[2] = "MB"
-	suffixes[3] = "GB"
-	suffixes[4] = "TB"
-
-	base := math.Log(size) / math.Log(1024)
-	newSize := math.Pow(1024, base - math.Floor(base))
-	suffix := suffixes[int(math.Floor(base))]
-
-	return strconv.FormatFloat(newSize, 'f', 1, 64) + suffix
 }
