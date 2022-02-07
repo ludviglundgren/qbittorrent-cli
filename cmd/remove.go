@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"strings"
 	"log"
+	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
@@ -58,48 +58,49 @@ func RunRemove() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
+		
+		if removeAll {
+			qb.DeleteTorrents([]string{"all"}, deleteFiles)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
+				os.Exit(1)
+			}
 
-		torrents, err := qb.GetTorrents()
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not retrieve torrents: %v\n", err)
-			os.Exit(1)
+			log.Printf("All torrents removed successfully")
+			return
 		}
 
-		foundHashes := map[string]bool{}
-		for _, torrent := range torrents {
-			if removeAll {
-				foundHashes[torrent.Hash] = true
-				continue
-			}
-
-			if hashes {
-				for _, targetHash := range args {
-					if strings.HasPrefix(torrent.Hash, targetHash) {
-						foundHashes[torrent.Hash] = true
-						break
-					}
-				}
-			}
-
-			if names {
-				for _, targetName := range args {
-					if strings.HasPrefix(torrent.Name, targetName) {
-						foundHashes[torrent.Hash] = true
-						break
-					}
-				}
-			}
+		foundTorrents, err := qb.GetTorrentsByPrefixes(args, hashes, names)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve torrents: %v\n", err)
+			os.Exit(1)
 		}
 
 		hashesToRemove := []string{}
-		for hash := range foundHashes {
-			hashesToRemove = append(hashesToRemove, hash)
+		for _, torrent := range foundTorrents {
+			hashesToRemove = append(hashesToRemove, torrent.Hash)
 		}
 
-		err = qb.DeleteTorrents(hashesToRemove, deleteFiles)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
-			os.Exit(1)
+		if len(hashesToRemove) < 1 {
+			log.Printf("No torrents found to remove with provided search terms")
+			return
+		}
+
+		// Split the hashes to remove into groups of 20 to avoid flooding qbittorrent
+		batch := 20
+		for i := 0; i < len(hashesToRemove); i += batch {
+			j := i + batch
+			if j > len(hashesToRemove) {
+				j = len(hashesToRemove)
+			}
+
+			qb.DeleteTorrents(hashesToRemove[i:j], deleteFiles)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
+				os.Exit(1)
+			}
+
+			time.Sleep(time.Second * 1)
 		}
 
 		log.Printf("torrent(s) successfully deleted")

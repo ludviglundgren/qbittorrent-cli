@@ -141,6 +141,46 @@ func (c *Client) GetTorrentByHash(hash string) (string, error) {
 	return string(data), nil
 }
 
+// Search for torrents using provided prefixes; checks against either hashes, names, or both
+func (c *Client) GetTorrentsByPrefixes(terms []string, hashes bool, names bool) ([]Torrent, error) {
+		torrents, err := c.GetTorrents()
+		if err != nil {
+			log.Fatalf("ERROR: could not retrieve torrents: %v\n", err)
+		}
+
+		matchedTorrents := map[Torrent]bool{}
+		for _, torrent := range torrents {
+			if hashes {
+				for _, targetHash := range terms {
+					if strings.HasPrefix(torrent.Hash, targetHash) {
+						matchedTorrents[torrent] = true
+						break
+					}
+				}
+
+				if matchedTorrents[torrent] {
+					continue
+				}
+			}
+
+			if names {
+				for _, targetName := range terms {
+					if strings.HasPrefix(torrent.Name, targetName) {
+						matchedTorrents[torrent] = true
+						break
+					}
+				}
+			}
+		}
+
+		var foundTorrents []Torrent
+		for torrent := range matchedTorrents {
+			foundTorrents = append(foundTorrents, torrent)
+		}
+
+		return foundTorrents, nil
+}
+
 func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {
 	var trackers []TorrentTracker
 
@@ -253,15 +293,12 @@ func (c *Client) ReAnnounceTorrents(hashes []string) error {
 
 func (c *Client) Pause(hashes []string) error {
 	v := url.Values{}
-	encodedHashes := "all"
 
-	if len(hashes) > 0 {
-		// Add hashes together with | separator
-		encodedHashes = strings.Join(hashes, "|")
-	}
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
 
-	v.Add("hashes", encodedHashes)
-	encodedHashes = v.Encode()
+	encodedHashes := v.Encode()
 
 	resp, err := c.get("torrents/pause?"+encodedHashes, nil)
 	if err != nil {
@@ -277,15 +314,12 @@ func (c *Client) Pause(hashes []string) error {
 
 func (c *Client) Resume(hashes []string) error {
 	v := url.Values{}
-	encodedHashes := "all"
 
-	if len(hashes) > 0 {
-		// Add hashes together with | separator
-		encodedHashes = strings.Join(hashes, "|")
-	}
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	v.Add("hashes", hv)
 
-	v.Add("hashes", encodedHashes)
-	encodedHashes = v.Encode()
+	encodedHashes := v.Encode()
 
 	resp, err := c.get("torrents/resume?"+encodedHashes, nil)
 	if err != nil {
