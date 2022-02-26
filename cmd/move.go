@@ -120,7 +120,6 @@ func validateTag(includeTags []string, torrentTags string) bool {
 	for _, includeTag := range includeTags {
 		for _, tag := range tagList {
 			if tag == includeTag {
-				fmt.Printf("Tag match %v\n", tag)
 				return true
 			}
 		}
