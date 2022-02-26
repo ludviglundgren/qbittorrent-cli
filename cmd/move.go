@@ -18,6 +18,7 @@ func RunMove() *cobra.Command {
 		dry            bool
 		fromCategories []string
 		targetCategory string
+		includeTags    []string
 		minSeedTime    int
 	)
 
@@ -30,6 +31,7 @@ func RunMove() *cobra.Command {
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().StringSliceVar(&fromCategories, "from", []string{}, "Move from categories")
 	command.Flags().StringVar(&targetCategory, "to", "", "Move to the specified category")
+	command.Flags().StringSliceVar(&includeTags, "include-tags", []string{}, "Move from tags")
 	command.Flags().IntVar(&minSeedTime, "min-seed-time", 0, "Minimum seed time in MINUTES before moving.")
 	command.MarkFlagRequired("from")
 	command.MarkFlagRequired("to")
@@ -65,6 +67,13 @@ func RunMove() *cobra.Command {
 					continue
 				}
 
+				if len(includeTags) > 0 {
+					validTag := validateTag(includeTags, torrent.Tags)
+					if !validTag {
+						continue
+					}
+				}
+
 				// check TimeActive (seconds), CompletionOn (epoch) SeenComplete
 				if minSeedTime > 0 {
 					completedTime := time.Unix(int64(torrent.CompletionOn), 0)
@@ -82,7 +91,7 @@ func RunMove() *cobra.Command {
 		}
 
 		if len(hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to move from (%v) to (%v) with min-seed-time %d minutes \n", strings.Join(fromCategories, ","), targetCategory, minSeedTime)
+			fmt.Printf("Could not find any matching torrents to move from (%v) to (%v) with tags (%v) and min-seed-time %d minutes \n", strings.Join(fromCategories, ","), targetCategory, strings.Join(includeTags, ","), minSeedTime)
 			os.Exit(0)
 		}
 
@@ -103,4 +112,18 @@ func RunMove() *cobra.Command {
 	}
 
 	return command
+}
+
+func validateTag(includeTags []string, torrentTags string) bool {
+	tagList := strings.Split(torrentTags, ", ")
+
+	for _, includeTag := range includeTags {
+		for _, tag := range tagList {
+			if tag == includeTag {
+				return true
+			}
+		}
+	}
+
+	return false
 }

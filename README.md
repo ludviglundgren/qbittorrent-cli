@@ -153,6 +153,7 @@ By using ATM (Automatic Torrent Mode) and the default behavior of categories map
 Optional flags:
 * `--dry-run` - Run without doing anything
 * `--min-seed-time` - Only move torrents with a minimum active seedtime of X minutes
+* `--include-tags` - Only move torrents with any of the tags in comma separate list (tag1,tag2)
 
 Usable with cron as well. Run every 15 min.
 
