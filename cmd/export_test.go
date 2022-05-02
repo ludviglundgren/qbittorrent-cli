@@ -21,7 +21,7 @@ func Test_processHashes(t *testing.T) {
 			hashes: map[string]struct{}{
 				"5ba4939a00a9b21629a0ad7d376898b768d997a3": {},
 			},
-			replace: []string{"https://academictorrents.com/announce.php,https://test.com/announce.php?test"},
+			replace: []string{"https://academictorrents.com/announce.php|https://test.com/announce.php?test"},
 			dry:     false,
 		}, wantErr: false},
 	}

@@ -34,9 +34,9 @@ func RunExport() *cobra.Command {
 
 	command.Flags().BoolVar(&dry, "dry-run", false, "dry run")
 	command.Flags().StringVar(&sourceDir, "source", "", "Dir with torrent and fast-resume files")
-	command.Flags().StringVar(&exportDir, "export", "", "Dir to export files to")
+	command.Flags().StringVar(&exportDir, "export-dir", "", "Dir to export files to")
 	command.Flags().StringSliceVar(&categories, "categories", []string{}, "Export torrents from categories")
-	command.Flags().StringSliceVar(&replace, "replace", []string{}, "Replace pattern. old,new")
+	command.Flags().StringSliceVar(&replace, "replace", []string{}, "Replace pattern. old|new")
 	command.MarkFlagRequired("categories")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -119,6 +119,8 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, repl
 			return nil
 		}
 
+		fmt.Printf("processing: %v\n", fileName)
+
 		if !dry {
 			err := copyFile(path, filepath.Join(exportDir, fileName), replace)
 			if err != nil {
@@ -159,7 +161,7 @@ func copyFile(source, dest string, replace []string) error {
 	// replace content if needed
 	for _, r := range replace {
 		// split replace string pattern,replace
-		rep := strings.Split(r, ",")
+		rep := strings.Split(r, "|")
 
 		if v.Announce != "" {
 			v.Announce = strings.Replace(v.Announce, rep[0], rep[1], -1)
