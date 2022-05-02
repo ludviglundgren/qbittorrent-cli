@@ -32,16 +32,17 @@ Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`
 	rootCmd.PersistentFlags().StringVar(&config.CfgFile, "config", "", "config file (default is $HOME/.config/qbt/.qbt.toml)")
 
 	rootCmd.AddCommand(cmd.RunVersion(version, commit, date))
-	rootCmd.AddCommand(cmd.RunList())
 	rootCmd.AddCommand(cmd.RunAdd())
-	rootCmd.AddCommand(cmd.RunImport())
-	rootCmd.AddCommand(cmd.RunPause())
-	rootCmd.AddCommand(cmd.RunResume())
-	rootCmd.AddCommand(cmd.RunMove())
 	rootCmd.AddCommand(cmd.RunCompare())
 	rootCmd.AddCommand(cmd.RunEdit())
+	rootCmd.AddCommand(cmd.RunExport())
 	rootCmd.AddCommand(cmd.RunHash())
+	rootCmd.AddCommand(cmd.RunImport())
+	rootCmd.AddCommand(cmd.RunList())
+	rootCmd.AddCommand(cmd.RunMove())
+	rootCmd.AddCommand(cmd.RunPause())
 	rootCmd.AddCommand(cmd.RunRemove())
+	rootCmd.AddCommand(cmd.RunResume())
 
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
