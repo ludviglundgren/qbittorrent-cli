@@ -3,12 +3,13 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
-	"github.com/spf13/cobra"
 	"github.com/dustin/go-humanize"
+	"github.com/spf13/cobra"
 )
 
 // RunList cmd to list torrents
@@ -16,11 +17,14 @@ func RunList() *cobra.Command {
 	var json bool
 
 	var command = &cobra.Command{
-		Use:   "list",
+		Use:   "list [state]",
 		Short: "List torrents",
-		Long:  `List all torrents`,
+		Long: `List all torrents, or torrents with a specific state. Available states:
+all, downloading, seeding, completed, paused, active, inactive, resumed, 
+stalled, stalled_uploading, stalled_downloading, errored`,
+		Example: `qbt list downloading`,
 	}
-	command.Flags().BoolVar(&json, "json", false, "print to json")
+	command.Flags().BoolVar(&json, "json", false, "Print to json")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
@@ -45,12 +49,42 @@ func RunList() *cobra.Command {
 				os.Exit(1)
 			}
 
+			if len(torrents) < 1 {
+				fmt.Println("No torrents found.")
+				return
+			}
+
 			fmt.Println(torrents)
-		} else {
+			return
+		}
+
+		// If no torrent filter provided, list all torrents.
+		if len(args) < 1 {
 			torrents, err := qb.GetTorrents()
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
 				os.Exit(1)
+			}
+
+			if len(torrents) < 1 {
+				fmt.Println("No torrents found.")
+				return
+			}
+
+			printList(torrents)
+		} else if len(args) >= 1 {
+			var state = args[0]
+			var filter = qbittorrent.TorrentFilter(strings.ToLower(state))
+			torrents, err := qb.GetTorrentsFilter(filter)
+
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
+				os.Exit(1)
+			}
+
+			if len(torrents) < 1 {
+				fmt.Printf("No torrents found with state \"%s\"\n", state)
+				return
 			}
 
 			printList(torrents)
@@ -96,8 +130,8 @@ func printList(torrents []qbittorrent.Torrent) {
 			)
 		}
 
-		days := (torrent.TimeActive / (60*60*24))
-		hours := (torrent.TimeActive / (60*60)) - (days * 24)
+		days := (torrent.TimeActive / (60 * 60 * 24))
+		hours := (torrent.TimeActive / (60 * 60)) - (days * 24)
 		minutes := (torrent.TimeActive / 60) - ((days * 1440) + (hours * 60))
 
 		if days > 0 {

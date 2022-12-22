@@ -135,6 +135,7 @@ const (
 	TorrentStateUnknown TorrentState = "unknown"
 )
 
+// https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list
 type TorrentFilter string
 
 const (
@@ -162,9 +163,6 @@ const (
 	// Torrent is stalled
 	TorrentFilterStalled TorrentFilter = "stalled"
 
-	// Torrent is being seeded and data is being transferred
-	TorrentFilterUploading TorrentFilter = "uploading"
-
 	// Torrent is being seeded, but no connection were made
 	TorrentFilterStalledUploading TorrentFilter = "stalled_uploading"
 
@@ -173,4 +171,6 @@ const (
 
 	// Torrent is being downloaded, but no connection were made
 	TorrentFilterStalledDownloading TorrentFilter = "stalled_downloading"
+
+	TorrentFilterErrored TorrentFilter = "errored"
 )
