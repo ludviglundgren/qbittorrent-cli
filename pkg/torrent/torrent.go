@@ -37,10 +37,12 @@ func Decode(path string) (*TorrentInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var torrent TorrentInfo
 	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
 		return nil, err
 	}
+
 	return &torrent, nil
 }
 
@@ -49,10 +51,12 @@ func OpenDecodeRaw(path string) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	var torrent map[string]interface{}
 	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
 		return nil, err
 	}
+
 	return torrent, nil
 }
 
@@ -62,14 +66,17 @@ func CopyFile(src string, dst string) error {
 		return err
 	}
 	defer originalFile.Close()
+
 	newFile, err := os.Create(dst)
 	if err != nil {
 		return err
 	}
 	defer newFile.Close()
+
 	if _, err := io.Copy(newFile, originalFile); err != nil {
 		return err
 	}
+
 	if err := newFile.Sync(); err != nil {
 		return err
 	}
