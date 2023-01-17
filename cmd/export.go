@@ -103,18 +103,14 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 
 		fileName := info.Name()
 
-		matchedTorrent, err := filepath.Match("*.torrent", fileName)
-		if err != nil {
-			log.Printf("error matching files: %q", err)
-			return err
-		}
-
-		if !matchedTorrent {
+		if filepath.Ext(fileName) != ".torrent" || filepath.Ext(fileName) != ".fastresume" {
 			return nil
 		}
 
+		torrentHash := fileNameTrimExt(fileName)
+
 		// if filename not in hashes return and check next
-		_, ok := hashes[fileNameTrimExt(fileName)]
+		_, ok := hashes[torrentHash]
 		if !ok {
 			return nil
 		}
