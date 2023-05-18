@@ -45,6 +45,7 @@ func RunExport() *cobra.Command {
 			Port:     config.Qbit.Port,
 			Username: config.Qbit.Login,
 			Password: config.Qbit.Password,
+			SSL:      config.Qbit.SSL,
 		}
 
 		qb := qbittorrent.NewClient(qbtSettings)

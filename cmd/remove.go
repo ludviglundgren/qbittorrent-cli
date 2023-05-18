@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -15,23 +15,23 @@ import (
 // RunRemove cmd to remove torrents
 func RunRemove() *cobra.Command {
 	var (
-		removeAll		bool
-		deleteFiles		bool
-		hashes			bool 
-		names			bool 
+		removeAll   bool
+		deleteFiles bool
+		hashes      bool
+		names       bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "remove",
 		Short: "Removes specified torrents",
-		Long:  `Removes torrents indicated by hash, name or a prefix of either; 
+		Long: `Removes torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
-	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")
-	command.Flags().BoolVar(&deleteFiles, "delete-files", false, "Also delete downloaded files from torrent(s)")
+	command.Flags().BoolVarP(&removeAll, "all", "A", false, "Removes all torrents")
+	command.Flags().BoolVarP(&deleteFiles, "delete-files", "F", false, "Also delete downloaded files from torrent(s)")
 	command.Flags().BoolVar(&hashes, "hashes", false, "Provided arguments will be read as torrent hashes")
-	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
+	command.Flags().BoolVarP(&names, "names", "", false, "Provided arguments will be read as torrent names")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		if !removeAll && len(args) < 1 {
@@ -47,9 +47,10 @@ func RunRemove() *cobra.Command {
 		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
 			Hostname: config.Qbit.Host,
-			Port:	  config.Qbit.Port,
+			Port:     config.Qbit.Port,
 			Username: config.Qbit.Login,
 			Password: config.Qbit.Password,
+			SSL:      config.Qbit.SSL,
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
@@ -58,7 +59,7 @@ func RunRemove() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		if removeAll {
 			qb.DeleteTorrents([]string{"all"}, deleteFiles)
 			if err != nil {

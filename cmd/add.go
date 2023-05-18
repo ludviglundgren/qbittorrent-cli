@@ -40,15 +40,15 @@ func RunAdd() *cobra.Command {
 			return nil
 		},
 	}
-	command.Flags().BoolVar(&magnet, "magnet", false, "Add magnet link instead of torrent file")
+	command.Flags().BoolVarP(&magnet, "magnet", "m", false, "Add magnet link instead of torrent file")
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
-	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
+	command.Flags().BoolVarP(&skipHashCheck, "skip-hash-check", "s", false, "Skip hash check")
 	command.Flags().BoolVar(&ignoreRules, "ignore-rules", false, "Ignore rules from config")
-	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
-	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
-	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
-	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
+	command.Flags().StringVarP(&savePath, "save-path", "p", "", "Add torrent to the specified path")
+	command.Flags().StringVarP(&category, "category", "c", "", "Add torrent to the specified category")
+	command.Flags().Uint64VarP(&uploadLimit, "limit-ul", "u", 0, "Set torrent upload speed limit. Unit in bytes/second")
+	command.Flags().Uint64VarP(&downloadLimit, "limit-dl", "d", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -63,6 +63,7 @@ func RunAdd() *cobra.Command {
 				Port:     config.Qbit.Port,
 				Username: config.Qbit.Login,
 				Password: config.Qbit.Password,
+				SSL:      config.Qbit.SSL,
 			}
 			qb := qbittorrent.NewClient(qbtSettings)
 			err := qb.Login()
@@ -175,11 +176,12 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 
 // Check if status not working or something else
 // https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
-//  0 Tracker is disabled (used for DHT, PeX, and LSD)
-//  1 Tracker has not been contacted yet
-//  2 Tracker has been contacted and is working
-//  3 Tracker is updating
-//  4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
+//
+//	0 Tracker is disabled (used for DHT, PeX, and LSD)
+//	1 Tracker has not been contacted yet
+//	2 Tracker has been contacted and is working
+//	3 Tracker is updating
+//	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 func findTrackerStatus(slice []qbittorrent.TorrentTracker, val int) (int, bool) {
 	for i, item := range slice {
 		if item.Status == val {

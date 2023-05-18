@@ -8,8 +8,8 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 )
 
 // RunCompare cmd to compare torrents between clients

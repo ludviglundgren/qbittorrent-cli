@@ -2,6 +2,7 @@ package qbittorrent
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -23,10 +24,15 @@ func (c *Client) Login() error {
 	} else if resp.StatusCode != http.StatusOK { // check for correct status code
 		log.Fatalf("login error bad status %v", err)
 	}
-
+	ssl := "http"
+	if c.settings.SSL {
+		ssl = "https"
+	}
 	// place cookies in jar for future requests
 	if cookies := resp.Cookies(); len(cookies) > 0 {
-		cookieURL, _ := url.Parse("http://localhost:8080")
+		reqUrl := fmt.Sprintf("%v://%v", ssl, c.settings.Hostname)
+
+		cookieURL, _ := url.Parse(reqUrl)
 		c.http.Jar.SetCookies(cookieURL, cookies)
 	}
 
@@ -143,42 +149,42 @@ func (c *Client) GetTorrentByHash(hash string) (string, error) {
 
 // Search for torrents using provided prefixes; checks against either hashes, names, or both
 func (c *Client) GetTorrentsByPrefixes(terms []string, hashes bool, names bool) ([]Torrent, error) {
-		torrents, err := c.GetTorrents()
-		if err != nil {
-			log.Fatalf("ERROR: could not retrieve torrents: %v\n", err)
-		}
+	torrents, err := c.GetTorrents()
+	if err != nil {
+		log.Fatalf("ERROR: could not retrieve torrents: %v\n", err)
+	}
 
-		matchedTorrents := map[Torrent]bool{}
-		for _, torrent := range torrents {
-			if hashes {
-				for _, targetHash := range terms {
-					if strings.HasPrefix(torrent.Hash, targetHash) {
-						matchedTorrents[torrent] = true
-						break
-					}
-				}
-
-				if matchedTorrents[torrent] {
-					continue
+	matchedTorrents := map[Torrent]bool{}
+	for _, torrent := range torrents {
+		if hashes {
+			for _, targetHash := range terms {
+				if strings.HasPrefix(torrent.Hash, targetHash) {
+					matchedTorrents[torrent] = true
+					break
 				}
 			}
 
-			if names {
-				for _, targetName := range terms {
-					if strings.HasPrefix(torrent.Name, targetName) {
-						matchedTorrents[torrent] = true
-						break
-					}
-				}
+			if matchedTorrents[torrent] {
+				continue
 			}
 		}
 
-		var foundTorrents []Torrent
-		for torrent := range matchedTorrents {
-			foundTorrents = append(foundTorrents, torrent)
+		if names {
+			for _, targetName := range terms {
+				if strings.HasPrefix(torrent.Name, targetName) {
+					matchedTorrents[torrent] = true
+					break
+				}
+			}
 		}
+	}
 
-		return foundTorrents, nil
+	var foundTorrents []Torrent
+	for torrent := range matchedTorrents {
+		foundTorrents = append(foundTorrents, torrent)
+	}
+
+	return foundTorrents, nil
 }
 
 func (c *Client) GetTorrentTrackers(hash string) ([]TorrentTracker, error) {

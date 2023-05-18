@@ -5,6 +5,7 @@ type QbitConfig struct {
 	Port     uint   `mapstructure:"port"`
 	Login    string `mapstructure:"login"`
 	Password string `mapstructure:"password"`
+	SSL      bool   `mapstructure:"SSL"`
 }
 
 type ReannounceSettings struct {

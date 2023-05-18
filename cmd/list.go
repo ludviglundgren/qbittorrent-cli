@@ -7,8 +7,8 @@ import (
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
-	"github.com/spf13/cobra"
 	"github.com/dustin/go-humanize"
+	"github.com/spf13/cobra"
 )
 
 // RunList cmd to list torrents
@@ -29,6 +29,7 @@ func RunList() *cobra.Command {
 			Port:     config.Qbit.Port,
 			Username: config.Qbit.Login,
 			Password: config.Qbit.Password,
+			SSL:      config.Qbit.SSL,
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
@@ -96,8 +97,8 @@ func printList(torrents []qbittorrent.Torrent) {
 			)
 		}
 
-		days := (torrent.TimeActive / (60*60*24))
-		hours := (torrent.TimeActive / (60*60)) - (days * 24)
+		days := (torrent.TimeActive / (60 * 60 * 24))
+		hours := (torrent.TimeActive / (60 * 60)) - (days * 24)
 		minutes := (torrent.TimeActive / 60) - ((days * 1440) + (hours * 60))
 
 		if days > 0 {

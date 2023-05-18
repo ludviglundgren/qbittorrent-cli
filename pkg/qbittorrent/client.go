@@ -26,6 +26,7 @@ type Settings struct {
 	Port     uint
 	Username string
 	Password string
+	SSL      bool
 }
 
 func NewClient(s Settings) *Client {
@@ -46,7 +47,11 @@ func NewClient(s Settings) *Client {
 }
 
 func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
-	reqUrl := fmt.Sprintf("http://%v:%v/api/v2/%v", c.settings.Hostname, c.settings.Port, endpoint)
+	ssl := "http"
+	if c.settings.SSL {
+		ssl = "https"
+	}
+	reqUrl := fmt.Sprintf("%v://%v/api/v2/%v", ssl, c.settings.Hostname, endpoint)
 
 	req, err := http.NewRequest("GET", reqUrl, nil)
 	if err != nil {
@@ -69,8 +74,12 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 			form.Add(k, v)
 		}
 	}
+	ssl := "http"
+	if c.settings.SSL {
+		ssl = "https"
+	}
 
-	reqUrl := fmt.Sprintf("http://%v:%v/api/v2/%v", c.settings.Hostname, c.settings.Port, endpoint)
+	reqUrl := fmt.Sprintf("%v://%v/api/v2/%v", ssl, c.settings.Hostname, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
 		log.Fatal(err)
@@ -96,6 +105,11 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	}
 	// Close the file later
 	defer file.Close()
+
+	ssl := "http"
+	if c.settings.SSL {
+		ssl = "https"
+	}
 
 	// Buffer to store our request body as bytes
 	var requestBody bytes.Buffer
@@ -133,7 +147,7 @@ func (c *Client) postFile(endpoint string, fileName string, opts map[string]stri
 	// Close multipart writer
 	multiPartWriter.Close()
 
-	reqUrl := fmt.Sprintf("http://%v:%v/api/v2/%v", c.settings.Hostname, c.settings.Port, endpoint)
+	reqUrl := fmt.Sprintf("%v://%v/api/v2/%v", ssl, c.settings.Hostname, endpoint)
 	req, err := http.NewRequest("POST", reqUrl, &requestBody)
 	if err != nil {
 		log.Fatalf("could not create request object %v", err)

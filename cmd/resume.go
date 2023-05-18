@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -15,19 +15,19 @@ import (
 // RunResume cmd to resume torrents
 func RunResume() *cobra.Command {
 	var (
-		resumeAll	bool
-		hashes		bool
-		names		bool
+		resumeAll bool
+		hashes    bool
+		names     bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "resume",
 		Short: "resume specified torrents",
-		Long:  `resumes torrents indicated by hash, name or a prefix of either; 
+		Long: `resumes torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
-	command.Flags().BoolVar(&resumeAll, "all", false, "resumes all torrents")
+	command.Flags().BoolVarP(&resumeAll, "all", "A", false, "resumes all torrents")
 	command.Flags().BoolVar(&hashes, "hashes", false, "Provided arguments will be read as torrent hashes")
 	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
 
@@ -48,6 +48,7 @@ func RunResume() *cobra.Command {
 			Port:     config.Qbit.Port,
 			Username: config.Qbit.Login,
 			Password: config.Qbit.Password,
+			SSL:      config.Qbit.SSL,
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
@@ -56,7 +57,6 @@ func RunResume() *cobra.Command {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
-
 
 		if resumeAll {
 			qb.Resume([]string{"all"})

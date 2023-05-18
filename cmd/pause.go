@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -15,15 +15,15 @@ import (
 // RunPause cmd to pause torrents
 func RunPause() *cobra.Command {
 	var (
-		pauseAll	bool
-		hashes		bool
-		names		bool
+		pauseAll bool
+		hashes   bool
+		names    bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "pause",
 		Short: "Pause specified torrents",
-		Long:  `Pauses torrents indicated by hash, name or a prefix of either; 
+		Long: `Pauses torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
@@ -48,6 +48,7 @@ func RunPause() *cobra.Command {
 			Port:     config.Qbit.Port,
 			Username: config.Qbit.Login,
 			Password: config.Qbit.Password,
+			SSL:      config.Qbit.SSL,
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
