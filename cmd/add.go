@@ -49,7 +49,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().StringVarP(&category, "category", "c", "", "Add torrent to the specified category")
 	command.Flags().Uint64VarP(&uploadLimit, "limit-ul", "u", 0, "Set torrent upload speed limit. Unit in bytes/second")
 	command.Flags().Uint64VarP(&downloadLimit, "limit-dl", "d", 0, "Set torrent download speed limit. Unit in bytes/second")
-	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
+	command.Flags().StringArrayVarP(&tags, "tags", "t", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()

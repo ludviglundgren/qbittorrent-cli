@@ -63,6 +63,7 @@ host     = "127.0.0.1" # qbittorrent webui-api hostname/ip
 port     = 6776        # qbittorrent webui-api port
 login    = "user"      # qbittorrent webui-api user
 password = "password"  # qbittorrent webui-api password
+SSL      = false       # qbittorrent webui-api SSL
 
 [rules]
 enabled              = true   # enable or disable rules
