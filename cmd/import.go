@@ -80,6 +80,11 @@ func RunImport() *cobra.Command {
 
 		start := time.Now()
 
+		fmt.Printf("Preparing to import torrents from: %s dir: %s\n", source, sourceDir)
+		if dryRun {
+			fmt.Println("running with --dry-run, no data will be written")
+		}
+
 		switch source {
 		case "deluge":
 			d := importer.NewDelugeImporter()
