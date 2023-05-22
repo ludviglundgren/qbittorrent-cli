@@ -117,6 +117,8 @@ Commands:
   - help
   - move
   - compare
+  - edit
+  - reannounce
 
 Global flags:
   * `--config` - override config file
@@ -152,6 +154,7 @@ By using ATM (Automatic Torrent Mode) and the default behavior of categories map
 Optional flags:
 * `--dry-run` - Run without doing anything
 * `--min-seed-time` - Only move torrents with a minimum active seedtime of X minutes
+* `--include-tags` - Only move torrents with any of the tags in comma separate list (tag1,tag2)
 
 Usable with cron as well. Run every 15 min.
 
@@ -177,6 +180,24 @@ Optional flags:
 
 
     qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+
+### Edit
+
+Edit fastresume data like save-path. Make sure to shut down the client and backup the data before running this.
+
+Required flags:
+* `--dir` - Dir to the fastresume data. Usually `~/.local/share/qBittorrent/BT_backup`
+* `--pattern` - The pattern to replace. Eg. `/home/user01/torrents`
+* `--replace` - The replacement text. Eg. `/home/test/torrents`
+
+Optional flags:
+* `--dry-run` - Dry run without editing files
+* `--verbose, -v` - Verbose output
+
+
+```bash
+qbt edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'
+```
 
 ### Import
 
@@ -220,3 +241,16 @@ Torrents imported into qBittorrent does not have automatic management enabled, b
 4. Start clients again, go into the source client and stop everything.
 5. Set categories/tags in batches. Start to add a category, then set "Automatic torrent management" for it to automatically move the files to the categories specified directory.
 
+### Reannounce
+
+Reannounce torrents.
+
+    qbt reannounce
+
+Optional flags:
+* `--dry-run` - Run without doing anything
+* `--category <CATEGORY>` - Only look for torrents with the provided category
+* `--tag <TAG>` - Only look for torrents with the provided tag
+* `--hash <HASH>` - Only look for torrents with the provided hash 
+* `--interval <INTERVAL>` - Override default interval of 7000 ms (7s)
+* `--attempts <ATTEMPTS>` - Override default attempts of 50

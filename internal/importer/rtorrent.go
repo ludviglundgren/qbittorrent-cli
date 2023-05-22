@@ -1,7 +1,6 @@
 package importer
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -34,20 +33,20 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 	info, err := os.Stat(torrentsSessionDir)
 	if os.IsNotExist(err) {
-		return errors.Wrapf(err, "Directory does not exist: %v\n", torrentsSessionDir)
+		return errors.Wrapf(err, "Directory does not exist: %s", torrentsSessionDir)
 	}
 	if err != nil {
-		return errors.Wrapf(err, "Directory error: %v\n", torrentsSessionDir)
+		return errors.Wrapf(err, "Directory error: %s", torrentsSessionDir)
 
 	}
 	if !info.IsDir() {
-		return errors.Errorf("Directory is a file, not a directory: %#v\n", torrentsSessionDir)
+		return errors.Errorf("Directory is a file, not a directory: %s", torrentsSessionDir)
 	}
 
-	matches, _ := filepath.Glob(torrentsSessionDir + "*.torrent")
+	matches, _ := filepath.Glob(path.Join(torrentsSessionDir, "*.torrent"))
 
 	totalJobs := len(matches)
-	log.Printf("Total torrents to process: %v \n", totalJobs)
+	log.Printf("Total torrents to process: %v", totalJobs)
 
 	positionNum := 0
 	for _, match := range matches {
@@ -55,15 +54,17 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 		torrentID := getTorrentFileName(match)
 
+		torrentOutFile := path.Join(opts.QbitDir, torrentID+".torrent")
+
 		// If file already exists, skip
-		if _, err = os.Stat(opts.QbitDir + "/" + torrentID + ".torrent"); err == nil {
-			log.Printf("%v/%v %v Torrent already exists, skipping", positionNum, totalJobs, torrentID)
+		if _, err = os.Stat(torrentOutFile); err == nil {
+			log.Printf("%d/%d %s Torrent already exists, skipping", positionNum, totalJobs, torrentOutFile)
 			continue
 		}
 
 		torrentFile, err := torrent.OpenDecodeRaw(match)
 		if err != nil {
-			log.Printf("Can't decode torrent file %v. Can't decode string %v. Continue", match, torrentID)
+			log.Printf("Could not decode torrent file %s. Could not decode string %s. Continue", match, torrentID)
 			continue
 		}
 
@@ -181,21 +182,19 @@ func (i *RTorrentImport) Import(opts Options) error {
 		// only run if not dry-run
 		if opts.DryRun != true {
 			// copy torrent file
-			if err = newFastResume.Encode(opts.QbitDir + "/" + torrentID + ".fastresume"); err != nil {
-				log.Printf("Can't create qBittorrent fastresume file %v error: %v", opts.QbitDir+torrentID+".fastresume", err)
+			fastResumeOutFile := path.Join(opts.QbitDir, torrentID+".fastresume")
+			if err = newFastResume.Encode(fastResumeOutFile); err != nil {
+				log.Printf("Could not create qBittorrent fastresume file %s error: %q", fastResumeOutFile, err)
 				return err
 			}
 
-			if err = torrent.CopyFile(match, opts.QbitDir+"/"+torrentID+".torrent"); err != nil {
-				log.Printf("Can't create qBittorrent torrent file %v error %v", opts.QbitDir+torrentID+".torrent", err)
+			if err = torrent.CopyFile(match, torrentOutFile); err != nil {
+				log.Printf("Could copy qBittorrent torrent file %v error %v", torrentOutFile, err)
 				return err
 			}
-			//go processFiles(torrentID, decodedVal, opts, &torrentsSessionDir, positionNum, totalJobs)
 		}
 
-		log.Printf("%v/%v %v Sucessfully imported: %v", positionNum, totalJobs, torrentID, metaInfo.Name)
-
-		//time.Sleep(100 * time.Millisecond)
+		log.Printf("%d/%d %s Sucessfully imported: %s", positionNum, totalJobs, torrentID, metaInfo.Name)
 	}
 
 	return nil
@@ -234,29 +233,31 @@ func getTorrentFileName(file string) string {
 }
 
 func decodeRTorrentLibTorrentResumeFile(path string) (*RTorrentLibTorrentResumeFile, error) {
-	dat, err := ioutil.ReadFile(path)
+	dat, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	//var torrent map[string]interface{}
-	var torrent RTorrentLibTorrentResumeFile
-	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
+
+	var torrentResumeFile RTorrentLibTorrentResumeFile
+	if err := bencode.DecodeBytes(dat, &torrentResumeFile); err != nil {
 		return nil, err
 	}
-	return &torrent, nil
+
+	return &torrentResumeFile, nil
 }
 
 func decodeRTorrentFile(path string) (*RTorrentTorrentFile, error) {
-	dat, err := ioutil.ReadFile(path)
+	dat, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	//var torrent map[string]interface{}
-	var torrent RTorrentTorrentFile
-	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
+
+	var torrentFile RTorrentTorrentFile
+	if err := bencode.DecodeBytes(dat, &torrentFile); err != nil {
 		return nil, err
 	}
-	return &torrent, nil
+
+	return &torrentFile, nil
 }
 
 // Clean and convert string to int from rtorrent.custom.addtime, seedingtime
