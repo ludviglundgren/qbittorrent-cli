@@ -41,6 +41,7 @@ Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`
 	rootCmd.AddCommand(cmd.RunList())
 	rootCmd.AddCommand(cmd.RunMove())
 	rootCmd.AddCommand(cmd.RunPause())
+	rootCmd.AddCommand(cmd.RunReannounce())
 	rootCmd.AddCommand(cmd.RunRemove())
 	rootCmd.AddCommand(cmd.RunResume())
 
