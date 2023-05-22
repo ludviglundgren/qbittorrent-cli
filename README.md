@@ -118,6 +118,7 @@ Commands:
   - move
   - compare
   - edit
+  - reannounce
 
 Global flags:
   * `--config` - override config file
@@ -240,3 +241,16 @@ Torrents imported into qBittorrent does not have automatic management enabled, b
 4. Start clients again, go into the source client and stop everything.
 5. Set categories/tags in batches. Start to add a category, then set "Automatic torrent management" for it to automatically move the files to the categories specified directory.
 
+### Reannounce
+
+Reannounce torrents.
+
+    qbt reannounce
+
+Optional flags:
+* `--dry-run` - Run without doing anything
+* `--category <CATEGORY>` - Only look for torrents with the provided category
+* `--tag <TAG>` - Only look for torrents with the provided tag
+* `--hash <HASH>` - Only look for torrents with the provided hash 
+* `--interval <INTERVAL>` - Override default interval of 7000 ms (7s)
+* `--attempts <ATTEMPTS>` - Override default attempts of 50
