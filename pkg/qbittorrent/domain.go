@@ -181,7 +181,7 @@ const (
 type GetTorrentsRequest struct {
 	Filter   string
 	Category string
-	Tags     string
+	Tag      string
 	Hashes   string
 	Json     bool
 }

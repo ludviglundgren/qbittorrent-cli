@@ -19,7 +19,7 @@ func RunList() *cobra.Command {
 	var (
 		filter     = "all"
 		category   string
-		tags       string
+		tag        string
 		hashes     string
 		outputJson bool
 	)
@@ -27,13 +27,13 @@ func RunList() *cobra.Command {
 	var command = &cobra.Command{
 		Use:     "list",
 		Short:   "List torrents",
-		Long:    `List all torrents, or torrents with a specific filters. Get by filter, category, tags and hashes. Can be combined`,
+		Long:    `List all torrents, or torrents with a specific filters. Get by filter, category, tag and hashes. Can be combined`,
 		Example: `qbt list --filter=downloading --category=linux-iso`,
 	}
 	command.Flags().BoolVar(&outputJson, "json", false, "Print to json")
 	command.Flags().StringVarP(&filter, "filter", "f", "all", "Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, \nstalled, stalled_uploading, stalled_downloading, errored")
 	command.Flags().StringVarP(&category, "category", "c", "", "Filter by category. All categories by default.")
-	command.Flags().StringVarP(&tags, "tags", "t", "", "Filter by tags. Comma separated list: tag1,tag2")
+	command.Flags().StringVarP(&tag, "tag", "t", "", "Filter by tag. Single tag: tag1")
 	command.Flags().StringVarP(&hashes, "hashes", "h", "", "Filter by hashes. Separated by | pipe: \"hash1|hash2\".")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -60,7 +60,8 @@ func RunList() *cobra.Command {
 		req := qbittorrent.GetTorrentsRequest{
 			Filter:   strings.ToLower(filter),
 			Category: category,
-			Tags:     tags,
+			Tag:      tag,
+			Hashes:   hashes,
 		}
 
 		// get torrent list with default filter of all

@@ -2,7 +2,6 @@ package qbittorrent
 
 import (
 	"encoding/json"
-	"github.com/pkg/errors"
 	"io"
 	"log"
 	"net/http"
@@ -10,9 +9,9 @@ import (
 	"strconv"
 	"strings"
 
-	"golang.org/x/net/context"
-
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/pkg/errors"
+	"golang.org/x/net/context"
 )
 
 func (c *Client) Login(ctx context.Context) error {
@@ -43,6 +42,8 @@ func (c *Client) GetTorrentsWithFilters(ctx context.Context, req *GetTorrentsReq
 		v.Add("filter", req.Filter)
 	} else if req.Category != "" {
 		v.Add("category", req.Category)
+	} else if req.Tag != "" {
+		v.Add("tag", req.Tag)
 	} else if req.Hashes != "" {
 		v.Add("hashes", req.Hashes)
 	}
