@@ -20,6 +20,7 @@ func RunMove() *cobra.Command {
 		fromCategories []string
 		targetCategory string
 		includeTags    []string
+		excludeTags    []string
 		minSeedTime    int
 	)
 
@@ -32,7 +33,8 @@ func RunMove() *cobra.Command {
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().StringSliceVar(&fromCategories, "from", []string{}, "Move from categories")
 	command.Flags().StringVar(&targetCategory, "to", "", "Move to the specified category")
-	command.Flags().StringSliceVar(&includeTags, "include-tags", []string{}, "Move from tags")
+	command.Flags().StringSliceVar(&includeTags, "include-tags", []string{}, "Include torrents with provided tags")
+	command.Flags().StringSliceVar(&excludeTags, "exclude-tags", []string{}, "Exclude torrents with provided tags")
 	command.Flags().IntVar(&minSeedTime, "min-seed-time", 0, "Minimum seed time in MINUTES before moving.")
 	command.MarkFlagRequired("from")
 	command.MarkFlagRequired("to")
@@ -74,8 +76,14 @@ func RunMove() *cobra.Command {
 				}
 
 				if len(includeTags) > 0 {
-					validTag := validateTag(includeTags, torrent.Tags)
-					if !validTag {
+					if _, validTag := validateTag(includeTags, torrent.Tags); !validTag {
+						continue
+					}
+				}
+
+				if len(excludeTags) > 0 {
+					if tag, found := validateTag(excludeTags, torrent.Tags); found {
+						fmt.Printf("ignoring torrent %s %s containng tag: %s of tags: %s", torrent.Name, torrent.Hash, tag, excludeTags)
 						continue
 					}
 				}
@@ -97,21 +105,21 @@ func RunMove() *cobra.Command {
 		}
 
 		if len(hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to move from (%v) to (%v) with tags (%v) and min-seed-time %d minutes \n", strings.Join(fromCategories, ","), targetCategory, strings.Join(includeTags, ","), minSeedTime)
+			fmt.Printf("Could not find any matching torrents to move from (%s) to (%s) with tags (%s) and min-seed-time %d minutes\n", strings.Join(fromCategories, ","), targetCategory, strings.Join(includeTags, ","), minSeedTime)
 			os.Exit(0)
 		}
 
 		if !dry {
-			fmt.Printf("Found %d matching torrents to move from (%v) to (%v)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			fmt.Printf("Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 			if err := qb.SetCategory(ctx, hashes, targetCategory); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not pause torrents %v\n", err)
 				os.Exit(1)
 			}
 
-			fmt.Printf("Successfully moved %d torrents from (%v) to (%v)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			fmt.Printf("Successfully moved %d torrents from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 		} else {
-			fmt.Printf("DRY-RUN: Found %d matching torrents to move from (%v) to (%v)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
-			fmt.Printf("DRY-RUN: Successfully moved %d torrents from (%v) to (%v)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			fmt.Printf("DRY-RUN: Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			fmt.Printf("DRY-RUN: Successfully moved %d torrents from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 			return
 		}
 	}
@@ -119,16 +127,16 @@ func RunMove() *cobra.Command {
 	return command
 }
 
-func validateTag(includeTags []string, torrentTags string) bool {
+func validateTag(includeTags []string, torrentTags string) (string, bool) {
 	tagList := strings.Split(torrentTags, ", ")
 
 	for _, includeTag := range includeTags {
 		for _, tag := range tagList {
 			if tag == includeTag {
-				return true
+				return tag, true
 			}
 		}
 	}
 
-	return false
+	return "", false
 }
