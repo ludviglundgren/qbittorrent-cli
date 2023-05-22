@@ -163,6 +163,9 @@ const (
 	// Torrent is stalled
 	TorrentFilterStalled TorrentFilter = "stalled"
 
+	// Torrent is being seeded and data is being transferred
+	TorrentFilterUploading TorrentFilter = "uploading"
+
 	// Torrent is being seeded, but no connection were made
 	TorrentFilterStalledUploading TorrentFilter = "stalled_uploading"
 
@@ -174,3 +177,11 @@ const (
 
 	TorrentFilterErrored TorrentFilter = "errored"
 )
+
+type GetTorrentsRequest struct {
+	Filter   string
+	Category string
+	Tags     string
+	Hashes   string
+	Json     bool
+}

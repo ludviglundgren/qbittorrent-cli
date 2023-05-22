@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -15,15 +16,15 @@ import (
 // RunResume cmd to resume torrents
 func RunResume() *cobra.Command {
 	var (
-		resumeAll	bool
-		hashes		bool
-		names		bool
+		resumeAll bool
+		hashes    bool
+		names     bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "resume",
 		Short: "resume specified torrents",
-		Long:  `resumes torrents indicated by hash, name or a prefix of either; 
+		Long: `resumes torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
@@ -44,23 +45,26 @@ func RunResume() *cobra.Command {
 
 		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:     config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
+
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-
 		if resumeAll {
-			qb.Resume([]string{"all"})
-			if err != nil {
+			if err := qb.Resume(ctx, []string{"all"}); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
 				os.Exit(1)
 			}
@@ -69,7 +73,7 @@ func RunResume() *cobra.Command {
 			return
 		}
 
-		foundTorrents, err := qb.GetTorrentsByPrefixes(args, hashes, names)
+		foundTorrents, err := qb.GetTorrentsByPrefixes(ctx, args, hashes, names)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve torrents: %v\n", err)
 			os.Exit(1)
@@ -93,8 +97,7 @@ func RunResume() *cobra.Command {
 				j = len(hashesToResume)
 			}
 
-			qb.Resume(hashesToResume[i:j])
-			if err != nil {
+			if err := qb.Resume(ctx, hashesToResume[i:j]); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
 				os.Exit(1)
 			}

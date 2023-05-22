@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -14,81 +16,76 @@ import (
 
 // RunList cmd to list torrents
 func RunList() *cobra.Command {
-	var json bool
+	var (
+		filter     = "all"
+		category   string
+		tags       string
+		hashes     string
+		outputJson bool
+	)
 
 	var command = &cobra.Command{
-		Use:   "list [state]",
-		Short: "List torrents",
-		Long: `List all torrents, or torrents with a specific state. Available states:
-all, downloading, seeding, completed, paused, active, inactive, resumed, 
-stalled, stalled_uploading, stalled_downloading, errored`,
-		Example: `qbt list downloading`,
+		Use:     "list",
+		Short:   "List torrents",
+		Long:    `List all torrents, or torrents with a specific filters. Get by filter, category, tags and hashes. Can be combined`,
+		Example: `qbt list --filter=downloading --category=linux-iso`,
 	}
-	command.Flags().BoolVar(&json, "json", false, "Print to json")
+	command.Flags().BoolVar(&outputJson, "json", false, "Print to json")
+	command.Flags().StringVarP(&filter, "filter", "f", "all", "Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, \nstalled, stalled_uploading, stalled_downloading, errored")
+	command.Flags().StringVarP(&category, "category", "c", "", "Filter by category. All categories by default.")
+	command.Flags().StringVarP(&tags, "tags", "t", "", "Filter by tags. Comma separated list: tag1,tag2")
+	command.Flags().StringVarP(&hashes, "hashes", "h", "", "Filter by hashes. Separated by | pipe: \"hash1|hash2\".")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:     config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
+
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		if json {
-			torrents, err := qb.GetTorrentsRaw()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-				os.Exit(1)
-			}
+		req := qbittorrent.GetTorrentsRequest{
+			Filter:   strings.ToLower(filter),
+			Category: category,
+			Tags:     tags,
+		}
 
-			if len(torrents) < 1 {
-				fmt.Println("No torrents found.")
-				return
-			}
+		// get torrent list with default filter of all
+		torrents, err := qb.GetTorrentsWithFilters(ctx, &req)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
+			os.Exit(1)
+		}
 
-			fmt.Println(torrents)
+		if len(torrents) < 1 {
+			fmt.Printf("No torrents found with filter: %s\n", filter)
 			return
 		}
 
-		// If no torrent filter provided, list all torrents.
-		if len(args) < 1 {
-			torrents, err := qb.GetTorrents()
+		if outputJson {
+			res, err := json.Marshal(torrents)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
+				fmt.Fprintf(os.Stderr, "ERROR: could not marshal torrents to json %v\n", err)
 				os.Exit(1)
 			}
-
-			if len(torrents) < 1 {
-				fmt.Println("No torrents found.")
-				return
-			}
-
-			printList(torrents)
-		} else if len(args) >= 1 {
-			var state = args[0]
-			var filter = qbittorrent.TorrentFilter(strings.ToLower(state))
-			torrents, err := qb.GetTorrentsFilter(filter)
-
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-				os.Exit(1)
-			}
-
-			if len(torrents) < 1 {
-				fmt.Printf("No torrents found with state \"%s\"\n", state)
-				return
-			}
-
-			printList(torrents)
+			fmt.Println(string(res))
+			return
 		}
+
+		printList(torrents)
 	}
 
 	return command
@@ -130,7 +127,7 @@ func printList(torrents []qbittorrent.Torrent) {
 			)
 		}
 
-		days := (torrent.TimeActive / (60 * 60 * 24))
+		days := torrent.TimeActive / (60 * 60 * 24)
 		hours := (torrent.TimeActive / (60 * 60)) - (days * 24)
 		minutes := (torrent.TimeActive / 60) - ((days * 1440) + (hours * 60))
 

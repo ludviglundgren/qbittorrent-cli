@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -15,16 +16,16 @@ import (
 // RunRemove cmd to remove torrents
 func RunRemove() *cobra.Command {
 	var (
-		removeAll		bool
-		deleteFiles		bool
-		hashes			bool 
-		names			bool 
+		removeAll   bool
+		deleteFiles bool
+		hashes      bool
+		names       bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "remove",
 		Short: "Removes specified torrents",
-		Long:  `Removes torrents indicated by hash, name or a prefix of either; 
+		Long: `Removes torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
@@ -46,22 +47,26 @@ func RunRemove() *cobra.Command {
 
 		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:	  config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
+
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
-		
+
 		if removeAll {
-			qb.DeleteTorrents([]string{"all"}, deleteFiles)
-			if err != nil {
+			if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
 				os.Exit(1)
 			}
@@ -70,7 +75,7 @@ func RunRemove() *cobra.Command {
 			return
 		}
 
-		foundTorrents, err := qb.GetTorrentsByPrefixes(args, hashes, names)
+		foundTorrents, err := qb.GetTorrentsByPrefixes(ctx, args, hashes, names)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve torrents: %v\n", err)
 			os.Exit(1)
@@ -94,8 +99,7 @@ func RunRemove() *cobra.Command {
 				j = len(hashesToRemove)
 			}
 
-			qb.DeleteTorrents(hashesToRemove[i:j], deleteFiles)
-			if err != nil {
+			if err := qb.DeleteTorrents(ctx, hashesToRemove[i:j], deleteFiles); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
 				os.Exit(1)
 			}
