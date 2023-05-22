@@ -115,7 +115,7 @@ func RunAdd() *cobra.Command {
 			options["dlLimit"] = strconv.FormatUint(uploadLimit, 10)
 		}
 
-		if magnet {
+		if magnet || strings.HasPrefix(filePath, "magnet:") {
 			hash, err := qb.AddTorrentFromMagnet(ctx, filePath, options)
 			if err != nil {
 				log.Fatalf("adding torrent failed: %q\n", err)
