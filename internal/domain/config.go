@@ -1,10 +1,13 @@
 package domain
 
 type QbitConfig struct {
-	Host     string `mapstructure:"host"`
-	Port     uint   `mapstructure:"port"`
-	Login    string `mapstructure:"login"`
-	Password string `mapstructure:"password"`
+	Addr      string `mapstructure:"addr"`
+	Host      string `mapstructure:"host"`
+	Port      uint   `mapstructure:"port"`
+	Login     string `mapstructure:"login"`
+	Password  string `mapstructure:"password"`
+	BasicUser string `mapstructure:"basicUser"`
+	BasicPass string `mapstructure:"basicPass"`
 }
 
 type ReannounceSettings struct {

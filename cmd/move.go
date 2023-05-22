@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -39,15 +40,20 @@ func RunMove() *cobra.Command {
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:     config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
+
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -55,7 +61,7 @@ func RunMove() *cobra.Command {
 		var hashes []string
 
 		for _, cat := range fromCategories {
-			torrents, err := qb.GetTorrentsByCategory(cat)
+			torrents, err := qb.GetTorrentsByCategory(ctx, cat)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents by category %v\n", err)
 				os.Exit(1)
@@ -97,8 +103,7 @@ func RunMove() *cobra.Command {
 
 		if !dry {
 			fmt.Printf("Found %d matching torrents to move from (%v) to (%v)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
-			err = qb.SetCategory(hashes, targetCategory)
-			if err != nil {
+			if err := qb.SetCategory(ctx, hashes, targetCategory); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not pause torrents %v\n", err)
 				os.Exit(1)
 			}

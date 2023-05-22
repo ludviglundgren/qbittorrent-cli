@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
-	"os"
 	"log"
+	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -15,15 +16,15 @@ import (
 // RunPause cmd to pause torrents
 func RunPause() *cobra.Command {
 	var (
-		pauseAll	bool
-		hashes		bool
-		names		bool
+		pauseAll bool
+		hashes   bool
+		names    bool
 	)
 
 	var command = &cobra.Command{
 		Use:   "pause",
 		Short: "Pause specified torrents",
-		Long:  `Pauses torrents indicated by hash, name or a prefix of either; 
+		Long: `Pauses torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
@@ -44,22 +45,26 @@ func RunPause() *cobra.Command {
 
 		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:     config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
+
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
 		if pauseAll {
-			qb.Pause([]string{"all"})
-			if err != nil {
+			if err := qb.Pause(ctx, []string{"all"}); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not pause torrents: %v\n", err)
 				os.Exit(1)
 			}
@@ -68,7 +73,7 @@ func RunPause() *cobra.Command {
 			return
 		}
 
-		foundTorrents, err := qb.GetTorrentsByPrefixes(args, hashes, names)
+		foundTorrents, err := qb.GetTorrentsByPrefixes(ctx, args, hashes, names)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve torrents: %v\n", err)
 			os.Exit(1)
@@ -92,8 +97,7 @@ func RunPause() *cobra.Command {
 				j = len(hashesToPause)
 			}
 
-			qb.Pause(hashesToPause[i:j])
-			if err != nil {
+			if err := qb.Pause(ctx, hashesToPause[i:j]); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not pause torrents: %v\n", err)
 				os.Exit(1)
 			}

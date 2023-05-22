@@ -1,15 +1,16 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
+	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
+
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
-
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
-	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 )
 
 // RunCompare cmd to compare torrents between clients
@@ -62,13 +63,14 @@ func RunCompare() *cobra.Command {
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		sourceData, err := qb.GetTorrents()
+		sourceData, err := qb.GetTorrents(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
 			os.Exit(1)
@@ -84,13 +86,12 @@ func RunCompare() *cobra.Command {
 		}
 		qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
 
-		err = qbCompare.Login()
-		if err != nil {
+		if err = qbCompare.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
 			os.Exit(1)
 		}
 
-		compareData, err := qbCompare.GetTorrents()
+		compareData, err := qbCompare.GetTorrents(ctx)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
 			os.Exit(1)
@@ -113,7 +114,7 @@ func RunCompare() *cobra.Command {
 					j = len(duplicateTorrents)
 				}
 
-				qbCompare.SetTag(duplicateTorrents[i:j], "duplicate")
+				qbCompare.SetTag(ctx, duplicateTorrents[i:j], "duplicate")
 
 				// sleep before next request
 				time.Sleep(time.Second * 1)

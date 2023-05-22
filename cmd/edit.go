@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"io/fs"
-	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -86,7 +86,7 @@ func RunEdit() *cobra.Command {
 }
 
 func processFastResume(path, pattern, replace string, verbose, dry bool) error {
-	read, err := ioutil.ReadFile(path)
+	read, err := os.ReadFile(path)
 	if err != nil {
 		log.Fatalf("error reading file: %v - %v", path, err)
 	}
