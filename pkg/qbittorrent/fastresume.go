@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/zeebo/bencode"
@@ -88,15 +89,16 @@ type Fastresume struct {
 
 // Encode qBittorrent fastresume file
 func (fr *Fastresume) Encode(path string) error {
-	_, err := os.Create(path)
-	if err != nil {
-		log.Printf("os create error: %v", err)
+	dir := filepath.Dir(path)
+
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		log.Printf("os create dir error: %v", err)
 		return err
 	}
 
-	file, err := os.OpenFile(path, os.O_WRONLY, 0666)
+	file, err := os.Create(path)
 	if err != nil {
-		log.Printf("os open file error: %v", err)
+		log.Printf("os create error: %v", err)
 		return err
 	}
 
