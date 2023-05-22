@@ -1,8 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -52,25 +55,33 @@ func RunAdd() *cobra.Command {
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		// args
 		// first arg is path to torrent file
 		filePath := args[0]
 
 		if !dry {
 			qbtSettings := qbittorrent.Settings{
-				Hostname: config.Qbit.Host,
-				Port:     config.Qbit.Port,
-				Username: config.Qbit.Login,
-				Password: config.Qbit.Password,
+				Addr:      config.Qbit.Addr,
+				Hostname:  config.Qbit.Host,
+				Port:      config.Qbit.Port,
+				Username:  config.Qbit.Login,
+				Password:  config.Qbit.Password,
+				BasicUser: config.Qbit.BasicUser,
+				BasicPass: config.Qbit.BasicPass,
 			}
+
 			qb := qbittorrent.NewClient(qbtSettings)
-			err := qb.Login()
-			if err != nil {
-				log.Fatalf("connection failed %v", err)
+
+			ctx := context.Background()
+
+			if err := qb.Login(ctx); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
+				os.Exit(1)
 			}
 
 			if config.Rules.Enabled && !ignoreRules {
-				activeDownloads, err := qb.GetTorrentsFilter(qbittorrent.TorrentFilterDownloading)
+				activeDownloads, err := qb.GetTorrentsFilter(ctx, qbittorrent.TorrentFilterDownloading)
 				if err != nil {
 					log.Fatalf("could not fetch torrents: %v", err)
 				}
@@ -105,18 +116,19 @@ func RunAdd() *cobra.Command {
 			}
 
 			var res string
+			var err error
 			if magnet {
-				res, err = qb.AddTorrentFromMagnet(filePath, options)
+				res, err = qb.AddTorrentFromMagnet(ctx, filePath, options)
 			} else {
-				res, err = qb.AddTorrentFromFile(filePath, options)
+				res, err = qb.AddTorrentFromFile(ctx, filePath, options)
 			}
 			if err != nil {
 				log.Fatalf("adding torrent failed: %v", err)
 			}
 
-			// some trackers are bugged or slow so we need to re-announce the torrent until it works
+			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 			if config.Reannounce.Enabled && !paused {
-				err = checkTrackerStatus(*qb, res)
+				err = checkTrackerStatus(ctx, qb, res)
 				if err != nil {
 					log.Fatalf("could not get tracker status for torrent: %v", err)
 				}
@@ -131,14 +143,14 @@ func RunAdd() *cobra.Command {
 	return command
 }
 
-func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
+func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, hash string) error {
 	announceOK := false
 	attempts := 0
 
 	time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
 
 	for attempts < config.Reannounce.Attempts {
-		trackers, err := qb.GetTorrentTrackers(hash)
+		trackers, err := qb.GetTorrentTrackers(ctx, hash)
 		if err != nil {
 			log.Fatalf("could not get trackers of torrent: %v %v", hash, err)
 		}
@@ -147,7 +159,7 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 		_, working := findTrackerStatus(trackers, 2)
 
 		if !working {
-			err = qb.ReAnnounceTorrents([]string{hash})
+			err = qb.ReAnnounceTorrents(ctx, []string{hash})
 			if err != nil {
 				return err
 			}
@@ -163,7 +175,7 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 
 	if !announceOK {
 		log.Println("Announce not ok, deleting torrent")
-		err := qb.DeleteTorrents([]string{hash}, false)
+		err := qb.DeleteTorrents(ctx, []string{hash}, false)
 		if err != nil {
 			return err
 		}
@@ -174,11 +186,12 @@ func checkTrackerStatus(qb qbittorrent.Client, hash string) error {
 
 // Check if status not working or something else
 // https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-trackers
-//  0 Tracker is disabled (used for DHT, PeX, and LSD)
-//  1 Tracker has not been contacted yet
-//  2 Tracker has been contacted and is working
-//  3 Tracker is updating
-//  4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
+//
+//	0 Tracker is disabled (used for DHT, PeX, and LSD)
+//	1 Tracker has not been contacted yet
+//	2 Tracker has been contacted and is working
+//	3 Tracker is updating
+//	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 func findTrackerStatus(slice []qbittorrent.TorrentTracker, val int) (int, bool) {
 	for i, item := range slice {
 		if item.Status == val {

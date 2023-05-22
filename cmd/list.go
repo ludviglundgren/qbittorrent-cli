@@ -1,116 +1,148 @@
 package cmd
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
-	"math"
-	"strconv"
+	"strings"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
 
 // RunList cmd to list torrents
 func RunList() *cobra.Command {
-	var json bool
+	var (
+		filter     = "all"
+		category   string
+		tag        string
+		hashes     string
+		outputJson bool
+	)
 
 	var command = &cobra.Command{
-		Use:   "list",
-		Short: "List torrents",
-		Long:  `List all torrents`,
+		Use:     "list",
+		Short:   "List torrents",
+		Long:    `List all torrents, or torrents with a specific filters. Get by filter, category, tag and hashes. Can be combined`,
+		Example: `qbt list --filter=downloading --category=linux-iso`,
 	}
-	command.Flags().BoolVar(&json, "json", false, "print to json")
+	command.Flags().BoolVar(&outputJson, "json", false, "Print to json")
+	command.Flags().StringVarP(&filter, "filter", "f", "all", "Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, \nstalled, stalled_uploading, stalled_downloading, errored")
+	command.Flags().StringVarP(&category, "category", "c", "", "Filter by category. All categories by default.")
+	command.Flags().StringVarP(&tag, "tag", "t", "", "Filter by tag. Single tag: tag1")
+	command.Flags().StringVarP(&hashes, "hashes", "h", "", "Filter by hashes. Separated by | pipe: \"hash1|hash2\".")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:     config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
+
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		err := qb.Login()
-		if err != nil {
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		if json {
-			torrents, err := qb.GetTorrentsRaw()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-				os.Exit(1)
-			}
-
-			fmt.Println(torrents)
-		} else {
-			torrents, err := qb.GetTorrents()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-				os.Exit(1)
-			}
-
-			printList(torrents)
+		req := qbittorrent.GetTorrentsRequest{
+			Filter:   strings.ToLower(filter),
+			Category: category,
+			Tag:      tag,
+			Hashes:   hashes,
 		}
+
+		// get torrent list with default filter of all
+		torrents, err := qb.GetTorrentsWithFilters(ctx, &req)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
+			os.Exit(1)
+		}
+
+		if len(torrents) < 1 {
+			fmt.Printf("No torrents found with filter: %s\n", filter)
+			return
+		}
+
+		if outputJson {
+			res, err := json.Marshal(torrents)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not marshal torrents to json %v\n", err)
+				os.Exit(1)
+			}
+			fmt.Println(string(res))
+			return
+		}
+
+		printList(torrents)
 	}
 
 	return command
 }
 
 func printList(torrents []qbittorrent.Torrent) {
+	space := fmt.Sprintf("%*c", 4, ' ')
 	for _, torrent := range torrents {
-		fmt.Printf("%-60s\t[Status: %s]\n", torrent.Name, torrent.State)
+		fmt.Printf("[*] ")
+		fmt.Printf("%-80.80s%s[%s]\n", torrent.Name, space, torrent.State)
 
-		fmt.Printf(
-			"Downloaded: %s / %s%10s",
-			bytesToHumanReadable(float64(torrent.Completed)),
-			bytesToHumanReadable(float64(torrent.TotalSize)),
-			"",
-		)
+		fmt.Printf("%sDownloaded: ", space)
+		if torrent.AmountLeft <= 0 {
+			fmt.Printf("%s%s", humanize.Bytes(uint64(torrent.TotalSize)), space)
+		} else {
+			fmt.Printf(
+				"%s / %s%s",
+				humanize.Bytes(uint64(torrent.Completed)),
+				humanize.Bytes(uint64(torrent.TotalSize)),
+				space,
+			)
+		}
+
+		if torrent.Uploaded > 0 {
+			fmt.Printf("Uploaded: %s%s", humanize.Bytes(uint64(torrent.Uploaded)), space)
+		}
 
 		if torrent.DlSpeed > 0 {
 			fmt.Printf(
-				"DL Speed: %s/s%10s\t",
-				bytesToHumanReadable(float64(torrent.DlSpeed)),
-				"",
+				"DL Speed: %s/s%s",
+				humanize.Bytes(uint64(torrent.DlSpeed)),
+				space,
 			)
 		} else if torrent.UpSpeed > 0 {
 			fmt.Printf(
-				"UP Speed: %s/s%10s\t",
-				bytesToHumanReadable(float64(torrent.UpSpeed)),
-				"",
+				"UP Speed: %s/s%s",
+				humanize.Bytes(uint64(torrent.UpSpeed)),
+				space,
 			)
-		} else {
-			fmt.Printf("%27s\t", "")
 		}
 
-		hours := (torrent.TimeActive / 60) / 60
-		minutes := (torrent.TimeActive / 60) - (hours * 60)
-		fmt.Printf("Time Active: %dh%dm\n", hours, minutes)
+		days := torrent.TimeActive / (60 * 60 * 24)
+		hours := (torrent.TimeActive / (60 * 60)) - (days * 24)
+		minutes := (torrent.TimeActive / 60) - ((days * 1440) + (hours * 60))
 
-		fmt.Printf("Save Path: %s\n", torrent.SavePath)
+		if days > 0 {
+			fmt.Printf("Time Active: %dd %dh %dm\n", days, hours, minutes)
+		} else if hours > 0 {
+			fmt.Printf("Time Active: %dh %dm\n", hours, minutes)
+		} else {
+			fmt.Printf("Time Active: %dm\n", minutes)
+		}
+
+		fmt.Printf("%sSave Path: %s\n", space, torrent.SavePath)
+		fmt.Printf("%sHash: %s\n", space, torrent.Hash)
+
 		fmt.Println()
 	}
-}
-
-func bytesToHumanReadable(size float64) string {
-	if size <= 0 {
-		return "0.0KB"
-	}
-
-	var suffixes [5]string
-	suffixes[0] = "B"
-	suffixes[1] = "KB"
-	suffixes[2] = "MB"
-	suffixes[3] = "GB"
-	suffixes[4] = "TB"
-
-	base := math.Log(size) / math.Log(1024)
-	newSize := math.Pow(1024, base - math.Floor(base))
-	suffix := suffixes[int(math.Floor(base))]
-
-	return strconv.FormatFloat(newSize, 'f', 1, 64) + suffix
 }

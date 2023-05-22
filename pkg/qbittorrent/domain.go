@@ -135,6 +135,7 @@ const (
 	TorrentStateUnknown TorrentState = "unknown"
 )
 
+// https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-list
 type TorrentFilter string
 
 const (
@@ -173,4 +174,14 @@ const (
 
 	// Torrent is being downloaded, but no connection were made
 	TorrentFilterStalledDownloading TorrentFilter = "stalled_downloading"
+
+	TorrentFilterErrored TorrentFilter = "errored"
 )
+
+type GetTorrentsRequest struct {
+	Filter   string
+	Category string
+	Tag      string
+	Hashes   string
+	Json     bool
+}

@@ -13,32 +13,34 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunResume cmd to resume torrents
-func RunResume() *cobra.Command {
+// RunRemove cmd to remove torrents
+func RunRemove() *cobra.Command {
 	var (
-		resumeAll bool
-		hashes    bool
-		names     bool
+		removeAll   bool
+		deleteFiles bool
+		hashes      bool
+		names       bool
 	)
 
 	var command = &cobra.Command{
-		Use:   "resume",
-		Short: "resume specified torrents",
-		Long: `resumes torrents indicated by hash, name or a prefix of either; 
+		Use:   "remove",
+		Short: "Removes specified torrents",
+		Long: `Removes torrents indicated by hash, name or a prefix of either; 
 				whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
-	command.Flags().BoolVar(&resumeAll, "all", false, "resumes all torrents")
+	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")
+	command.Flags().BoolVar(&deleteFiles, "delete-files", false, "Also delete downloaded files from torrent(s)")
 	command.Flags().BoolVar(&hashes, "hashes", false, "Provided arguments will be read as torrent hashes")
 	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
-		if !resumeAll && len(args) < 1 {
+		if !removeAll && len(args) < 1 {
 			log.Printf("Please provide atleast one torrent hash/name as an argument")
 			return
 		}
 
-		if !resumeAll && !hashes && !names {
+		if !removeAll && !hashes && !names {
 			log.Printf("Please specifiy if arguments are to be read as hashes or names (--hashes / --names)")
 			return
 		}
@@ -63,13 +65,13 @@ func RunResume() *cobra.Command {
 			os.Exit(1)
 		}
 
-		if resumeAll {
-			if err := qb.Resume(ctx, []string{"all"}); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
+		if removeAll {
+			if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
 				os.Exit(1)
 			}
 
-			log.Printf("All torrents resumed successfully")
+			log.Printf("All torrents removed successfully")
 			return
 		}
 
@@ -79,33 +81,33 @@ func RunResume() *cobra.Command {
 			os.Exit(1)
 		}
 
-		hashesToResume := []string{}
+		hashesToRemove := []string{}
 		for _, torrent := range foundTorrents {
-			hashesToResume = append(hashesToResume, torrent.Hash)
+			hashesToRemove = append(hashesToRemove, torrent.Hash)
 		}
 
-		if len(hashesToResume) < 1 {
-			log.Printf("No torrents found to resume with provided search terms")
+		if len(hashesToRemove) < 1 {
+			log.Printf("No torrents found to remove with provided search terms")
 			return
 		}
 
-		// Split the hashes to resume into groups of 20 to avoid flooding qbittorrent
+		// Split the hashes to remove into groups of 20 to avoid flooding qbittorrent
 		batch := 20
-		for i := 0; i < len(hashesToResume); i += batch {
+		for i := 0; i < len(hashesToRemove); i += batch {
 			j := i + batch
-			if j > len(hashesToResume) {
-				j = len(hashesToResume)
+			if j > len(hashesToRemove) {
+				j = len(hashesToRemove)
 			}
 
-			if err := qb.Resume(ctx, hashesToResume[i:j]); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
+			if err := qb.DeleteTorrents(ctx, hashesToRemove[i:j], deleteFiles); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
 				os.Exit(1)
 			}
 
 			time.Sleep(time.Second * 1)
 		}
 
-		log.Printf("torrent(s) successfully resumed")
+		log.Printf("torrent(s) successfully deleted")
 	}
 
 	return command
