@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +24,7 @@ func RunAdd() *cobra.Command {
 		dry           bool
 		paused        bool
 		skipHashCheck bool
+		removeStalled bool
 		savePath      string
 		category      string
 		tags          []string
@@ -33,8 +35,8 @@ func RunAdd() *cobra.Command {
 
 	var command = &cobra.Command{
 		Use:   "add",
-		Short: "Add torrent",
-		Long:  `Add new torrent to qBittorrent from file`,
+		Short: "Add torrent(s)",
+		Long:  `Add new torrent(s) to qBittorrent from file or magnet. Supports glob pattern for files like: ./files/*.torrent`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a torrent file as first argument")
@@ -48,6 +50,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
 	command.Flags().BoolVar(&ignoreRules, "ignore-rules", false, "Ignore rules from config")
+	command.Flags().BoolVar(&removeStalled, "remove-stalled", false, "Remove stalled torrents from re-announce")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
 	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
@@ -60,90 +63,139 @@ func RunAdd() *cobra.Command {
 		// first arg is path to torrent file
 		filePath := args[0]
 
-		if !dry {
-			qbtSettings := qbittorrent.Settings{
-				Addr:      config.Qbit.Addr,
-				Hostname:  config.Qbit.Host,
-				Port:      config.Qbit.Port,
-				Username:  config.Qbit.Login,
-				Password:  config.Qbit.Password,
-				BasicUser: config.Qbit.BasicUser,
-				BasicPass: config.Qbit.BasicPass,
-			}
+		qbtSettings := qbittorrent.Settings{
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
 
-			qb := qbittorrent.NewClient(qbtSettings)
+		qb := qbittorrent.NewClient(qbtSettings)
 
-			ctx := context.Background()
+		ctx := context.Background()
 
-			if err := qb.Login(ctx); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-				os.Exit(1)
-			}
+		if err := qb.Login(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
 
-			if config.Rules.Enabled && !ignoreRules {
-				activeDownloads, err := qb.GetTorrentsFilter(ctx, qbittorrent.TorrentFilterDownloading)
-				if err != nil {
-					log.Fatalf("could not fetch torrents: %v", err)
-				}
-
-				if len(activeDownloads) >= config.Rules.MaxActiveDownloads {
-					log.Fatalf("max active downloads reached, skip adding: %v", err)
-				}
-			}
-
-			options := map[string]string{}
-			if paused != false {
-				options["paused"] = "true"
-			}
-			if skipHashCheck != false {
-				options["skip_checking"] = "true"
-			}
-			if savePath != "" {
-				options["savepath"] = savePath
-				options["autoTMM"] = "false"
-			}
-			if category != "" {
-				options["category"] = category
-			}
-			if tags != nil {
-				options["tags"] = strings.Join(tags, ",")
-			}
-			if uploadLimit > 0 {
-				options["upLimit"] = strconv.FormatUint(uploadLimit, 10)
-			}
-			if downloadLimit > 0 {
-				options["dlLimit"] = strconv.FormatUint(uploadLimit, 10)
-			}
-
-			var res string
-			var err error
-			if magnet {
-				res, err = qb.AddTorrentFromMagnet(ctx, filePath, options)
-			} else {
-				res, err = qb.AddTorrentFromFile(ctx, filePath, options)
-			}
+		if config.Rules.Enabled && !ignoreRules {
+			activeDownloads, err := qb.GetTorrentsFilter(ctx, qbittorrent.TorrentFilterDownloading)
 			if err != nil {
-				log.Fatalf("adding torrent failed: %v", err)
+				log.Fatalf("could not fetch torrents: %q\n", err)
+			}
+
+			if len(activeDownloads) >= config.Rules.MaxActiveDownloads {
+				log.Printf("max active downloads of (%d) reached, skip adding\n", config.Rules.MaxActiveDownloads)
+				return
+			}
+		}
+
+		options := map[string]string{}
+		if paused != false {
+			options["paused"] = "true"
+		}
+		if skipHashCheck != false {
+			options["skip_checking"] = "true"
+		}
+		if savePath != "" {
+			//options["savepath"] = savePath
+			options["autoTMM"] = "false"
+		}
+		if category != "" {
+			options["category"] = category
+		}
+		if tags != nil {
+			options["tags"] = strings.Join(tags, ",")
+		}
+		if uploadLimit > 0 {
+			options["upLimit"] = strconv.FormatUint(uploadLimit, 10)
+		}
+		if downloadLimit > 0 {
+			options["dlLimit"] = strconv.FormatUint(uploadLimit, 10)
+		}
+
+		if magnet || strings.HasPrefix(filePath, "magnet:") {
+			if dry {
+				log.Printf("dry-run: successfully added torrent from magnet %s!\n", filePath)
+
+				return
+			}
+
+			hash, err := qb.AddTorrentFromMagnet(ctx, filePath, options)
+			if err != nil {
+				log.Fatalf("adding torrent failed: %q\n", err)
 			}
 
 			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 			if config.Reannounce.Enabled && !paused {
-				err = checkTrackerStatus(ctx, qb, res)
-				if err != nil {
-					log.Fatalf("could not get tracker status for torrent: %v", err)
+				if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
+					log.Fatalf("could not get tracker status for torrent: %q\n", err)
 				}
 			}
 
-			log.Printf("torrent successfully added: %v", res)
-		} else {
-			log.Println("dry-run: torrent successfully added!")
+			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
+			return
 		}
+
+		files, err := filepath.Glob(filePath)
+		if err != nil {
+			log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+		}
+
+		if len(files) == 0 {
+			log.Printf("found 0 torrents matching %s\n", filePath)
+			return
+		}
+
+		log.Printf("found (%d) torrent(s) to add\n", len(files))
+
+		success := 0
+		for _, file := range files {
+			if dry {
+				log.Printf("dry-run: torrent %s successfully added!\n", file)
+
+				continue
+			}
+
+			// set savePath again
+			options["savepath"] = savePath
+
+			hash, err := qb.AddTorrentFromFile(ctx, file, options)
+			if err != nil {
+				log.Fatalf("adding torrent failed: %q\n", err)
+			}
+
+			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
+			if config.Reannounce.Enabled && !paused {
+				if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
+					log.Printf("could not get tracker status for torrent: %s err: %q\n", hash, err)
+				}
+			}
+
+			success++
+
+			log.Printf("successfully added torrent: %s\n", hash)
+
+			if len(files) > 1 {
+				log.Println("sleeping 2 seconds before adding next torrent...")
+
+				time.Sleep(2 * time.Second)
+
+				continue
+			}
+		}
+
+		log.Printf("successfully added %d torrent(s)\n", success)
 	}
 
 	return command
 }
 
-func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, hash string) error {
+func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStalled bool, hash string) error {
 	announceOK := false
 	attempts := 0
 
@@ -157,27 +209,27 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, hash string
 
 		// check if status not working or something else
 		_, working := findTrackerStatus(trackers, 2)
-
-		if !working {
-			err = qb.ReAnnounceTorrents(ctx, []string{hash})
-			if err != nil {
-				return err
-			}
-
-			time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
-			attempts++
-			continue
-		} else {
+		if working {
 			announceOK = true
 			break
 		}
+
+		if err := qb.ReAnnounceTorrents(ctx, []string{hash}); err != nil {
+			return err
+		}
+
+		time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
+		attempts++
+		continue
 	}
 
 	if !announceOK {
-		log.Println("Announce not ok, deleting torrent")
-		err := qb.DeleteTorrents(ctx, []string{hash}, false)
-		if err != nil {
-			return err
+		if removeStalled {
+			log.Println("Announce not ok, deleting torrent")
+
+			if err := qb.DeleteTorrents(ctx, []string{hash}, false); err != nil {
+				return err
+			}
 		}
 	}
 
