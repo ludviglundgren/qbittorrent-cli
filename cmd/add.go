@@ -89,7 +89,8 @@ func RunAdd() *cobra.Command {
 			}
 
 			if len(activeDownloads) >= config.Rules.MaxActiveDownloads {
-				log.Fatalf("max active downloads reached, skip adding: %q\n", err)
+				log.Printf("max active downloads of (%d) reached, skip adding\n", config.Rules.MaxActiveDownloads)
+				return
 			}
 		}
 
@@ -149,6 +150,8 @@ func RunAdd() *cobra.Command {
 			log.Printf("found 0 torrents matching %s\n", filePath)
 			return
 		}
+
+		log.Printf("found (%d) torrent(s) to add\n", len(files))
 
 		success := 0
 		for _, file := range files {
