@@ -2,7 +2,6 @@ package qbittorrent
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -328,27 +327,6 @@ func (c *Client) ReAnnounceTorrents(ctx context.Context, hashes []string) error 
 	defer resp.Body.Close()
 
 	return nil
-}
-
-func (c *Client) GetPausedTorrents(ctx context.Context) ([]Torrent, error) {
-	// Initiate request to appropriate endpoint to fetch all paused torrent info.
-	resp, err := c.getCtx(ctx, "torrents/info?filter=paused", nil)
-	if err != nil {
-		log.Printf("Error retrieving paused torrent info: %v", err)
-		return nil, fmt.Errorf("error retrieving paused torrent info: %v", err)
-	}
-	defer resp.Body.Close()
-
-	// Parse response.
-	var torrents []Torrent
-	if err := json.NewDecoder(resp.Body).Decode(&torrents); err != nil {
-		log.Printf("Error decoding response: %v", err)
-		return nil, fmt.Errorf("error decoding response: %v", err)
-	}
-
-	log.Printf("Found %d paused torrents", len(torrents))
-
-	return torrents, nil
 }
 
 func (c *Client) Pause(ctx context.Context, hashes []string) error {
