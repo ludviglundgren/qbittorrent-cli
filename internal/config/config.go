@@ -39,14 +39,18 @@ func InitConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		fmt.Println("Could not read config file:", viper.ConfigFileUsed())
+		if ferr, ok := err.(*viper.ConfigFileNotFoundError); ok {
+			fmt.Printf("config file not found: err %q\n", ferr)
+		} else {
+			fmt.Println("Could not read config file:", err)
+		}
 		os.Exit(1)
 	}
 
-	err := viper.Unmarshal(&Config)
-	if err != nil {
+	if err := viper.Unmarshal(&Config); err != nil {
 		os.Exit(1)
 	}
+
 	Qbit = Config.Qbit
 	Reannounce = Config.Reannounce
 	Rules = Config.Rules
