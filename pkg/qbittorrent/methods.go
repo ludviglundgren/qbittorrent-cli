@@ -28,7 +28,11 @@ func (c *Client) Login(ctx context.Context) error {
 
 	// place cookies in jar for future requests
 	if cookies := resp.Cookies(); len(cookies) > 0 {
-		cookieURL, _ := url.Parse("http://localhost:8080")
+		reqUrl, err := c.buildUrl("")
+		if err != nil {
+			log.Fatalf("login error, could not parse url for cookie: %q", err)
+		}
+		cookieURL, _ := url.Parse(reqUrl)
 		c.http.Jar.SetCookies(cookieURL, cookies)
 	}
 
