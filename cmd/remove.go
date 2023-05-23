@@ -70,44 +70,45 @@ func RunRemove() *cobra.Command {
 		}
 
 		if removeAll {
-			if removePaused {
-				pausedTorrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: "paused"})
-				if err != nil {
-					fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve paused torrents: %v\n", err)
+			if dryRun {
+				log.Printf("Would remove all torrents")
+			} else {
+				if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
 					os.Exit(1)
 				}
 
-				hashesToRemove := []string{}
-				for _, torrent := range pausedTorrents {
-					hashesToRemove = append(hashesToRemove, torrent.Hash)
-				}
+				log.Printf("All torrents removed successfully")
+			}
+			return
+		}
 
-				if len(hashesToRemove) < 1 {
-					log.Printf("No paused torrents found to remove")
-					return
-				}
+		if removePaused {
+			pausedTorrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: "paused"})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve paused torrents: %v\n", err)
+				os.Exit(1)
+			}
 
-				if dryRun {
-					log.Printf("Paused torrents to be removed: %v", hashesToRemove)
-				} else {
-					if err := qb.DeleteTorrents(ctx, hashesToRemove, deleteFiles); err != nil {
-						fmt.Fprintf(os.Stderr, "ERROR: could not delete paused torrents: %v\n", err)
-						os.Exit(1)
-					}
+			hashesToRemove := []string{}
+			for _, torrent := range pausedTorrents {
+				hashesToRemove = append(hashesToRemove, torrent.Hash)
+			}
 
-					log.Print("Paused torrents removed successfully")
-				}
+			if len(hashesToRemove) < 1 {
+				log.Printf("No paused torrents found to remove")
+				return
+			}
+
+			if dryRun {
+				log.Printf("Paused torrents to be removed: %v", hashesToRemove)
 			} else {
-				if dryRun {
-					log.Printf("Would remove all torrents")
-				} else {
-					if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
-						fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
-						os.Exit(1)
-					}
-
-					log.Printf("All torrents removed successfully")
+				if err := qb.DeleteTorrents(ctx, hashesToRemove, deleteFiles); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: could not delete paused torrents: %v\n", err)
+					os.Exit(1)
 				}
+
+				log.Print("Paused torrents removed successfully")
 			}
 			return
 		}
