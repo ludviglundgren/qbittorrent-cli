@@ -24,6 +24,7 @@ func RunAdd() *cobra.Command {
 		dry           bool
 		paused        bool
 		skipHashCheck bool
+		removeStalled bool
 		savePath      string
 		category      string
 		tags          []string
@@ -49,6 +50,7 @@ func RunAdd() *cobra.Command {
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
 	command.Flags().BoolVar(&ignoreRules, "ignore-rules", false, "Ignore rules from config")
+	command.Flags().BoolVar(&removeStalled, "remove-stalled", false, "Remove stalled torrents from re-announce")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
 	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
@@ -116,6 +118,12 @@ func RunAdd() *cobra.Command {
 		}
 
 		if magnet || strings.HasPrefix(filePath, "magnet:") {
+			if dry {
+				log.Printf("dry-run: successfully added torrent from magnet %s!\n", filePath)
+
+				return
+			}
+
 			hash, err := qb.AddTorrentFromMagnet(ctx, filePath, options)
 			if err != nil {
 				log.Fatalf("adding torrent failed: %q\n", err)
@@ -123,8 +131,7 @@ func RunAdd() *cobra.Command {
 
 			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 			if config.Reannounce.Enabled && !paused {
-				err = checkTrackerStatus(ctx, qb, hash)
-				if err != nil {
+				if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 					log.Fatalf("could not get tracker status for torrent: %q\n", err)
 				}
 			}
@@ -161,7 +168,7 @@ func RunAdd() *cobra.Command {
 
 			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 			if config.Reannounce.Enabled && !paused {
-				if err = checkTrackerStatus(ctx, qb, hash); err != nil {
+				if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 					log.Printf("could not get tracker status for torrent: %s err: %q\n", hash, err)
 				}
 			}
@@ -185,7 +192,7 @@ func RunAdd() *cobra.Command {
 	return command
 }
 
-func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, hash string) error {
+func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStalled bool, hash string) error {
 	announceOK := false
 	attempts := 0
 
@@ -199,27 +206,27 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, hash string
 
 		// check if status not working or something else
 		_, working := findTrackerStatus(trackers, 2)
-
-		if !working {
-			err = qb.ReAnnounceTorrents(ctx, []string{hash})
-			if err != nil {
-				return err
-			}
-
-			time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
-			attempts++
-			continue
-		} else {
+		if working {
 			announceOK = true
 			break
 		}
+
+		if err := qb.ReAnnounceTorrents(ctx, []string{hash}); err != nil {
+			return err
+		}
+
+		time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
+		attempts++
+		continue
 	}
 
 	if !announceOK {
-		log.Println("Announce not ok, deleting torrent")
-		err := qb.DeleteTorrents(ctx, []string{hash}, false)
-		if err != nil {
-			return err
+		if removeStalled {
+			log.Println("Announce not ok, deleting torrent")
+
+			if err := qb.DeleteTorrents(ctx, []string{hash}, false); err != nil {
+				return err
+			}
 		}
 	}
 
