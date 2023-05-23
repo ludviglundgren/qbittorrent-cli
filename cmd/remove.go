@@ -16,10 +16,11 @@ import (
 // RunRemove cmd to remove torrents
 func RunRemove() *cobra.Command {
 	var (
-		removeAll   bool
-		deleteFiles bool
-		hashes      bool
-		names       bool
+		removeAll    bool
+		removePaused bool
+		deleteFiles  bool
+		hashes       bool
+		names        bool
 	)
 
 	var command = &cobra.Command{
@@ -30,6 +31,7 @@ func RunRemove() *cobra.Command {
 	}
 
 	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")
+	command.Flags().BoolVar(&removePaused, "paused", false, "Removes all paused torrents")
 	command.Flags().BoolVar(&deleteFiles, "delete-files", false, "Also delete downloaded files from torrent(s)")
 	command.Flags().BoolVar(&hashes, "hashes", false, "Provided arguments will be read as torrent hashes")
 	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
@@ -66,7 +68,30 @@ func RunRemove() *cobra.Command {
 		}
 
 		if removeAll {
-			if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
+			if removePaused {
+				pausedTorrents, err := qb.GetPausedTorrents(ctx)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve paused torrents: %v\n", err)
+					os.Exit(1)
+				}
+
+				hashesToRemove := []string{}
+				for _, torrent := range pausedTorrents {
+					hashesToRemove = append(hashesToRemove, torrent.Hash)
+				}
+
+				if len(hashesToRemove) < 1 {
+					log.Printf("No paused torrents found to remove")
+					return
+				}
+
+				if err := qb.DeleteTorrents(ctx, hashesToRemove, deleteFiles); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: could not delete paused torrents: %v\n", err)
+					os.Exit(1)
+				}
+
+				log.Print("Paused torrents removed successfully")
+			} else if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
 				os.Exit(1)
 			}
