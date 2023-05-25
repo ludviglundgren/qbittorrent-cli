@@ -175,12 +175,12 @@ Required flags:
 * `--compare-user` - user
 * `--compare-pass` - pass
 
-
 Optional flags:
 * `--tag` - Tag duplicates with `duplicate`, only on compare host
 
-
-    qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+```bash
+qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+```
 
 ### Edit
 
@@ -194,7 +194,6 @@ Required flags:
 Optional flags:
 * `--dry-run` - Dry run without editing files
 * `--verbose, -v` - Verbose output
-
 
 ```bash
 qbt edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'
