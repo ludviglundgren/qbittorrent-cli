@@ -95,10 +95,10 @@ func RunAdd() *cobra.Command {
 		}
 
 		options := map[string]string{}
-		if paused != false {
+		if paused {
 			options["paused"] = "true"
 		}
-		if skipHashCheck != false {
+		if skipHashCheck {
 			options["skip_checking"] = "true"
 		}
 		if savePath != "" {
