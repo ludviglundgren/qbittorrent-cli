@@ -47,7 +47,7 @@ Or with only go
 
 Builds with `goreleaser` will also include version info.
 
-    goreleaser --snapshot --skip-publish --rm-dist
+    goreleaser --snapshot --skip-publish --clean
 
 ## Configuration
 
