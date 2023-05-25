@@ -142,7 +142,7 @@ Optional flags:
 * `--ignore-rules` - Ignore rules set in config
 * `--limit-ul <SPEED>` - Set torrent upload speed limit. Unit in bytes/second
 * `--limit-dl <SPEED>` - Set torrent download speed limit. Unit in bytes/second
- 
+
 ### Move
 
 Move torrents from one or multiple categories to some other category.
@@ -155,6 +155,7 @@ Optional flags:
 * `--dry-run` - Run without doing anything
 * `--min-seed-time` - Only move torrents with a minimum active seedtime of X minutes
 * `--include-tags` - Only move torrents with any of the tags in comma separate list (tag1,tag2)
+* `--exclude-tags` - Don't move torrents with any of the tags in comma separate list (tag1,tag2)
 
 Usable with cron as well. Run every 15 min.
 
