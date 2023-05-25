@@ -139,7 +139,7 @@ Optional flags:
 * `--save-path <PATH>` - Add torrent to the specified path
 * `--category <CATEGORY>` - Add torrent to the specified category
 * `--tags <TAG,TAG>` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+
-* `--ingore-rules` - Ignore rules set in config
+* `--ignore-rules` - Ignore rules set in config
 * `--limit-ul <SPEED>` - Set torrent upload speed limit. Unit in bytes/second
 * `--limit-dl <SPEED>` - Set torrent download speed limit. Unit in bytes/second
  
