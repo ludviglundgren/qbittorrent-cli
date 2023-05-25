@@ -330,15 +330,13 @@ func (c *Client) ReAnnounceTorrents(ctx context.Context, hashes []string) error 
 }
 
 func (c *Client) Pause(ctx context.Context, hashes []string) error {
-	v := url.Values{}
+	opts := make(map[string]string)
 
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
+	opts["hashes"] = hv
 
-	encodedHashes := v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/pause?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/pause?", opts)
 	if err != nil {
 		log.Fatalf("error pausing torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
