@@ -102,7 +102,6 @@ func RunImport() *cobra.Command {
 
 		default:
 			fmt.Println("WARNING: Unsupported client!")
-			break
 		}
 
 		elapsed := time.Since(start)
