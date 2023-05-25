@@ -49,7 +49,7 @@ func RunEdit() *cobra.Command {
 				return err
 			}
 
-			if !!info.IsDir() {
+			if !info.IsDir() {
 				return nil //
 			}
 

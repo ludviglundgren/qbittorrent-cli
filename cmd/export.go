@@ -104,7 +104,7 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 			return err
 		}
 
-		if !!info.IsDir() {
+		if !info.IsDir() {
 			return nil //
 		}
 
