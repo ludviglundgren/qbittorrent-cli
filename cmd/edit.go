@@ -49,8 +49,8 @@ func RunEdit() *cobra.Command {
 				return err
 			}
 
-			if !!info.IsDir() {
-				return nil //
+			if info.IsDir() {
+				return nil
 			}
 
 			if pattern == "" {

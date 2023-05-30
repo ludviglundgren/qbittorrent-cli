@@ -3,10 +3,10 @@ package qbittorrent
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -28,7 +28,11 @@ func (c *Client) Login(ctx context.Context) error {
 
 	// place cookies in jar for future requests
 	if cookies := resp.Cookies(); len(cookies) > 0 {
-		cookieURL, _ := url.Parse("http://localhost:8080")
+		reqUrl, err := c.buildUrl("")
+		if err != nil {
+			log.Fatalf("login error, could not parse url for cookie: %q", err)
+		}
+		cookieURL, _ := url.Parse(reqUrl)
 		c.http.Jar.SetCookies(cookieURL, cookies)
 	}
 
@@ -287,19 +291,23 @@ func (c *Client) AddTorrentFromMagnet(ctx context.Context, u string, options map
 }
 
 func (c *Client) DeleteTorrents(ctx context.Context, hashes []string, deleteFiles bool) error {
-	v := url.Values{}
+	opts := make(map[string]string)
 
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
-	v.Add("deleteFiles", strconv.FormatBool(deleteFiles))
+	opts["hashes"] = hv
 
-	encodedHashes := v.Encode()
+	// Only include the deleteFiles parameter if it's set to true
+	if deleteFiles {
+		opts["deleteFiles"] = "true"
+	}
 
-	resp, err := c.postCtx(ctx, "torrents/delete?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/delete", opts)
 	if err != nil {
 		log.Fatalf("error deleting torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 
@@ -330,15 +338,13 @@ func (c *Client) ReAnnounceTorrents(ctx context.Context, hashes []string) error 
 }
 
 func (c *Client) Pause(ctx context.Context, hashes []string) error {
-	v := url.Values{}
+	opts := make(map[string]string)
 
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
+	opts["hashes"] = hv
 
-	encodedHashes := v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/pause?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/pause?", opts)
 	if err != nil {
 		log.Fatalf("error pausing torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
@@ -351,18 +357,18 @@ func (c *Client) Pause(ctx context.Context, hashes []string) error {
 }
 
 func (c *Client) Resume(ctx context.Context, hashes []string) error {
-	v := url.Values{}
+	opts := make(map[string]string)
 
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
+	opts["hashes"] = hv
 
-	encodedHashes := v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/resume?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/resume", opts)
 	if err != nil {
 		log.Fatalf("error resuming torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 
@@ -372,24 +378,19 @@ func (c *Client) Resume(ctx context.Context, hashes []string) error {
 }
 
 func (c *Client) SetCategory(ctx context.Context, hashes []string, category string) error {
-	v := url.Values{}
-	encodedHashes := ""
+	opts := make(map[string]string)
 
-	if len(hashes) > 0 {
-		// Add hashes together with | separator
-		encodedHashes = strings.Join(hashes, "|")
-	}
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts["hashes"] = hv
+	opts["category"] = category
 
-	// TODO batch action if more than 25
-
-	v.Add("hashes", encodedHashes)
-	v.Add("category", category)
-	encodedHashes = v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/setCategory?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/setCategory", opts)
 	if err != nil {
-		log.Fatalf("error resuming torrents: %v", err)
+		log.Fatalf("error setting category for torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 
@@ -399,24 +400,19 @@ func (c *Client) SetCategory(ctx context.Context, hashes []string, category stri
 }
 
 func (c *Client) SetTag(ctx context.Context, hashes []string, tag string) error {
-	v := url.Values{}
-	encodedHashes := ""
+	opts := make(map[string]string)
 
-	if len(hashes) > 0 {
-		// Add hashes together with | separator
-		encodedHashes = strings.Join(hashes, "|")
-	}
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts["hashes"] = hv
+	opts["tags"] = tag
 
-	// TODO batch action if more than 25
-
-	v.Add("hashes", encodedHashes)
-	v.Add("tags", tag)
-	encodedHashes = v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/addTags?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/addTags", opts)
 	if err != nil {
-		log.Fatalf("error resuming torrents: %v", err)
+		log.Fatalf("error setting tag for torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 

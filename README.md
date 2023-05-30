@@ -47,7 +47,7 @@ Or with only go
 
 Builds with `goreleaser` will also include version info.
 
-    goreleaser --snapshot --skip-publish --rm-dist
+    goreleaser release --snapshot --skip-publish --clean
 
 ## Configuration
 
@@ -139,10 +139,10 @@ Optional flags:
 * `--save-path <PATH>` - Add torrent to the specified path
 * `--category <CATEGORY>` - Add torrent to the specified category
 * `--tags <TAG,TAG>` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+
-* `--ingore-rules` - Ignore rules set in config
+* `--ignore-rules` - Ignore rules set in config
 * `--limit-ul <SPEED>` - Set torrent upload speed limit. Unit in bytes/second
 * `--limit-dl <SPEED>` - Set torrent download speed limit. Unit in bytes/second
- 
+
 ### Move
 
 Move torrents from one or multiple categories to some other category.
@@ -155,6 +155,7 @@ Optional flags:
 * `--dry-run` - Run without doing anything
 * `--min-seed-time` - Only move torrents with a minimum active seedtime of X minutes
 * `--include-tags` - Only move torrents with any of the tags in comma separate list (tag1,tag2)
+* `--exclude-tags` - Don't move torrents with any of the tags in comma separate list (tag1,tag2)
 
 Usable with cron as well. Run every 15 min.
 
@@ -174,12 +175,12 @@ Required flags:
 * `--compare-user` - user
 * `--compare-pass` - pass
 
-
 Optional flags:
 * `--tag` - Tag duplicates with `duplicate`, only on compare host
 
-
-    qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+```bash
+qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+```
 
 ### Edit
 
@@ -193,7 +194,6 @@ Required flags:
 Optional flags:
 * `--dry-run` - Dry run without editing files
 * `--verbose, -v` - Verbose output
-
 
 ```bash
 qbt edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'

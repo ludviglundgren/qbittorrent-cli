@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"log"
@@ -41,21 +42,27 @@ func RunExport() *cobra.Command {
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Settings{
-			Hostname: config.Qbit.Host,
-			Port:     config.Qbit.Port,
-			Username: config.Qbit.Login,
-			Password: config.Qbit.Password,
+			Addr:      config.Qbit.Addr,
+			Hostname:  config.Qbit.Host,
+			Port:      config.Qbit.Port,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
 
 		qb := qbittorrent.NewClient(qbtSettings)
-		if err := qb.Login(); err != nil {
-			return errors.Wrapf(err, "connection failed")
-		}
 
+		ctx := context.Background()
+
+		if err := qb.Login(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
+			os.Exit(1)
+		}
 		hashes := map[string]struct{}{}
 
 		for _, category := range categories {
-			torrents, err := qb.GetTorrentsByCategory(category)
+			torrents, err := qb.GetTorrentsByCategory(ctx, category)
 			if err != nil {
 				return errors.Wrapf(err, "could not get torrents for category: %s", category)
 			}
@@ -97,8 +104,8 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 			return err
 		}
 
-		if !!info.IsDir() {
-			return nil //
+		if info.IsDir() {
+			return nil
 		}
 
 		fileName := info.Name()
