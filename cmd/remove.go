@@ -16,10 +16,12 @@ import (
 // RunRemove cmd to remove torrents
 func RunRemove() *cobra.Command {
 	var (
-		removeAll   bool
-		deleteFiles bool
-		hashes      bool
-		names       bool
+		removeAll    bool
+		removePaused bool
+		deleteFiles  bool
+		hashes       bool
+		names        bool
+		dryRun       bool
 	)
 
 	var command = &cobra.Command{
@@ -30,18 +32,20 @@ func RunRemove() *cobra.Command {
 	}
 
 	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")
+	command.Flags().BoolVar(&removePaused, "paused", false, "Removes all paused torrents")
 	command.Flags().BoolVar(&deleteFiles, "delete-files", false, "Also delete downloaded files from torrent(s)")
 	command.Flags().BoolVar(&hashes, "hashes", false, "Provided arguments will be read as torrent hashes")
 	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
+	command.Flags().BoolVar(&dryRun, "dry-run", false, "Display what would be done without actually doing it")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
-		if !removeAll && len(args) < 1 {
-			log.Printf("Please provide atleast one torrent hash/name as an argument")
+		if !removeAll && !removePaused && len(args) < 1 {
+			log.Printf("Please provide at least one torrent hash/name as an argument")
 			return
 		}
 
-		if !removeAll && !hashes && !names {
-			log.Printf("Please specifiy if arguments are to be read as hashes or names (--hashes / --names)")
+		if !removeAll && !removePaused && !hashes && !names {
+			log.Printf("Please specify if arguments are to be read as hashes or names (--hashes / --names)")
 			return
 		}
 
@@ -66,12 +70,46 @@ func RunRemove() *cobra.Command {
 		}
 
 		if removeAll {
-			if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
+			if dryRun {
+				log.Printf("Would remove all torrents")
+			} else {
+				if err := qb.DeleteTorrents(ctx, []string{"all"}, deleteFiles); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: could not delete torrents: %v\n", err)
+					os.Exit(1)
+				}
+
+				log.Printf("All torrents removed successfully")
+			}
+			return
+		}
+
+		if removePaused {
+			pausedTorrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: "paused"})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve paused torrents: %v\n", err)
 				os.Exit(1)
 			}
 
-			log.Printf("All torrents removed successfully")
+			hashesToRemove := []string{}
+			for _, torrent := range pausedTorrents {
+				hashesToRemove = append(hashesToRemove, torrent.Hash)
+			}
+
+			if len(hashesToRemove) < 1 {
+				log.Printf("No paused torrents found to remove")
+				return
+			}
+
+			if dryRun {
+				log.Printf("Paused torrents to be removed: %v", hashesToRemove)
+			} else {
+				if err := qb.DeleteTorrents(ctx, hashesToRemove, deleteFiles); err != nil {
+					fmt.Fprintf(os.Stderr, "ERROR: could not delete paused torrents: %v\n", err)
+					os.Exit(1)
+				}
+
+				log.Print("Paused torrents removed successfully")
+			}
 			return
 		}
 

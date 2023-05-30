@@ -3,10 +3,10 @@ package qbittorrent
 import (
 	"encoding/json"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/anacrolix/torrent/metainfo"
@@ -291,19 +291,23 @@ func (c *Client) AddTorrentFromMagnet(ctx context.Context, u string, options map
 }
 
 func (c *Client) DeleteTorrents(ctx context.Context, hashes []string, deleteFiles bool) error {
-	v := url.Values{}
+	opts := make(map[string]string)
 
 	// Add hashes together with | separator
 	hv := strings.Join(hashes, "|")
-	v.Add("hashes", hv)
-	v.Add("deleteFiles", strconv.FormatBool(deleteFiles))
+	opts["hashes"] = hv
 
-	encodedHashes := v.Encode()
+	// Only include the deleteFiles parameter if it's set to true
+	if deleteFiles {
+		opts["deleteFiles"] = "true"
+	}
 
-	resp, err := c.postCtx(ctx, "torrents/delete?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/delete", opts)
 	if err != nil {
 		log.Fatalf("error deleting torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 
