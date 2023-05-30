@@ -75,7 +75,7 @@ func RunReannounce() *cobra.Command {
 
 			for _, torrent := range activeDownloads {
 				if torrent.Progress == 0 && torrent.TimeActive < 120 {
-					go func() {
+					go func(torrent qbittorrent.Torrent) {
 						log.Printf("torrent %s %s not working, active for %ds, re-announcing...\n", torrent.Hash, torrent.Name, torrent.TimeActive)
 
 						// some trackers are bugged or slow, so we need to re-announce the torrent until it works
@@ -85,7 +85,7 @@ func RunReannounce() *cobra.Command {
 
 						log.Printf("successfully re-announced torrent: %s %s err: %q\n", torrent.Hash, torrent.Name, err)
 
-					}()
+					}(torrent)
 				}
 			}
 
