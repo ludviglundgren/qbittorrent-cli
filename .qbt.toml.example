@@ -13,9 +13,3 @@ interval = 7000 # interval between attempts in milliseconds
 [rules]
 enabled              = true   # enable or disable rules
 max_active_downloads = 2      # set max active downloads
-
-[qbittorrent-compare]
-host     = "100.100.100.100"
-port     = 6776
-login    = "user"
-password = "password"

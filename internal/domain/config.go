@@ -10,16 +10,6 @@ type QbitConfig struct {
 	BasicPass string `mapstructure:"basicPass"`
 }
 
-type QBCompareSettings struct {
-	Addr      string `mapstructure:"addr"`
-	Host      string `mapstructure:"host"`
-	Port      uint   `mapstructure:"port"`
-	User      string `mapstructure:"user"`
-	Pass      string `mapstructure:"pass"`
-	BasicUser string `mapstructure:"basicUser"`
-	BasicPass string `mapstructure:"basicPass"`
-}
-
 type ReannounceSettings struct {
 	Enabled  bool `mapstructure:"enabled"`
 	Attempts int  `mapstructure:"attempts"`
@@ -36,5 +26,4 @@ type AppConfig struct {
 	Qbit       QbitConfig         `mapstructure:"qbittorrent"`
 	Reannounce ReannounceSettings `mapstructure:"reannounce"`
 	Rules      Rules              `mapstructure:"rules"`
-	Compare    QBCompareSettings  `mapstructure:"qbittorrent-compare"`
 }
