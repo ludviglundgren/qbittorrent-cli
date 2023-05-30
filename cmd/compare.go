@@ -55,6 +55,20 @@ func RunCompare() *cobra.Command {
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
+
+		if sourceHost == "" {
+			sourceHost = config.Qbit.Host
+		}
+		if sourcePort == 0 {
+			sourcePort = config.Qbit.Port
+		}
+		if sourceUser == "" {
+			sourceUser = config.Qbit.Login
+		}
+		if sourcePass == "" {
+			sourcePass = config.Qbit.Password
+		}
+
 		qbtSettings := qbittorrent.Settings{
 			Hostname: sourceHost,
 			Port:     sourcePort,
@@ -77,6 +91,19 @@ func RunCompare() *cobra.Command {
 		}
 
 		fmt.Printf("Found: %d torrents on source\n", len(sourceData))
+
+		if compareHost == "" {
+			compareHost = config.Compare.Host
+		}
+		if comparePort == 0 {
+			comparePort = config.Compare.Port
+		}
+		if compareUser == "" {
+			compareUser = config.Compare.User
+		}
+		if comparePass == "" {
+			comparePass = config.Compare.Pass
+		}
 
 		qbtSettingsCompare := qbittorrent.Settings{
 			Hostname: compareHost,
