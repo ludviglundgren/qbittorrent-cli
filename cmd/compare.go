@@ -92,65 +92,68 @@ func RunCompare() *cobra.Command {
 
 		fmt.Printf("Found: %d torrents on source\n", len(sourceData))
 
-		if compareHost == "" {
-			compareHost = config.Compare.Host
-		}
-		if comparePort == 0 {
-			comparePort = config.Compare.Port
-		}
-		if compareUser == "" {
-			compareUser = config.Compare.User
-		}
-		if comparePass == "" {
-			comparePass = config.Compare.Pass
-		}
-
-		qbtSettingsCompare := qbittorrent.Settings{
-			Hostname: compareHost,
-			Port:     comparePort,
-			Username: compareUser,
-			Password: comparePass,
-		}
-		qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
-
-		if err = qbCompare.Login(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
-			os.Exit(1)
-		}
-
-		compareData, err := qbCompare.GetTorrents(ctx)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("Found: %d torrents on compare\n", len(compareData))
-
-		duplicateTorrents, err := compare(sourceData, compareData)
-		if err != nil {
-			os.Exit(1)
-		}
-
-		// --tag add tag duplicate
-		if tagDuplicates {
-			// Split the slice into batches of 20 items.
-			batch := 20
-			for i := 0; i < len(duplicateTorrents); i += batch {
-				j := i + batch
-				if j > len(duplicateTorrents) {
-					j = len(duplicateTorrents)
-				}
-
-				qbCompare.SetTag(ctx, duplicateTorrents[i:j], "duplicate")
-
-				// sleep before next request
-				time.Sleep(time.Second * 1)
+		// Start comparison
+		for _, compareConfig := range config.Compare {
+			if compareHost == "" {
+				compareHost = compareConfig.Host
 			}
+			if comparePort == 0 {
+				comparePort = compareConfig.Port
+			}
+			if compareUser == "" {
+				compareUser = compareConfig.Login
+			}
+			if comparePass == "" {
+				comparePass = compareConfig.Password
+			}
+
+			qbtSettingsCompare := qbittorrent.Settings{
+				Hostname: compareHost,
+				Port:     comparePort,
+				Username: compareUser,
+				Password: comparePass,
+			}
+			qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
+
+			if err = qbCompare.Login(ctx); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
+				os.Exit(1)
+			}
+
+			compareData, err := qbCompare.GetTorrents(ctx)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Found: %d torrents on compare\n", len(compareData))
+
+			duplicateTorrents, err := compare(sourceData, compareData)
+			if err != nil {
+				os.Exit(1)
+			}
+
+			// --tag add tag duplicate
+			if tagDuplicates {
+				// Split the slice into batches of 20 items.
+				batch := 20
+				for i := 0; i < len(duplicateTorrents); i += batch {
+					j := i + batch
+					if j > len(duplicateTorrents) {
+						j = len(duplicateTorrents)
+					}
+
+					qbCompare.SetTag(ctx, duplicateTorrents[i:j], "duplicate")
+
+					// sleep before next request
+					time.Sleep(time.Second * 1)
+				}
+			}
+
+			// --rm-duplicates
+
+			// --save save to file
 		}
-
-		// --rm-duplicates
-
-		// --save save to file
 	}
 
 	return command
