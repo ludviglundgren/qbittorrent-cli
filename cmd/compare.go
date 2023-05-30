@@ -94,18 +94,10 @@ func RunCompare() *cobra.Command {
 
 		// Start comparison
 		for _, compareConfig := range config.Compare {
-			if compareHost == "" {
-				compareHost = compareConfig.Host
-			}
-			if comparePort == 0 {
-				comparePort = compareConfig.Port
-			}
-			if compareUser == "" {
-				compareUser = compareConfig.Login
-			}
-			if comparePass == "" {
-				comparePass = compareConfig.Password
-			}
+			compareHost := compareConfig.Host
+			comparePort := compareConfig.Port
+			compareUser := compareConfig.Login
+			comparePass := compareConfig.Password
 
 			qbtSettingsCompare := qbittorrent.Settings{
 				Hostname: compareHost,
