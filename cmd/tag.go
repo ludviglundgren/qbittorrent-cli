@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -21,6 +22,39 @@ func RunTag() *cobra.Command {
 		dryRun          bool
 	)
 
+	defaultTags := []string{
+		"Not Working",
+		"added:",
+		"Unregistered",
+		//"Tracker Down",
+		"t:",
+		"Duplicates",
+		"activity:",
+		"Not Linked",
+	}
+
+	unregisteredMatches := []string{
+		"unregistered",
+		"not registered",
+		"not found",
+		"not exist",
+		"unknown",
+		"uploaded",
+		"upgraded",
+		"season pack",
+		"packs are available",
+		"pack is available",
+		"internal available",
+		"season pack out",
+		"dead",
+		"dupe",
+		"complete season uploaded",
+		"problem with",
+		"specifically banned",
+		"trumped",
+		"i'm sorry dave, i can't do that", // weird stuff from racingforme
+	}
+
 	var command = &cobra.Command{
 		Use:   "tag",
 		Short: "tag torrents",
@@ -31,6 +65,7 @@ func RunTag() *cobra.Command {
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run, do not tag torrents")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		config.InitConfig()
 		qbtSettings := qbittorrent.Settings{
 			Addr:      config.Qbit.Addr,
 			Hostname:  config.Qbit.Host,
@@ -61,12 +96,36 @@ func RunTag() *cobra.Command {
 		var totalSize uint64
 		var unregisteredSize uint64
 		for _, t := range sourceData {
+
+			// Skip if tracker has not been contacted yet
+			if (t.TrackerStatus) == 0 { // 0 = Tracker has not been contacted yet
+				continue // uo for debate if needed or not
+			}
+
+			// Check for unregistered
 			if tagUnregistered {
 				if t.Tracker == "" {
 					unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
 					unregisteredSize += uint64(t.Size)
 				}
 			}
+
+			// Check for each tag in defaultTags
+			for _, tag := range defaultTags {
+				if strings.Contains(t.TrackerMessage, tag) {
+					unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
+					unregisteredSize += uint64(t.Size)
+				}
+			}
+
+			// Check for each match in unregisteredMatches
+			for _, match := range unregisteredMatches {
+				if strings.Contains(t.TrackerMessage, match) {
+					unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
+					unregisteredSize += uint64(t.Size)
+				}
+			}
+
 			totalSize += uint64(t.Size)
 		}
 

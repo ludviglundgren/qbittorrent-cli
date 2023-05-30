@@ -39,6 +39,8 @@ type Torrent struct {
 	TimeActive         int          `json:"time_active"`
 	TotalSize          int          `json:"total_size"`
 	Tracker            string       `json:"tracker"`
+	TrackerMessage     string       `json:"msg"`
+	TrackerStatus      int          `json:"status"`
 	UpLimit            int          `json:"up_limit"`
 	Uploaded           int          `json:"uploaded"`
 	UploadedSession    int          `json:"uploaded_session"`
