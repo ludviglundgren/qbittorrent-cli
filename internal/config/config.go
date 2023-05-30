@@ -14,6 +14,7 @@ var (
 	CfgFile    string
 	Config     domain.AppConfig
 	Qbit       domain.QbitConfig
+	Compare    domain.QBCompareSettings
 	Reannounce domain.ReannounceSettings
 	Rules      domain.Rules
 )
@@ -52,6 +53,7 @@ func InitConfig() {
 	}
 
 	Qbit = Config.Qbit
+	Compare = Config.Compare
 	Reannounce = Config.Reannounce
 	Rules = Config.Rules
 }
