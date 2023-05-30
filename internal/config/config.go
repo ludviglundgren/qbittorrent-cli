@@ -14,7 +14,7 @@ var (
 	CfgFile    string
 	Config     domain.AppConfig
 	Qbit       domain.QbitConfig
-	Compare    domain.QBCompareSettings
+	Compare    []domain.QbitConfig
 	Reannounce domain.ReannounceSettings
 	Rules      domain.Rules
 )
