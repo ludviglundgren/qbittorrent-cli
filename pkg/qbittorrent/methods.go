@@ -370,24 +370,19 @@ func (c *Client) Resume(ctx context.Context, hashes []string) error {
 }
 
 func (c *Client) SetCategory(ctx context.Context, hashes []string, category string) error {
-	v := url.Values{}
-	encodedHashes := ""
+	opts := make(map[string]string)
 
-	if len(hashes) > 0 {
-		// Add hashes together with | separator
-		encodedHashes = strings.Join(hashes, "|")
-	}
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts["hashes"] = hv
+	opts["category"] = category
 
-	// TODO batch action if more than 25
-
-	v.Add("hashes", encodedHashes)
-	v.Add("category", category)
-	encodedHashes = v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/setCategory?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/setCategory", opts)
 	if err != nil {
-		log.Fatalf("error resuming torrents: %v", err)
+		log.Fatalf("error setting category for torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 
@@ -397,24 +392,19 @@ func (c *Client) SetCategory(ctx context.Context, hashes []string, category stri
 }
 
 func (c *Client) SetTag(ctx context.Context, hashes []string, tag string) error {
-	v := url.Values{}
-	encodedHashes := ""
+	opts := make(map[string]string)
 
-	if len(hashes) > 0 {
-		// Add hashes together with | separator
-		encodedHashes = strings.Join(hashes, "|")
-	}
+	// Add hashes together with | separator
+	hv := strings.Join(hashes, "|")
+	opts["hashes"] = hv
+	opts["tags"] = tag
 
-	// TODO batch action if more than 25
-
-	v.Add("hashes", encodedHashes)
-	v.Add("tags", tag)
-	encodedHashes = v.Encode()
-
-	resp, err := c.postCtx(ctx, "torrents/addTags?"+encodedHashes, nil)
+	resp, err := c.postCtx(ctx, "torrents/addTags", opts)
 	if err != nil {
-		log.Fatalf("error resuming torrents: %v", err)
+		log.Fatalf("error setting tag for torrents: %v", err)
 	} else if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
 		return err
 	}
 
