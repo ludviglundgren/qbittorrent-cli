@@ -17,6 +17,7 @@ import (
 func RunCompare() *cobra.Command {
 	var (
 		tagDuplicates bool
+		overrideTag   string
 
 		sourceHost string
 		sourcePort uint
@@ -41,7 +42,8 @@ func RunCompare() *cobra.Command {
 		//	return nil
 		//},
 	}
-	command.Flags().BoolVar(&tagDuplicates, "tag", false, "tag duplicates on compare")
+	command.Flags().BoolVar(&tagDuplicates, "tag-duplicates", false, "tag duplicates on compare")
+	command.Flags().StringVar(&overrideTag, "tag", "", "set a custom tag for duplicates on compare")
 
 	command.Flags().StringVar(&sourceHost, "host", "", "Source host")
 	command.Flags().UintVar(&sourcePort, "port", 0, "Source host")
@@ -126,20 +128,22 @@ func RunCompare() *cobra.Command {
 			}
 
 			// --tag add tag duplicate
-			if tagDuplicates {
-				// Split the slice into batches of 20 items.
-				batch := 20
-				for i := 0; i < len(duplicateTorrents); i += batch {
-					j := i + batch
-					if j > len(duplicateTorrents) {
-						j = len(duplicateTorrents)
-					}
-
-					qbCompare.SetTag(ctx, duplicateTorrents[i:j], "duplicate")
-
-					// sleep before next request
-					time.Sleep(time.Second * 1)
+			batch := 20
+			for i := 0; i < len(duplicateTorrents); i += batch {
+				j := i + batch
+				if j > len(duplicateTorrents) {
+					j = len(duplicateTorrents)
 				}
+
+				tag := "duplicate"
+				if overrideTag != "" {
+					tag = overrideTag
+				}
+
+				qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
+
+				// sleep before next request
+				time.Sleep(time.Second * 1)
 			}
 
 			// --rm-duplicates
