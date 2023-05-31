@@ -16,8 +16,9 @@ import (
 // RunCompare cmd to compare torrents between clients
 func RunCompare() *cobra.Command {
 	var (
+		dry           bool
 		tagDuplicates bool
-		overrideTag   string
+		tag           string
 
 		sourceHost string
 		sourcePort uint
@@ -42,8 +43,9 @@ func RunCompare() *cobra.Command {
 		//	return nil
 		//},
 	}
+	command.Flags().BoolVar(&dry, "dry-run", false, "dry run")
 	command.Flags().BoolVar(&tagDuplicates, "tag-duplicates", false, "tag duplicates on compare")
-	command.Flags().StringVar(&overrideTag, "tag", "", "set a custom tag for duplicates on compare")
+	command.Flags().StringVar(&tag, "tag", "compare-dupe", "set a custom tag for duplicates on compare. default: compare-dupe")
 
 	command.Flags().StringVar(&sourceHost, "host", "", "Source host")
 	command.Flags().UintVar(&sourcePort, "port", 0, "Source host")
@@ -94,16 +96,6 @@ func RunCompare() *cobra.Command {
 
 		fmt.Printf("Found: %d torrents on source\n", len(sourceData))
 
-		// Choose the tag depending on the flags
-		var tag string
-		if overrideTag != "" {
-			tag = overrideTag
-		} else if tagDuplicates {
-			tag = "duplicate"
-		} else {
-			tag = "" // No flag is set, so the tag is empty
-		}
-
 		// Start comparison
 		for _, compareConfig := range config.Compare {
 			compareHost := compareConfig.Host
@@ -138,21 +130,27 @@ func RunCompare() *cobra.Command {
 			}
 
 			// Process duplicate torrents
-			if tag != "" {
-				batch := 20
-				for i := 0; i < len(duplicateTorrents); i += batch {
-					j := i + batch
-					if j > len(duplicateTorrents) {
-						j = len(duplicateTorrents)
-					}
+			if tagDuplicates {
+				if !dry {
+					fmt.Printf("found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareHost)
 
-					err = qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
-					if err != nil {
-						fmt.Printf("ERROR: Failed to set tag: %v\n", err)
-					}
+					batch := 20
+					for i := 0; i < len(duplicateTorrents); i += batch {
+						j := i + batch
+						if j > len(duplicateTorrents) {
+							j = len(duplicateTorrents)
+						}
 
-					// sleep before next request
-					time.Sleep(time.Second * 1)
+						err = qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
+						if err != nil {
+							fmt.Printf("ERROR: Failed to set tag: %v\n", err)
+						}
+
+						// sleep before next request
+						time.Sleep(time.Second * 1)
+					}
+				} else {
+					fmt.Printf("dry-run: found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareHost)
 				}
 			}
 
