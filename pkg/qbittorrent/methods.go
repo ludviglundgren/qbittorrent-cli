@@ -126,6 +126,7 @@ func (c *Client) GetTorrentsByCategory(ctx context.Context, category string) ([]
 	var torrents []Torrent
 
 	v := url.Values{}
+	//v.Add("filter", string(TorrentFilterSeeding))
 	v.Add("category", category)
 
 	resp, err := c.getCtx(ctx, "torrents/info", v)
