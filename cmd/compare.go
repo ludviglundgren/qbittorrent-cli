@@ -94,6 +94,16 @@ func RunCompare() *cobra.Command {
 
 		fmt.Printf("Found: %d torrents on source\n", len(sourceData))
 
+		// Choose the tag depending on the flags
+		var tag string
+		if overrideTag != "" {
+			tag = overrideTag
+		} else if tagDuplicates {
+			tag = "duplicate"
+		} else {
+			tag = "" // No flag is set, so the tag is empty
+		}
+
 		// Start comparison
 		for _, compareConfig := range config.Compare {
 			compareHost := compareConfig.Host
@@ -127,23 +137,20 @@ func RunCompare() *cobra.Command {
 				os.Exit(1)
 			}
 
-			// --tag add tag duplicate
-			batch := 20
-			for i := 0; i < len(duplicateTorrents); i += batch {
-				j := i + batch
-				if j > len(duplicateTorrents) {
-					j = len(duplicateTorrents)
+			// Process duplicate torrents
+			if tag != "" {
+				batch := 20
+				for i := 0; i < len(duplicateTorrents); i += batch {
+					j := i + batch
+					if j > len(duplicateTorrents) {
+						j = len(duplicateTorrents)
+					}
+
+					qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
+
+					// sleep before next request
+					time.Sleep(time.Second * 1)
 				}
-
-				tag := "duplicate"
-				if overrideTag != "" {
-					tag = overrideTag
-				}
-
-				qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
-
-				// sleep before next request
-				time.Sleep(time.Second * 1)
 			}
 
 			// --rm-duplicates
