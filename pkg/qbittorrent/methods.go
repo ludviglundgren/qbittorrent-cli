@@ -126,11 +126,9 @@ func (c *Client) GetTorrentsByCategory(ctx context.Context, category string) ([]
 	var torrents []Torrent
 
 	v := url.Values{}
-	//v.Add("filter", string(TorrentFilterSeeding))
 	v.Add("category", category)
-	params := v.Encode()
 
-	resp, err := c.getCtx(ctx, "torrents/info?"+params, nil)
+	resp, err := c.getCtx(ctx, "torrents/info", v)
 	if err != nil {
 		log.Fatalf("error fetching torrents: %v", err)
 	}
@@ -141,6 +139,8 @@ func (c *Client) GetTorrentsByCategory(ctx context.Context, category string) ([]
 	if readErr != nil {
 		log.Fatal(readErr)
 	}
+
+	//fmt.Printf("Request made to: %s\n", resp.Request.URL.String()) // debug
 
 	err = json.Unmarshal(body, &torrents)
 	if err != nil {
@@ -388,6 +388,9 @@ func (c *Client) SetCategory(ctx context.Context, hashes []string, category stri
 	resp, err := c.postCtx(ctx, "torrents/setCategory", opts)
 	if err != nil {
 		log.Fatalf("error setting category for torrents: %v", err)
+	} else if resp.StatusCode == http.StatusConflict {
+		log.Fatalf("Category '%s' does not exist", category) // qbit returns 409 if destination category does not exist
+		return err
 	} else if resp.StatusCode != http.StatusOK {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("Unexpected response status: %d. Body: %s", resp.StatusCode, string(bodyBytes))
