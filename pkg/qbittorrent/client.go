@@ -19,6 +19,8 @@ import (
 	"golang.org/x/net/publicsuffix"
 )
 
+const DefaultTimeout = 60
+
 type Client struct {
 	hostname      string
 	port          uint
@@ -58,7 +60,7 @@ func NewClient(s Settings) *Client {
 	}
 
 	httpClient := &http.Client{
-		Timeout:   time.Second * 10,
+		Timeout:   time.Second * DefaultTimeout,
 		Jar:       jar,
 		Transport: t,
 	}
@@ -76,44 +78,26 @@ func NewClient(s Settings) *Client {
 	}
 }
 
-func (c *Client) get(endpoint string, opts map[string]string) (*http.Response, error) {
-	reqUrl, err := c.buildUrl(endpoint)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// set basic auth
-	c.setBasicAuth(req)
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
+func (c *Client) get(endpoint string, values url.Values) (*http.Response, error) {
+	return c.getCtx(context.TODO(), endpoint, values)
 }
 
 func (c *Client) getCtx(ctx context.Context, endpoint string, values url.Values) (*http.Response, error) {
 	reqUrl, err := c.buildUrl(endpoint)
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not build url")
 	}
 
 	u, err := url.Parse(reqUrl)
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not parse url")
 	}
 
 	u.RawQuery = values.Encode()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	// set basic auth
@@ -121,29 +105,25 @@ func (c *Client) getCtx(ctx context.Context, endpoint string, values url.Values)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not make request")
 	}
 
 	return resp, nil
 }
 
-func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, error) {
-	// add optional parameters that the user wants
-	form := url.Values{}
-	if opts != nil {
-		for k, v := range opts {
-			form.Add(k, v)
-		}
-	}
+func (c *Client) post(endpoint string, values url.Values) (*http.Response, error) {
+	return c.postCtx(context.TODO(), endpoint, values)
+}
 
+func (c *Client) postCtx(ctx context.Context, endpoint string, values url.Values) (*http.Response, error) {
 	reqUrl, err := c.buildUrl(endpoint)
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not build url for request")
 	}
 
-	req, err := http.NewRequest(http.MethodPost, reqUrl, strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, strings.NewReader(values.Encode()))
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	// add the content-type so qbittorrent knows what to expect
@@ -154,7 +134,7 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not make request")
 	}
 
 	defer resp.Body.Close()
@@ -162,23 +142,15 @@ func (c *Client) post(endpoint string, opts map[string]string) (*http.Response, 
 	return resp, nil
 }
 
-func (c *Client) postCtx(ctx context.Context, endpoint string, opts map[string]string) (*http.Response, error) {
-	// add optional parameters that the user wants
-	form := url.Values{}
-	if opts != nil {
-		for k, v := range opts {
-			form.Add(k, v)
-		}
-	}
-
+func (c *Client) postFormCtx(ctx context.Context, endpoint string, form url.Values) (*http.Response, error) {
 	reqUrl, err := c.buildUrl(endpoint)
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not build url for request")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, strings.NewReader(form.Encode()))
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	// add the content-type so qbittorrent knows what to expect
@@ -189,7 +161,7 @@ func (c *Client) postCtx(ctx context.Context, endpoint string, opts map[string]s
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "could not make request")
 	}
 
 	defer resp.Body.Close()
@@ -200,7 +172,7 @@ func (c *Client) postCtx(ctx context.Context, endpoint string, opts map[string]s
 func (c *Client) postFileCtx(ctx context.Context, endpoint string, fileName string, opts map[string]string) (*http.Response, error) {
 	file, err := os.Open(fileName)
 	if err != nil {
-		log.Fatalf("error opening file: %v", err)
+		return nil, errors.Wrapf(err, "could not open file: %s", fileName)
 	}
 	// Close the file later
 	defer file.Close()
@@ -214,27 +186,24 @@ func (c *Client) postFileCtx(ctx context.Context, endpoint string, fileName stri
 	// Initialize file field
 	fileWriter, err := multiPartWriter.CreateFormFile("torrents", fileName)
 	if err != nil {
-		log.Fatalf("error initializing file field %v", err)
+		return nil, errors.Wrap(err, "could not initialize form file field")
 	}
 
 	// Copy the actual file content to the fields writer
 	_, err = io.Copy(fileWriter, file)
 	if err != nil {
-		log.Fatalf("could not copy file to writer %v", err)
+		return nil, errors.Wrap(err, "could not copy file to writer")
 	}
 
 	// Populate other fields
-	if opts != nil {
-		for key, val := range opts {
-			fieldWriter, err := multiPartWriter.CreateFormField(key)
-			if err != nil {
-				log.Fatalf("could not add other fields %v", err)
-			}
+	for key, val := range opts {
+		fieldWriter, err := multiPartWriter.CreateFormField(key)
+		if err != nil {
+			return nil, errors.Wrapf(err, "could not create form field: %s", key)
+		}
 
-			_, err = fieldWriter.Write([]byte(val))
-			if err != nil {
-				log.Fatalf("could not write field %v", err)
-			}
+		if _, err := fieldWriter.Write([]byte(val)); err != nil {
+			return nil, errors.Wrapf(err, "could not write form field: %s value: %s", key, val)
 		}
 	}
 
@@ -243,12 +212,12 @@ func (c *Client) postFileCtx(ctx context.Context, endpoint string, fileName stri
 
 	reqUrl, err := c.buildUrl(endpoint)
 	if err != nil {
-		log.Fatal(err)
+		return nil, errors.Wrap(err, "could not build url for request")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, reqUrl, &requestBody)
 	if err != nil {
-		log.Fatalf("could not create request object %v", err)
+		return nil, errors.Wrap(err, "could not build request")
 	}
 
 	// Set correct content type
@@ -259,7 +228,7 @@ func (c *Client) postFileCtx(ctx context.Context, endpoint string, fileName stri
 
 	res, err := c.http.Do(req)
 	if err != nil {
-		log.Fatalf("could not perform request %v", err)
+		return nil, errors.Wrap(err, "could not make request")
 	}
 
 	return res, nil

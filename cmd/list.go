@@ -34,7 +34,7 @@ func RunList() *cobra.Command {
 	command.Flags().StringVarP(&filter, "filter", "f", "all", "Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, \nstalled, stalled_uploading, stalled_downloading, errored")
 	command.Flags().StringVarP(&category, "category", "c", "", "Filter by category. All categories by default.")
 	command.Flags().StringVarP(&tag, "tag", "t", "", "Filter by tag. Single tag: tag1")
-	command.Flags().StringVarP(&hashes, "hashes", "h", "", "Filter by hashes. Separated by | pipe: \"hash1|hash2\".")
+	command.Flags().StringVar(&hashes, "hashes", "", "Filter by hashes. Separated by | pipe: \"hash1|hash2\".")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
@@ -58,7 +58,7 @@ func RunList() *cobra.Command {
 		}
 
 		req := qbittorrent.GetTorrentsRequest{
-			Filter:   strings.ToLower(filter),
+			Filter:   qbittorrent.TorrentFilter(strings.ToLower(filter)),
 			Category: category,
 			Tag:      tag,
 			Hashes:   hashes,

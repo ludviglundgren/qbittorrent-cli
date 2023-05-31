@@ -63,7 +63,7 @@ func RunMove() *cobra.Command {
 		var hashes []string
 
 		for _, cat := range fromCategories {
-			torrents, err := qb.GetTorrentsByCategory(ctx, cat)
+			torrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Category: cat})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents by category %v\n", err)
 				os.Exit(1)
