@@ -29,14 +29,6 @@ func RunTag() *cobra.Command {
 	}
 
 	messages := []string{
-		"not working",
-		"added:",
-		"unregistered",
-		//"tracker down", // we dont want to tag this do we
-		"t:",
-		"duplicates",
-		"activity:",
-		"not linked",
 		"unregistered",
 		"not registered",
 		"not found",
