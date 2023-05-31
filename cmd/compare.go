@@ -146,7 +146,10 @@ func RunCompare() *cobra.Command {
 						j = len(duplicateTorrents)
 					}
 
-					qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
+					err = qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
+					if err != nil {
+						fmt.Printf("ERROR: Failed to set tag: %v\n", err)
+					}
 
 					// sleep before next request
 					time.Sleep(time.Second * 1)
