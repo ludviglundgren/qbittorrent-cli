@@ -84,7 +84,7 @@ func RunRemove() *cobra.Command {
 		}
 
 		if removePaused {
-			pausedTorrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: "paused"})
+			pausedTorrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: qbittorrent.TorrentFilterPaused})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve paused torrents: %v\n", err)
 				os.Exit(1)

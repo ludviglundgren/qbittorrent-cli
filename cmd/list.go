@@ -58,7 +58,7 @@ func RunList() *cobra.Command {
 		}
 
 		req := qbittorrent.GetTorrentsRequest{
-			Filter:   strings.ToLower(filter),
+			Filter:   qbittorrent.TorrentFilter(strings.ToLower(filter)),
 			Category: category,
 			Tag:      tag,
 			Hashes:   hashes,

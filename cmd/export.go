@@ -62,7 +62,7 @@ func RunExport() *cobra.Command {
 		hashes := map[string]struct{}{}
 
 		for _, category := range categories {
-			torrents, err := qb.GetTorrentsByCategory(ctx, category)
+			torrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Category: category})
 			if err != nil {
 				return errors.Wrapf(err, "could not get torrents for category: %s", category)
 			}

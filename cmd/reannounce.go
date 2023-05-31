@@ -62,7 +62,7 @@ func RunReannounce() *cobra.Command {
 			}
 
 			req := &qbittorrent.GetTorrentsRequest{
-				Filter:   string(qbittorrent.TorrentFilterDownloading),
+				Filter:   qbittorrent.TorrentFilterDownloading,
 				Category: category,
 				Tag:      tag,
 				Hashes:   hash,

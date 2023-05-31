@@ -179,7 +179,7 @@ const (
 )
 
 type GetTorrentsRequest struct {
-	Filter   string
+	Filter   TorrentFilter
 	Category string
 	Tag      string
 	Hashes   string

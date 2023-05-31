@@ -83,7 +83,7 @@ func RunAdd() *cobra.Command {
 		}
 
 		if config.Rules.Enabled && !ignoreRules {
-			activeDownloads, err := qb.GetTorrentsFilter(ctx, qbittorrent.TorrentFilterDownloading)
+			activeDownloads, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: qbittorrent.TorrentFilterDownloading})
 			if err != nil {
 				log.Fatalf("could not fetch torrents: %q\n", err)
 			}
