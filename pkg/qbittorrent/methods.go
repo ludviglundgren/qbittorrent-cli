@@ -229,9 +229,7 @@ func (c *Client) GetTorrentTrackers(ctx context.Context, hash string) ([]Torrent
 	params := url.Values{}
 	params.Add("hash", hash)
 
-	p := params.Encode()
-
-	resp, err := c.getCtx(ctx, "torrents/trackers?"+p, nil)
+	resp, err := c.getCtx(ctx, "torrents/trackers", params)
 	if err != nil {
 		log.Fatalf("error fetching torrents: %v", err)
 	}

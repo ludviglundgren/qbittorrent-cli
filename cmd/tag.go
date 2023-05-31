@@ -22,18 +22,21 @@ func RunTag() *cobra.Command {
 		dryRun          bool
 	)
 
-	defaultTags := []string{
-		"Not Working",
-		"added:",
-		"Unregistered",
-		//"Tracker Down",
-		"t:",
-		"Duplicates",
-		"activity:",
-		"Not Linked",
+	var command = &cobra.Command{
+		Use:   "tag",
+		Short: "tag torrents",
+		Long:  `tag torrents`,
 	}
 
-	unregisteredMatches := []string{
+	messages := []string{
+		"not working",
+		"added:",
+		"unregistered",
+		//"tracker down", // we dont want to tag this do we
+		"t:",
+		"duplicates",
+		"activity:",
+		"not linked",
 		"unregistered",
 		"not registered",
 		"not found",
@@ -53,12 +56,6 @@ func RunTag() *cobra.Command {
 		"specifically banned",
 		"trumped",
 		"i'm sorry dave, i can't do that", // weird stuff from racingforme
-	}
-
-	var command = &cobra.Command{
-		Use:   "tag",
-		Short: "tag torrents",
-		Long:  `tag torrents`,
 	}
 
 	command.Flags().BoolVar(&tagUnregistered, "unregistered", false, "tag unregistered")
@@ -92,38 +89,45 @@ func RunTag() *cobra.Command {
 		}
 
 		unregisteredTorrentIDs := make([]string, 0)
-
 		var totalSize uint64
 		var unregisteredSize uint64
+
+		lowerMessages := make([]string, len(messages))
+		for i, msg := range messages {
+			lowerMessages[i] = strings.ToLower(msg)
+		}
+
 		for _, t := range sourceData {
+			var isUnregistered bool
 
-			// Skip if tracker has not been contacted yet
-			if (t.TrackerStatus) == 0 { // 0 = Tracker has not been contacted yet
-				continue // uo for debate if needed or not
+			if tagUnregistered && t.Tracker == "" {
+				isUnregistered = true
 			}
 
-			// Check for unregistered
-			if tagUnregistered {
-				if t.Tracker == "" {
-					unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
-					unregisteredSize += uint64(t.Size)
+			trackers, err := qb.GetTorrentTrackers(ctx, t.Hash)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not get trackers for torrent %v: %v\n", t.Hash, err)
+				continue
+			}
+
+			for _, tracker := range trackers {
+				lowerTrackerMessage := strings.ToLower(tracker.Message)
+
+				for _, msg := range lowerMessages {
+					if strings.Contains(lowerTrackerMessage, msg) {
+						isUnregistered = true
+						break
+					}
+				}
+
+				if isUnregistered {
+					break
 				}
 			}
 
-			// Check for each tag in defaultTags
-			for _, tag := range defaultTags {
-				if strings.Contains(t.TrackerMessage, tag) {
-					unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
-					unregisteredSize += uint64(t.Size)
-				}
-			}
-
-			// Check for each match in unregisteredMatches
-			for _, match := range unregisteredMatches {
-				if strings.Contains(t.TrackerMessage, match) {
-					unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
-					unregisteredSize += uint64(t.Size)
-				}
+			if isUnregistered {
+				unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
+				unregisteredSize += uint64(t.Size)
 			}
 
 			totalSize += uint64(t.Size)
