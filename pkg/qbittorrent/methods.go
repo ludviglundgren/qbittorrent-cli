@@ -69,6 +69,11 @@ func (c *Client) GetTorrentsWithFilters(ctx context.Context, req *GetTorrentsReq
 		return nil, errors.Wrap(err, "could not read body")
 	}
 
+	if resp.StatusCode == http.StatusConflict {
+		// qbit returns 409 if destination category does not exist
+		return nil, errors.Errorf("category '%s' does not exist: body %s", req.Category, body)
+	}
+
 	var torrents []Torrent
 	if err := json.Unmarshal(body, &torrents); err != nil {
 		return nil, errors.Wrap(err, "could not unmarshal torrents list")
