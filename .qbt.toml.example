@@ -15,13 +15,15 @@ enabled              = true   # enable or disable rules
 max_active_downloads = 2      # set max active downloads
 
 [[compare]]
-host     = "100.100.100.100"
-port     = 6776
+addr     = "http://100.100.100.100:6776"
 login    = "user"
 password = "password"
+#basicUser    = "user"
+#basicPass = "password"
 
 [[compare]] # you can specify multiple compare blocks
-host     = "100.100.100.101"
-port     = 6777
+addr     = "http://100.100.100.101:6776"
 login    = "user"
 password = "password"
+#basicUser    = "user"
+#basicPass = "password"
