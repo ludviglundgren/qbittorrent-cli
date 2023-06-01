@@ -166,20 +166,26 @@ Usable with cron as well. Run every 15 min.
 Compare torrents between two instances. Source instance and `compare` instance.
 
 Required flags:
-* `--host` - Host url, without http
-* `--port` - Host port / webui port
+* `--addr` - Host url with http and port if needed
 * `--user` - Host user
 * `--pass` - Host pass
-* `--compare-host` - url, without http
-* `--compare-port` - port / webui port
+* `--basic-user` - Host basic auth user
+* `--basic-pass` - Host basic auth pass
+
+
+* `--compare-addr` - url with http and port if needed
 * `--compare-user` - user
 * `--compare-pass` - pass
+* `--compare-basic-user` - basic auth user
+* `--compare-basic-pass` - basic auth pass
 
 Optional flags:
-* `--tag` - Tag duplicates with `duplicate`, only on compare host
+* `--dry-run` - Run without doing anything
+* `--tag-duplicates` - Tag duplicates with `compare-dupe` tag, only on compare host
+* `--tag` - Override the default tag `compare-dupe`
 
 ```bash
-qbt compare --source url.com --port 10000 --user u --pass p --compare-host url.com --compare-port 10000 --compare-user u --compare-pass p
+qbt compare --addr http://url.com:10000 --user u --pass p --compare-addr http://url.com:10000 --compare-user u --compare-pass p
 ```
 
 ### Edit

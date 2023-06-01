@@ -13,3 +13,17 @@ interval = 7000 # interval between attempts in milliseconds
 [rules]
 enabled              = true   # enable or disable rules
 max_active_downloads = 2      # set max active downloads
+
+[[compare]]
+addr       = "http://100.100.100.100:6776"
+login      = "user"
+password   = "password"
+#basicUser = "user"
+#basicPass = "password"
+
+[[compare]] # you can specify multiple compare blocks
+addr       = "http://100.100.100.101:6776"
+login      = "user"
+password   = "password"
+#basicUser = "user"
+#basicPass = "password"

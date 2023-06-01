@@ -16,17 +16,21 @@ import (
 // RunCompare cmd to compare torrents between clients
 func RunCompare() *cobra.Command {
 	var (
+		dry           bool
 		tagDuplicates bool
+		tag           string
 
-		sourceHost string
-		sourcePort uint
-		sourceUser string
-		sourcePass string
+		sourceAddr      string
+		sourceUser      string
+		sourcePass      string
+		sourceBasicUser string
+		sourceBasicPass string
 
-		compareHost string
-		comparePort uint
-		compareUser string
-		comparePass string
+		compareAddr      string
+		compareUser      string
+		comparePass      string
+		compareBasicUser string
+		compareBasicPass string
 	)
 
 	var command = &cobra.Command{
@@ -41,25 +45,47 @@ func RunCompare() *cobra.Command {
 		//	return nil
 		//},
 	}
-	command.Flags().BoolVar(&tagDuplicates, "tag", false, "tag duplicates on compare")
+	command.Flags().BoolVar(&dry, "dry-run", false, "dry run")
+	command.Flags().BoolVar(&tagDuplicates, "tag-duplicates", false, "tag duplicates on compare")
+	command.Flags().StringVar(&tag, "tag", "compare-dupe", "set a custom tag for duplicates on compare. default: compare-dupe")
 
-	command.Flags().StringVar(&sourceHost, "host", "", "Source host")
-	command.Flags().UintVar(&sourcePort, "port", 0, "Source host")
+	command.Flags().StringVar(&sourceAddr, "host", "", "Source host")
 	command.Flags().StringVar(&sourceUser, "user", "", "Source user")
 	command.Flags().StringVar(&sourcePass, "pass", "", "Source pass")
+	command.Flags().StringVar(&sourceBasicUser, "basic-user", "", "Source basic auth user")
+	command.Flags().StringVar(&sourceBasicPass, "basic-pass", "", "Source basic auth pass")
 
-	command.Flags().StringVar(&compareHost, "compare-host", "", "Secondary host")
-	command.Flags().UintVar(&comparePort, "compare-port", 0, "Secondary host")
+	command.Flags().StringVar(&compareAddr, "compare-host", "", "Secondary host")
 	command.Flags().StringVar(&compareUser, "compare-user", "", "Secondary user")
 	command.Flags().StringVar(&comparePass, "compare-pass", "", "Secondary pass")
+	command.Flags().StringVar(&compareBasicUser, "compare-basic-user", "", "Secondary basic auth user")
+	command.Flags().StringVar(&compareBasicPass, "compare-basic-pass", "", "Secondary basic auth pass")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
+
+		if sourceAddr == "" {
+			sourceAddr = config.Qbit.Host
+		}
+		if sourceUser == "" {
+			sourceUser = config.Qbit.Login
+		}
+		if sourcePass == "" {
+			sourcePass = config.Qbit.Password
+		}
+		if sourceBasicUser == "" {
+			sourceBasicUser = config.Qbit.BasicUser
+		}
+		if sourceBasicPass == "" {
+			sourceBasicPass = config.Qbit.BasicPass
+		}
+
 		qbtSettings := qbittorrent.Settings{
-			Hostname: sourceHost,
-			Port:     sourcePort,
-			Username: sourceUser,
-			Password: sourcePass,
+			Addr:      sourceAddr,
+			Username:  sourceUser,
+			Password:  sourcePass,
+			BasicUser: sourceBasicUser,
+			BasicPass: sourceBasicPass,
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
@@ -78,52 +104,70 @@ func RunCompare() *cobra.Command {
 
 		fmt.Printf("Found: %d torrents on source\n", len(sourceData))
 
-		qbtSettingsCompare := qbittorrent.Settings{
-			Hostname: compareHost,
-			Port:     comparePort,
-			Username: compareUser,
-			Password: comparePass,
-		}
-		qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
+		// Start comparison
+		for _, compareConfig := range config.Compare {
+			compareAddr := compareConfig.Addr
+			compareUser := compareConfig.Login
+			comparePass := compareConfig.Password
+			compareBasicUser := compareConfig.BasicUser
+			compareBasicPass := compareConfig.BasicPass
 
-		if err = qbCompare.Login(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
-			os.Exit(1)
-		}
-
-		compareData, err := qbCompare.GetTorrents(ctx)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Printf("Found: %d torrents on compare\n", len(compareData))
-
-		duplicateTorrents, err := compare(sourceData, compareData)
-		if err != nil {
-			os.Exit(1)
-		}
-
-		// --tag add tag duplicate
-		if tagDuplicates {
-			// Split the slice into batches of 20 items.
-			batch := 20
-			for i := 0; i < len(duplicateTorrents); i += batch {
-				j := i + batch
-				if j > len(duplicateTorrents) {
-					j = len(duplicateTorrents)
-				}
-
-				qbCompare.SetTag(ctx, duplicateTorrents[i:j], "duplicate")
-
-				// sleep before next request
-				time.Sleep(time.Second * 1)
+			qbtSettingsCompare := qbittorrent.Settings{
+				Addr:      compareAddr,
+				Username:  compareUser,
+				Password:  comparePass,
+				BasicUser: compareBasicUser,
+				BasicPass: compareBasicPass,
 			}
+			qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
+
+			if err = qbCompare.Login(ctx); err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
+				os.Exit(1)
+			}
+
+			compareData, err := qbCompare.GetTorrents(ctx)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
+				os.Exit(1)
+			}
+
+			fmt.Printf("Found: %d torrents on compare\n", len(compareData))
+
+			duplicateTorrents, err := compare(sourceData, compareData)
+			if err != nil {
+				os.Exit(1)
+			}
+
+			// Process duplicate torrents
+			if tagDuplicates {
+				if !dry {
+					fmt.Printf("found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
+
+					batch := 20
+					for i := 0; i < len(duplicateTorrents); i += batch {
+						j := i + batch
+						if j > len(duplicateTorrents) {
+							j = len(duplicateTorrents)
+						}
+
+						err = qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
+						if err != nil {
+							fmt.Printf("ERROR: Failed to set tag: %v\n", err)
+						}
+
+						// sleep before next request
+						time.Sleep(time.Second * 1)
+					}
+				} else {
+					fmt.Printf("dry-run: found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
+				}
+			}
+
+			// --rm-duplicates
+
+			// --save save to file
 		}
-
-		// --rm-duplicates
-
-		// --save save to file
 	}
 
 	return command
