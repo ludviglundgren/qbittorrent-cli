@@ -20,15 +20,17 @@ func RunCompare() *cobra.Command {
 		tagDuplicates bool
 		tag           string
 
-		sourceHost string
-		sourcePort uint
-		sourceUser string
-		sourcePass string
+		sourceAddr      string
+		sourceUser      string
+		sourcePass      string
+		sourceBasicUser string
+		sourceBasicPass string
 
-		compareHost string
-		comparePort uint
-		compareUser string
-		comparePass string
+		compareAddr      string
+		compareUser      string
+		comparePass      string
+		compareBasicUser string
+		compareBasicPass string
 	)
 
 	var command = &cobra.Command{
@@ -47,24 +49,23 @@ func RunCompare() *cobra.Command {
 	command.Flags().BoolVar(&tagDuplicates, "tag-duplicates", false, "tag duplicates on compare")
 	command.Flags().StringVar(&tag, "tag", "compare-dupe", "set a custom tag for duplicates on compare. default: compare-dupe")
 
-	command.Flags().StringVar(&sourceHost, "host", "", "Source host")
-	command.Flags().UintVar(&sourcePort, "port", 0, "Source host")
+	command.Flags().StringVar(&sourceAddr, "host", "", "Source host")
 	command.Flags().StringVar(&sourceUser, "user", "", "Source user")
 	command.Flags().StringVar(&sourcePass, "pass", "", "Source pass")
+	command.Flags().StringVar(&sourceBasicUser, "basic-user", "", "Source basic auth user")
+	command.Flags().StringVar(&sourceBasicPass, "basic-pass", "", "Source basic auth pass")
 
-	command.Flags().StringVar(&compareHost, "compare-host", "", "Secondary host")
-	command.Flags().UintVar(&comparePort, "compare-port", 0, "Secondary host")
+	command.Flags().StringVar(&compareAddr, "compare-host", "", "Secondary host")
 	command.Flags().StringVar(&compareUser, "compare-user", "", "Secondary user")
 	command.Flags().StringVar(&comparePass, "compare-pass", "", "Secondary pass")
+	command.Flags().StringVar(&compareBasicUser, "compare-basic-user", "", "Secondary basic auth user")
+	command.Flags().StringVar(&compareBasicPass, "compare-basic-pass", "", "Secondary basic auth pass")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
 
-		if sourceHost == "" {
-			sourceHost = config.Qbit.Host
-		}
-		if sourcePort == 0 {
-			sourcePort = config.Qbit.Port
+		if sourceAddr == "" {
+			sourceAddr = config.Qbit.Host
 		}
 		if sourceUser == "" {
 			sourceUser = config.Qbit.Login
@@ -72,12 +73,19 @@ func RunCompare() *cobra.Command {
 		if sourcePass == "" {
 			sourcePass = config.Qbit.Password
 		}
+		if sourceBasicUser == "" {
+			sourceBasicUser = config.Qbit.BasicUser
+		}
+		if sourceBasicPass == "" {
+			sourceBasicPass = config.Qbit.BasicPass
+		}
 
 		qbtSettings := qbittorrent.Settings{
-			Hostname: sourceHost,
-			Port:     sourcePort,
-			Username: sourceUser,
-			Password: sourcePass,
+			Addr:      sourceAddr,
+			Username:  sourceUser,
+			Password:  sourcePass,
+			BasicUser: sourceBasicUser,
+			BasicPass: sourceBasicPass,
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
@@ -98,16 +106,18 @@ func RunCompare() *cobra.Command {
 
 		// Start comparison
 		for _, compareConfig := range config.Compare {
-			compareHost := compareConfig.Host
-			comparePort := compareConfig.Port
+			compareAddr := compareConfig.Addr
 			compareUser := compareConfig.Login
 			comparePass := compareConfig.Password
+			compareBasicUser := compareConfig.BasicUser
+			compareBasicPass := compareConfig.BasicPass
 
 			qbtSettingsCompare := qbittorrent.Settings{
-				Hostname: compareHost,
-				Port:     comparePort,
-				Username: compareUser,
-				Password: comparePass,
+				Addr:      compareAddr,
+				Username:  compareUser,
+				Password:  comparePass,
+				BasicUser: compareBasicUser,
+				BasicPass: compareBasicPass,
 			}
 			qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
 
@@ -132,7 +142,7 @@ func RunCompare() *cobra.Command {
 			// Process duplicate torrents
 			if tagDuplicates {
 				if !dry {
-					fmt.Printf("found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareHost)
+					fmt.Printf("found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
 
 					batch := 20
 					for i := 0; i < len(duplicateTorrents); i += batch {
@@ -150,7 +160,7 @@ func RunCompare() *cobra.Command {
 						time.Sleep(time.Second * 1)
 					}
 				} else {
-					fmt.Printf("dry-run: found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareHost)
+					fmt.Printf("dry-run: found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
 				}
 			}
 
