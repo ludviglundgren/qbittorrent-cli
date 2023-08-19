@@ -119,6 +119,7 @@ Commands:
   - compare
   - edit
   - reannounce
+  - export
 
 Global flags:
   * `--config` - override config file
@@ -171,7 +172,6 @@ Required flags:
 * `--pass` - Host pass
 * `--basic-user` - Host basic auth user
 * `--basic-pass` - Host basic auth pass
-
 
 * `--compare-addr` - url with http and port if needed
 * `--compare-user` - user
@@ -260,3 +260,17 @@ Optional flags:
 * `--hash <HASH>` - Only look for torrents with the provided hash 
 * `--interval <INTERVAL>` - Override default interval of 7000 ms (7s)
 * `--attempts <ATTEMPTS>` - Override default attempts of 50
+
+### Export
+
+Export .torrent and .fastresume file baaed on categories. 
+
+    qbt export
+
+Required flags:
+* `--source <PATH>` - qBittorrent state dir (~/.local/share/data/qBittorrent/BT_backup)
+* `--export-dir <PATH>` - new dir or qBittorrent state dir (~/.local/share/data/qBittorrent/BT_backup)
+* `--categories <CATEGORY,CATEGORY2>` - Only look for torrents with the provided categories. Comma separated
+
+Optional flags:
+* `--dry-run` - Run without doing anything

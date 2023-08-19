@@ -34,7 +34,7 @@ func RunExport() *cobra.Command {
 	command.Flags().BoolVar(&dry, "dry-run", false, "dry run")
 	command.Flags().StringVar(&sourceDir, "source", "", "Dir with torrent and fast-resume files")
 	command.Flags().StringVar(&exportDir, "export-dir", "", "Dir to export files to")
-	command.Flags().StringSliceVar(&categories, "categories", []string{}, "Export torrents from categories")
+	command.Flags().StringSliceVar(&categories, "categories", []string{}, "Export torrents from categories. Comma separated")
 	command.MarkFlagRequired("categories")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
