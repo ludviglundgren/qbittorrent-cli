@@ -74,7 +74,7 @@ func RunExport() *cobra.Command {
 				}
 
 				// append hash to map of hashes to gather
-				hashes[t.Hash] = struct{}{}
+				hashes[strings.ToLower(t.Hash)] = struct{}{}
 			}
 		}
 
@@ -98,6 +98,7 @@ func RunExport() *cobra.Command {
 }
 func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry bool) error {
 	exportCount := 0
+
 	// check BT_backup dir, pick torrent and fastresume files by id
 	err := filepath.Walk(sourceDir, func(dirPath string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -124,14 +125,20 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 
 		fmt.Printf("processing: %s\n", fileName)
 
-		if !dry {
+		if dry {
+			exportCount++
+
+			fmt.Printf("dry-run: (%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+		} else {
 			outFile := filepath.Join(exportDir, fileName)
 			if err := torrent.CopyFile(dirPath, outFile); err != nil {
 				return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
 			}
-		}
 
-		exportCount++
+			exportCount++
+
+			fmt.Printf("(%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+		}
 
 		return nil
 	})
@@ -140,11 +147,11 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 		return err
 	}
 
-	fmt.Printf("Found and exported '%d' torrents\n", exportCount)
+	fmt.Printf("found and exported (%d) torrents\n", exportCount)
 
 	return nil
 }
 
 func fileNameTrimExt(fileName string) string {
-	return strings.TrimSuffix(fileName, filepath.Ext(fileName))
+	return strings.ToLower(strings.TrimSuffix(fileName, filepath.Ext(fileName)))
 }
