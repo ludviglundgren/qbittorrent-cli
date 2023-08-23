@@ -95,13 +95,6 @@ func RunExport() *cobra.Command {
 
 		fmt.Printf("Found '%d' matching torrents\n", len(hashes))
 
-		// check if export dir exists, if not then lets create it
-		if err := createDirIfNotExists(exportDir); err != nil {
-			fmt.Printf("could not check if dir %s exists. err: %q\n", exportDir, err)
-			return errors.Wrapf(err, "could not check if dir exists: %s", exportDir)
-			//os.Exit(1)
-		}
-
 		if err := processExport(sourceDir, exportDir, hashes, dry, verbose); err != nil {
 			return errors.Wrapf(err, "could not process torrents")
 		}
@@ -118,6 +111,12 @@ func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry,
 	exportCount := 0
 	exportTorrentCount := 0
 	exportFastresumeCount := 0
+
+	// check if export dir exists, if not then lets create it
+	if err := createDirIfNotExists(exportDir); err != nil {
+		fmt.Printf("could not check if dir %s exists. err: %q\n", exportDir, err)
+		return errors.Wrapf(err, "could not check if dir exists: %s", exportDir)
+	}
 
 	// check BT_backup dir, pick torrent and fastresume files by id
 	err := filepath.Walk(sourceDir, func(dirPath string, info fs.FileInfo, err error) error {
