@@ -82,10 +82,17 @@ func RunExport() *cobra.Command {
 
 		if len(hashes) == 0 {
 			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(categories, ","))
-			os.Exit(0)
+			os.Exit(1)
 		}
 
 		fmt.Printf("Found '%d' matching torrents\n", len(hashes))
+
+		// check if export dir exists, if not then lets create it
+		if err := createDirIfNotExists(exportDir); err != nil {
+			fmt.Printf("could not check if dir %s exists. err: %q\n", exportDir, err)
+			return errors.Wrapf(err, "could not check if dir exists: %s", exportDir)
+			//os.Exit(1)
+		}
 
 		if err := processHashes(sourceDir, exportDir, hashes, dry, verbose); err != nil {
 			return errors.Wrapf(err, "could not process torrents")
@@ -98,6 +105,7 @@ func RunExport() *cobra.Command {
 
 	return command
 }
+
 func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry, verbose bool) error {
 	exportCount := 0
 	exportTorrentCount := 0
@@ -187,6 +195,7 @@ func fileNameTrimExt(fileName string) string {
 	return strings.ToLower(strings.TrimSuffix(fileName, filepath.Ext(fileName)))
 }
 
+// isValidExt check if the input ext is one of the ext we want
 func isValidExt(filename string) bool {
 	valid := []string{".torrent", ".fastresume"}
 
@@ -197,4 +206,21 @@ func isValidExt(filename string) bool {
 	}
 
 	return false
+}
+
+// createDirIfNotExists check if export dir exists, if not then lets create it
+func createDirIfNotExists(dir string) error {
+	if _, err := os.Stat(dir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		return err
+	}
+
+	return nil
 }
