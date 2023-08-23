@@ -26,12 +26,14 @@ func RunExport() *cobra.Command {
 
 	var (
 		dry        bool
+		verbose    bool
 		sourceDir  string
 		exportDir  string
 		categories []string
 	)
 
 	command.Flags().BoolVar(&dry, "dry-run", false, "dry run")
+	command.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
 	command.Flags().StringVar(&sourceDir, "source", "", "Dir with torrent and fast-resume files")
 	command.Flags().StringVar(&exportDir, "export-dir", "", "Dir to export files to")
 	command.Flags().StringSliceVar(&categories, "categories", []string{}, "Export torrents from categories. Comma separated")
@@ -85,7 +87,7 @@ func RunExport() *cobra.Command {
 
 		fmt.Printf("Found '%d' matching torrents\n", len(hashes))
 
-		if err := processHashes(sourceDir, exportDir, hashes, dry); err != nil {
+		if err := processHashes(sourceDir, exportDir, hashes, dry, verbose); err != nil {
 			return errors.Wrapf(err, "could not process torrents")
 		}
 
@@ -96,8 +98,10 @@ func RunExport() *cobra.Command {
 
 	return command
 }
-func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry bool) error {
+func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry, verbose bool) error {
 	exportCount := 0
+	exportTorrentCount := 0
+	exportFastresumeCount := 0
 
 	// check BT_backup dir, pick torrent and fastresume files by id
 	err := filepath.Walk(sourceDir, func(dirPath string, info fs.FileInfo, err error) error {
@@ -110,8 +114,9 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 		}
 
 		fileName := info.Name()
+		ext := filepath.Ext(fileName)
 
-		if filepath.Ext(fileName) != ".torrent" || filepath.Ext(fileName) != ".fastresume" {
+		if !isValidExt(ext) {
 			return nil
 		}
 
@@ -123,35 +128,73 @@ func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry 
 			return nil
 		}
 
-		fmt.Printf("processing: %s\n", fileName)
-
 		if dry {
+			if verbose {
+				fmt.Printf("processing: %s\n", fileName)
+			}
+
 			exportCount++
 
-			fmt.Printf("dry-run: (%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+			//fmt.Printf("dry-run: (%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+
+			if ext == ".torrent" {
+				exportTorrentCount++
+				fmt.Printf("dry-run: (%d/%d) torrent exported: %s '%s'\n", exportTorrentCount, len(hashes), torrentHash, fileName)
+			} else if ext == ".fastresume" {
+				exportFastresumeCount++
+				fmt.Printf("dry-run: (%d/%d) fastresume exported: %s '%s'\n", exportFastresumeCount, len(hashes), torrentHash, fileName)
+			}
+
 		} else {
+			if verbose {
+				fmt.Printf("processing: %s\n", fileName)
+			}
+
 			outFile := filepath.Join(exportDir, fileName)
 			if err := torrent.CopyFile(dirPath, outFile); err != nil {
 				return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
 			}
 
 			exportCount++
+			if ext == ".torrent" {
+				exportTorrentCount++
+				fmt.Printf("(%d/%d) torrent exported: %s '%s'\n", exportTorrentCount, len(hashes), torrentHash, fileName)
+			} else if ext == ".fastresume" {
+				exportFastresumeCount++
+				fmt.Printf("(%d/%d) fastresume exported: %s '%s'\n", exportFastresumeCount, len(hashes), torrentHash, fileName)
+			}
 
-			fmt.Printf("(%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+			//fmt.Printf("(%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
 		}
 
 		return nil
 	})
 	if err != nil {
-		log.Printf("error reading files: %q", err)
+		log.Printf("error reading files: %q\n", err)
 		return err
 	}
 
-	fmt.Printf("found and exported (%d) torrents\n", exportCount)
+	fmt.Printf(`
+found (%d) files in total
+exported fastresume: %d
+exported torrent %d
+`, exportCount, exportFastresumeCount, exportTorrentCount)
 
 	return nil
 }
 
 func fileNameTrimExt(fileName string) string {
 	return strings.ToLower(strings.TrimSuffix(fileName, filepath.Ext(fileName)))
+}
+
+func isValidExt(filename string) bool {
+	valid := []string{".torrent", ".fastresume"}
+
+	for _, s := range valid {
+		if s == filename {
+			return true
+		}
+	}
+
+	return false
 }
