@@ -43,6 +43,14 @@ func RunExport() *cobra.Command {
 		// get torrents from client by categories
 		config.InitConfig()
 
+		if _, err := os.Stat(sourceDir); err != nil {
+			if os.IsNotExist(err) {
+				return errors.Wrapf(err, "source dir %s does not exist", sourceDir)
+			}
+
+			return err
+		}
+
 		qbtSettings := qbittorrent.Settings{
 			Addr:      config.Qbit.Addr,
 			Hostname:  config.Qbit.Host,
@@ -94,7 +102,7 @@ func RunExport() *cobra.Command {
 			//os.Exit(1)
 		}
 
-		if err := processHashes(sourceDir, exportDir, hashes, dry, verbose); err != nil {
+		if err := processExport(sourceDir, exportDir, hashes, dry, verbose); err != nil {
 			return errors.Wrapf(err, "could not process torrents")
 		}
 
@@ -106,7 +114,7 @@ func RunExport() *cobra.Command {
 	return command
 }
 
-func processHashes(sourceDir, exportDir string, hashes map[string]struct{}, dry, verbose bool) error {
+func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry, verbose bool) error {
 	exportCount := 0
 	exportTorrentCount := 0
 	exportFastresumeCount := 0

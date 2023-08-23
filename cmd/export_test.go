@@ -2,7 +2,7 @@ package cmd
 
 import "testing"
 
-func Test_processHashes(t *testing.T) {
+func Test_export_processHashes(t *testing.T) {
 	type args struct {
 		sourceDir string
 		exportDir string
@@ -30,8 +30,8 @@ func Test_processHashes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := processHashes(tt.args.sourceDir, tt.args.exportDir, tt.args.hashes, tt.args.dry, tt.args.verbose); (err != nil) != tt.wantErr {
-				t.Errorf("processHashes() error = %v, wantErr %v", err, tt.wantErr)
+			if err := processExport(tt.args.sourceDir, tt.args.exportDir, tt.args.hashes, tt.args.dry, tt.args.verbose); (err != nil) != tt.wantErr {
+				t.Errorf("processExport() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
