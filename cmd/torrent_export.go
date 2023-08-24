@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io/fs"
 	"log"
@@ -10,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	fsutil "github.com/ludviglundgren/qbittorrent-cli/internal/fs"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -24,28 +23,35 @@ func RunExport() *cobra.Command {
 		Long:  "Export torrents and fastresume by category",
 	}
 
-	var (
-		dry        bool
-		verbose    bool
-		sourceDir  string
-		exportDir  string
-		categories []string
-	)
+	f := export{
+		dry:             false,
+		verbose:         false,
+		sourceDir:       "",
+		exportDir:       "",
+		categories:      nil,
+		includeCategory: nil,
+		excludeCategory: nil,
+		includeTag:      nil,
+		excludeTag:      nil,
+		hashes:          map[string]struct{}{},
+	}
 
-	command.Flags().BoolVar(&dry, "dry-run", false, "dry run")
-	command.Flags().BoolVarP(&verbose, "verbose", "v", false, "verbose output")
-	command.Flags().StringVar(&sourceDir, "source", "", "Dir with torrent and fast-resume files")
-	command.Flags().StringVar(&exportDir, "export-dir", "", "Dir to export files to")
-	command.Flags().StringSliceVar(&categories, "categories", []string{}, "Export torrents from categories. Comma separated")
+	command.Flags().BoolVar(&f.dry, "dry-run", false, "dry run")
+	command.Flags().BoolVarP(&f.verbose, "verbose", "v", false, "verbose output")
+	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files")
+	command.Flags().StringVar(&f.exportDir, "export-dir", "", "Dir to export files to")
+	command.Flags().StringSliceVar(&f.categories, "categories", []string{}, "Export torrents from categories. Comma separated")
+	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Include categories. Comma separated")
+
 	command.MarkFlagRequired("categories")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		// get torrents from client by categories
 		config.InitConfig()
 
-		if _, err := os.Stat(sourceDir); err != nil {
+		if _, err := os.Stat(f.sourceDir); err != nil {
 			if os.IsNotExist(err) {
-				return errors.Wrapf(err, "source dir %s does not exist", sourceDir)
+				return errors.Wrapf(err, "source dir %s does not exist", f.sourceDir)
 			}
 
 			return err
@@ -63,18 +69,35 @@ func RunExport() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		ctx := context.Background()
-
-		if err := qb.Login(ctx); err != nil {
+		if err := qb.Login(cmd.Context()); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
-		hashes := map[string]struct{}{}
 
-		for _, category := range categories {
-			torrents, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Category: category})
+		if len(f.includeCategory) > 0 {
+			for _, category := range f.categories {
+				torrents, err := qb.GetTorrentsWithFilters(cmd.Context(), &qbittorrent.GetTorrentsRequest{Category: category})
+				if err != nil {
+					return errors.Wrapf(err, "could not get torrents for category: %s", category)
+				}
+
+				for _, t := range torrents {
+					// only grab completed torrents
+					if t.Progress != 1 {
+						continue
+					}
+
+					// todo check tags
+
+					// append hash to map of hashes to gather
+					f.hashes[strings.ToLower(t.Hash)] = struct{}{}
+				}
+			}
+
+		} else {
+			torrents, err := qb.GetTorrents(cmd.Context())
 			if err != nil {
-				return errors.Wrapf(err, "could not get torrents for category: %s", category)
+				return errors.Wrap(err, "could not get torrents")
 			}
 
 			for _, t := range torrents {
@@ -83,19 +106,22 @@ func RunExport() *cobra.Command {
 					continue
 				}
 
+				// todo check tags and exclude categories
+
 				// append hash to map of hashes to gather
-				hashes[strings.ToLower(t.Hash)] = struct{}{}
+				f.hashes[strings.ToLower(t.Hash)] = struct{}{}
 			}
+
 		}
 
-		if len(hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(categories, ","))
+		if len(f.hashes) == 0 {
+			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.categories, ","))
 			os.Exit(1)
 		}
 
-		fmt.Printf("Found '%d' matching torrents\n", len(hashes))
+		fmt.Printf("Found '%d' matching torrents\n", len(f.hashes))
 
-		if err := processExport(sourceDir, exportDir, hashes, dry, verbose); err != nil {
+		if err := processExport(f.sourceDir, f.exportDir, f.hashes, f.dry, f.verbose); err != nil {
 			return errors.Wrapf(err, "could not process torrents")
 		}
 
@@ -152,10 +178,11 @@ func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry,
 
 			//fmt.Printf("dry-run: (%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
 
-			if ext == ".torrent" {
+			switch ext {
+			case ".torrent":
 				exportTorrentCount++
 				fmt.Printf("dry-run: (%d/%d) torrent exported: %s '%s'\n", exportTorrentCount, len(hashes), torrentHash, fileName)
-			} else if ext == ".fastresume" {
+			case ".fastresume":
 				exportFastresumeCount++
 				fmt.Printf("dry-run: (%d/%d) fastresume exported: %s '%s'\n", exportFastresumeCount, len(hashes), torrentHash, fileName)
 			}
@@ -166,15 +193,17 @@ func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry,
 			}
 
 			outFile := filepath.Join(exportDir, fileName)
-			if err := torrent.CopyFile(dirPath, outFile); err != nil {
+			if err := fsutil.CopyFile(dirPath, outFile); err != nil {
 				return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
 			}
 
 			exportCount++
-			if ext == ".torrent" {
+
+			switch ext {
+			case ".torrent":
 				exportTorrentCount++
 				fmt.Printf("(%d/%d) torrent exported: %s '%s'\n", exportTorrentCount, len(hashes), torrentHash, fileName)
-			} else if ext == ".fastresume" {
+			case ".fastresume":
 				exportFastresumeCount++
 				fmt.Printf("(%d/%d) fastresume exported: %s '%s'\n", exportFastresumeCount, len(hashes), torrentHash, fileName)
 			}
@@ -230,4 +259,18 @@ func createDirIfNotExists(dir string) error {
 	}
 
 	return nil
+}
+
+type export struct {
+	dry             bool
+	verbose         bool
+	sourceDir       string
+	exportDir       string
+	categories      []string
+	includeCategory []string
+	excludeCategory []string
+	includeTag      []string
+	excludeTag      []string
+
+	hashes map[string]struct{}
 }
