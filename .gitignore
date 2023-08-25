@@ -2,5 +2,6 @@
 .vagrant
 .DS_Store
 .qbt.toml
+.devcontainer
 dist
 bin
