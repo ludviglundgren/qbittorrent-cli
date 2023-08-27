@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/spf13/cobra"
 )
 
@@ -41,10 +41,8 @@ func RunTorrentReannounce() *cobra.Command {
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
 
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -53,19 +51,21 @@ func RunTorrentReannounce() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		if err := qb.Login(cmd.Context()); err != nil {
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		req := &qbittorrent.GetTorrentsRequest{
+		req := qbittorrent.TorrentFilterOptions{
 			//Filter:   qbittorrent.TorrentFilterDownloading,
 			Category: category,
 			Tag:      tag,
-			Hashes:   hash,
+			Hashes:   []string{hash},
 		}
 
-		activeDownloads, err := qb.GetTorrentsWithFilters(cmd.Context(), req)
+		activeDownloads, err := qb.GetTorrentsCtx(ctx, req)
 		if err != nil {
 			log.Fatalf("could not fetch torrents: err: %q", err)
 		}
@@ -80,7 +80,7 @@ func RunTorrentReannounce() *cobra.Command {
 						log.Printf("torrent %s %s not working, active for %ds, re-announcing...\n", torrent.Hash, torrent.Name, torrent.TimeActive)
 
 						// some trackers are bugged or slow, so we need to re-announce the torrent until it works
-						if err = reannounceTorrent(cmd.Context(), qb, interval, attempts, torrent.Hash); err != nil {
+						if err = reannounceTorrent(ctx, qb, interval, attempts, torrent.Hash); err != nil {
 							log.Printf("could not re-announce torrent: %s %s err: %q\n", torrent.Hash, torrent.Name, err)
 						}
 
@@ -104,7 +104,7 @@ func reannounceTorrent(ctx context.Context, qb *qbittorrent.Client, interval, at
 	time.Sleep(time.Duration(interval) * time.Millisecond)
 
 	for attempt < attempts {
-		trackers, err := qb.GetTorrentTrackers(ctx, hash)
+		trackers, err := qb.GetTorrentTrackersCtx(ctx, hash)
 		if err != nil {
 			log.Fatalf("could not get trackers of torrent: %s err: %q", hash, err)
 		}
@@ -116,7 +116,7 @@ func reannounceTorrent(ctx context.Context, qb *qbittorrent.Client, interval, at
 			break
 		}
 
-		if err = qb.ReAnnounceTorrents(ctx, []string{hash}); err != nil {
+		if err = qb.ReAnnounceTorrentsCtx(ctx, []string{hash}); err != nil {
 			return err
 		}
 

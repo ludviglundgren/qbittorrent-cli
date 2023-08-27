@@ -7,12 +7,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/ludviglundgren/qbittorrent-cli/internal/importer"
 
 	"github.com/mholt/archiver/v3"
 	"github.com/mitchellh/go-homedir"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 

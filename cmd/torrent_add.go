@@ -12,8 +12,9 @@ import (
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/anacrolix/torrent/metainfo"
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/spf13/cobra"
 )
 
@@ -65,10 +66,8 @@ func RunTorrentAdd() *cobra.Command {
 		// first arg is path to torrent file
 		filePath := args[0]
 
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -77,15 +76,15 @@ func RunTorrentAdd() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
-		if err := qb.Login(ctx); err != nil {
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
 			os.Exit(1)
 		}
 
 		if config.Rules.Enabled && !ignoreRules {
-			activeDownloads, err := qb.GetTorrentsWithFilters(ctx, &qbittorrent.GetTorrentsRequest{Filter: qbittorrent.TorrentFilterDownloading})
+			activeDownloads, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Filter: qbittorrent.TorrentFilterDownloading})
 			if err != nil {
 				log.Fatalf("could not fetch torrents: %q\n", err)
 			}
@@ -127,13 +126,21 @@ func RunTorrentAdd() *cobra.Command {
 				return
 			}
 
-			hash, err := qb.AddTorrentFromMagnet(ctx, filePath, options)
-			if err != nil {
+			if err := qb.AddTorrentFromUrlCtx(ctx, filePath, options); err != nil {
 				log.Fatalf("adding torrent failed: %q\n", err)
 			}
 
+			hash := ""
+
 			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 			if config.Reannounce.Enabled && !paused {
+				magnet, err := metainfo.ParseMagnetUri(filePath)
+				if err != nil {
+					fmt.Printf("could not parse magnet URI: %s\n", filePath)
+				}
+
+				hash := magnet.InfoHash.String()
+
 				go func() {
 					if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 						log.Fatalf("could not get tracker status for torrent: %q\n", err)
@@ -167,10 +174,18 @@ func RunTorrentAdd() *cobra.Command {
 				// set savePath again
 				options["savepath"] = savePath
 
-				hash, err := qb.AddTorrentFromFile(ctx, file, options)
-				if err != nil {
+				if err := qb.AddTorrentFromFileCtx(ctx, file, options); err != nil {
 					log.Fatalf("adding torrent failed: %q\n", err)
 				}
+
+				// Get meta info from file to find out the hash for later use
+				t, err := metainfo.LoadFromFile(file)
+				if err != nil {
+					fmt.Printf("could not open file: %s", file)
+					continue
+				}
+
+				hash := t.HashInfoBytes().String()
 
 				// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 				if config.Reannounce.Enabled && !paused {
@@ -209,7 +224,7 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 	time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
 
 	for attempts < config.Reannounce.Attempts {
-		trackers, err := qb.GetTorrentTrackers(ctx, hash)
+		trackers, err := qb.GetTorrentTrackersCtx(ctx, hash)
 		if err != nil {
 			log.Fatalf("could not get trackers of torrent: %v %v", hash, err)
 		}
@@ -221,7 +236,7 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 			break
 		}
 
-		if err := qb.ReAnnounceTorrents(ctx, []string{hash}); err != nil {
+		if err := qb.ReAnnounceTorrentsCtx(ctx, []string{hash}); err != nil {
 			return err
 		}
 
@@ -234,7 +249,7 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 		if removeStalled {
 			log.Println("Announce not ok, deleting torrent")
 
-			if err := qb.DeleteTorrents(ctx, []string{hash}, false); err != nil {
+			if err := qb.DeleteTorrentsCtx(ctx, []string{hash}, false); err != nil {
 				return err
 			}
 		}
@@ -253,7 +268,7 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 //	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 func findTrackerStatus(slice []qbittorrent.TorrentTracker, val int) (int, bool) {
 	for i, item := range slice {
-		if item.Status == val {
+		if int(item.Status) == val {
 			return i, true
 		}
 	}

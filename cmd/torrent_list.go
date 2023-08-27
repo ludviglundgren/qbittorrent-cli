@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
@@ -22,7 +22,7 @@ func RunTorrentList() *cobra.Command {
 		filter   = "all"
 		category string
 		tag      string
-		hashes   string
+		hashes   []string
 		output   string
 	)
 
@@ -36,15 +36,13 @@ func RunTorrentList() *cobra.Command {
 	command.Flags().StringVarP(&filter, "filter", "f", "all", "Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, \nstalled, stalled_uploading, stalled_downloading, errored")
 	command.Flags().StringVarP(&category, "category", "c", "", "Filter by category. All categories by default.")
 	command.Flags().StringVarP(&tag, "tag", "t", "", "Filter by tag. Single tag: tag1")
-	command.Flags().StringVar(&hashes, "hashes", "", "Filter by hashes. Separated by | pipe: \"hash1|hash2\".")
+	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Filter by hashes. Separated by comma: \"hash1,hash2\".")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
 
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -53,12 +51,14 @@ func RunTorrentList() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		if err := qb.Login(cmd.Context()); err != nil {
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		req := qbittorrent.GetTorrentsRequest{
+		req := qbittorrent.TorrentFilterOptions{
 			Filter:   qbittorrent.TorrentFilter(strings.ToLower(filter)),
 			Category: category,
 			Tag:      tag,
@@ -66,7 +66,7 @@ func RunTorrentList() *cobra.Command {
 		}
 
 		// get torrent list with default filter of all
-		torrents, err := qb.GetTorrentsWithFilters(cmd.Context(), &req)
+		torrents, err := qb.GetTorrentsCtx(ctx, req)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
 			os.Exit(1)

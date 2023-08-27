@@ -19,6 +19,8 @@ require (
 	github.com/anacrolix/missinggo v1.3.0 // indirect
 	github.com/anacrolix/missinggo/v2 v2.7.0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
+	github.com/autobrr/go-qbittorrent v1.3.3 // indirect
+	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect

@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
@@ -81,8 +80,8 @@ func RunTorrentCompare() *cobra.Command {
 			sourceBasicPass = config.Qbit.BasicPass
 		}
 
-		qbtSettings := qbittorrent.Settings{
-			Addr:      sourceAddr,
+		qbtSettings := qbittorrent.Config{
+			Host:      sourceAddr,
 			Username:  sourceUser,
 			Password:  sourcePass,
 			BasicUser: sourceBasicUser,
@@ -90,14 +89,14 @@ func RunTorrentCompare() *cobra.Command {
 		}
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
-		if err := qb.Login(ctx); err != nil {
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
-		sourceData, err := qb.GetTorrents(ctx)
+		sourceData, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
 			os.Exit(1)
@@ -113,8 +112,8 @@ func RunTorrentCompare() *cobra.Command {
 			compareBasicUser := compareConfig.BasicUser
 			compareBasicPass := compareConfig.BasicPass
 
-			qbtSettingsCompare := qbittorrent.Settings{
-				Addr:      compareAddr,
+			qbtSettingsCompare := qbittorrent.Config{
+				Host:      compareAddr,
 				Username:  compareUser,
 				Password:  comparePass,
 				BasicUser: compareBasicUser,
@@ -122,12 +121,12 @@ func RunTorrentCompare() *cobra.Command {
 			}
 			qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
 
-			if err = qbCompare.Login(ctx); err != nil {
+			if err = qbCompare.LoginCtx(ctx); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
 				os.Exit(1)
 			}
 
-			compareData, err := qbCompare.GetTorrents(ctx)
+			compareData, err := qbCompare.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
 				os.Exit(1)
@@ -152,8 +151,7 @@ func RunTorrentCompare() *cobra.Command {
 							j = len(duplicateTorrents)
 						}
 
-						err = qbCompare.SetTag(ctx, duplicateTorrents[i:j], tag)
-						if err != nil {
+						if err := qbCompare.AddTagsCtx(ctx, duplicateTorrents[i:j], tag); err != nil {
 							fmt.Printf("ERROR: Failed to set tag: %v\n", err)
 						}
 
@@ -175,10 +173,10 @@ func RunTorrentCompare() *cobra.Command {
 }
 
 func compare(source, compare []qbittorrent.Torrent) ([]string, error) {
-	sourceTorrents := make(map[string]qbittorrent.TorrentBasic, 0)
+	sourceTorrents := make(map[string]qbittorrent.Torrent, 0)
 
 	for _, s := range source {
-		sourceTorrents[s.Hash] = qbittorrent.TorrentBasic{
+		sourceTorrents[s.Hash] = qbittorrent.Torrent{
 			Category:   s.Category,
 			Downloaded: s.Downloaded,
 			Hash:       s.Hash,
@@ -194,7 +192,7 @@ func compare(source, compare []qbittorrent.Torrent) ([]string, error) {
 	}
 
 	duplicateTorrentIDs := make([]string, 0)
-	duplicateTorrentsSlice := make([]qbittorrent.TorrentBasic, 0)
+	duplicateTorrentsSlice := make([]qbittorrent.Torrent, 0)
 
 	var totalSize uint64
 
@@ -204,7 +202,7 @@ func compare(source, compare []qbittorrent.Torrent) ([]string, error) {
 
 			totalSize += uint64(c.Size)
 
-			duplicateTorrentsSlice = append(duplicateTorrentsSlice, qbittorrent.TorrentBasic{
+			duplicateTorrentsSlice = append(duplicateTorrentsSlice, qbittorrent.Torrent{
 				Category:   c.Category,
 				Downloaded: c.Downloaded,
 				Hash:       c.Hash,

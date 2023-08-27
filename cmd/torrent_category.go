@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/spf13/cobra"
 )
 
@@ -87,10 +87,9 @@ func RunTorrentCategoryChange() *cobra.Command {
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -99,7 +98,9 @@ func RunTorrentCategoryChange() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		if err := qb.Login(cmd.Context()); err != nil {
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
@@ -107,7 +108,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 		var hashes []string
 
 		for _, cat := range fromCategories {
-			torrents, err := qb.GetTorrentsWithFilters(cmd.Context(), &qbittorrent.GetTorrentsRequest{Category: cat})
+			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Category: cat})
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents by category %v\n", err)
 				os.Exit(1)
@@ -134,7 +135,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 
 				// check TimeActive (seconds), CompletionOn (epoch) SeenComplete
 				if minSeedTime > 0 {
-					completedTime := time.Unix(int64(torrent.CompletionOn), 0)
+					completedTime := time.Unix(torrent.CompletionOn, 0)
 					completedTimePlusMinSeedTime := completedTime.Add(time.Duration(minSeedTime) * time.Minute)
 					currentTime := time.Now()
 
@@ -159,7 +160,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 		} else {
 			fmt.Printf("Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 
-			if err := qb.SetCategory(cmd.Context(), hashes, targetCategory); err != nil {
+			if err := qb.SetCategoryCtx(ctx, hashes, targetCategory); err != nil {
 				fmt.Fprintf(os.Stderr, "ERROR: could not pause torrents %v\n", err)
 				os.Exit(1)
 			}

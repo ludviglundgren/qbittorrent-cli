@@ -10,8 +10,8 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	fsutil "github.com/ludviglundgren/qbittorrent-cli/internal/fs"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -62,10 +62,8 @@ func RunTorrentExport() *cobra.Command {
 			return err
 		}
 
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -74,14 +72,16 @@ func RunTorrentExport() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		if err := qb.Login(cmd.Context()); err != nil {
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
 		if len(f.includeCategory) > 0 {
 			for _, category := range f.includeCategory {
-				torrents, err := qb.GetTorrentsWithFilters(cmd.Context(), &qbittorrent.GetTorrentsRequest{Category: category})
+				torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Category: category})
 				if err != nil {
 					return errors.Wrapf(err, "could not get torrents for category: %s", category)
 				}
@@ -100,7 +100,7 @@ func RunTorrentExport() *cobra.Command {
 			}
 
 		} else {
-			torrents, err := qb.GetTorrents(cmd.Context())
+			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 			if err != nil {
 				return errors.Wrap(err, "could not get torrents")
 			}

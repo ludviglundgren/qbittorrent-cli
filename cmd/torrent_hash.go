@@ -28,19 +28,24 @@ func RunTorrentHash() *cobra.Command {
 	command.Run = func(cmd *cobra.Command, args []string) {
 		filePath := args[0]
 		hash := ""
+
 		if strings.HasPrefix(filePath, "magnet:") {
 			metadata, err := metainfo.ParseMagnetUri(filePath)
 			if err != nil {
 				log.Fatalf("could not parse magnet URI. error: %v", err)
 			}
+
 			hash = metadata.InfoHash.HexString()
+
 		} else {
 			metadata, err := metainfo.LoadFromFile(filePath)
 			if err != nil {
 				log.Fatalf("could not parse torrent file. error: %v", err)
 			}
+
 			hash = metadata.HashInfoBytes().HexString()
 		}
+
 		fmt.Println(hash)
 	}
 	return command
