@@ -10,12 +10,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunHash cmd to add torrents
-func RunHash() *cobra.Command {
+// RunTorrentHash cmd to add torrents
+func RunTorrentHash() *cobra.Command {
 	var command = &cobra.Command{
 		Use:     "hash",
-		Short:   "Print the hash of a torrent/magnet",
-		Example: `  qbt hash file.torrent`,
+		Short:   "Print the hash of a torrent file or magnet",
+		Example: `  qbt torrent hash file.torrent`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a torrent file or magnet URI as first argument")

@@ -16,11 +16,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func RunExport() *cobra.Command {
+func RunTorrentExport() *cobra.Command {
 	var command = &cobra.Command{
-		Use:   "export",
-		Short: "export torrents",
-		Long:  "Export torrents and fastresume by category",
+		Use:     "export",
+		Short:   "Export torrents",
+		Long:    "Export torrents and fastresume by category",
+		Example: `  qbt torrent export --source ~/.local/share/data/qBittorrent/BT_backup --export-dir ~/qbt-backup --include-category=movies,tv`,
 	}
 
 	f := export{
@@ -28,7 +29,6 @@ func RunExport() *cobra.Command {
 		verbose:         false,
 		sourceDir:       "",
 		exportDir:       "",
-		categories:      nil,
 		includeCategory: nil,
 		excludeCategory: nil,
 		includeTag:      nil,
@@ -38,12 +38,17 @@ func RunExport() *cobra.Command {
 
 	command.Flags().BoolVar(&f.dry, "dry-run", false, "dry run")
 	command.Flags().BoolVarP(&f.verbose, "verbose", "v", false, "verbose output")
-	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files")
-	command.Flags().StringVar(&f.exportDir, "export-dir", "", "Dir to export files to")
-	command.Flags().StringSliceVar(&f.categories, "categories", []string{}, "Export torrents from categories. Comma separated")
-	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Include categories. Comma separated")
+	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files (required)")
+	command.Flags().StringVar(&f.exportDir, "export-dir", "", "Dir to export files to (required)")
+	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Export torrents from these categories. Comma separated")
 
 	command.MarkFlagRequired("categories")
+	command.MarkFlagRequired("source")
+	command.MarkFlagRequired("export-dir")
+
+	//command.Flags().StringSliceVar(&f.excludeCategory, "exclude-category", []string{}, "Exclude categories. Comma separated")
+	//command.Flags().StringSliceVar(&f.includeTag, "include-tag", []string{}, "Include tags. Comma separated")
+	//command.Flags().StringSliceVar(&f.excludeTag, "exclude-tag", []string{}, "Exclude tags. Comma separated")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		// get torrents from client by categories
@@ -75,7 +80,7 @@ func RunExport() *cobra.Command {
 		}
 
 		if len(f.includeCategory) > 0 {
-			for _, category := range f.categories {
+			for _, category := range f.includeCategory {
 				torrents, err := qb.GetTorrentsWithFilters(cmd.Context(), &qbittorrent.GetTorrentsRequest{Category: category})
 				if err != nil {
 					return errors.Wrapf(err, "could not get torrents for category: %s", category)
@@ -115,7 +120,7 @@ func RunExport() *cobra.Command {
 		}
 
 		if len(f.hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.categories, ","))
+			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.includeCategory, ","))
 			os.Exit(1)
 		}
 
@@ -266,7 +271,6 @@ type export struct {
 	verbose         bool
 	sourceDir       string
 	exportDir       string
-	categories      []string
 	includeCategory []string
 	excludeCategory []string
 	includeTag      []string

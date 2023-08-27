@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunPause cmd to pause torrents
-func RunPause() *cobra.Command {
+// RunTorrentPause cmd to pause torrents
+func RunTorrentPause() *cobra.Command {
 	var (
 		pauseAll bool
 		hashes   bool
@@ -23,9 +23,8 @@ func RunPause() *cobra.Command {
 
 	var command = &cobra.Command{
 		Use:   "pause",
-		Short: "Pause specified torrents",
-		Long: `Pauses torrents indicated by hash, name or a prefix of either; 
-				whitespace indicates next prefix unless argument is surrounded by quotes`,
+		Short: "Pause specified torrent(s)",
+		Long:  `Pauses torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
 	command.Flags().BoolVar(&pauseAll, "all", false, "Pauses all torrents")

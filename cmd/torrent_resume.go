@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunResume cmd to resume torrents
-func RunResume() *cobra.Command {
+// RunTorrentResume cmd to resume torrents
+func RunTorrentResume() *cobra.Command {
 	var (
 		resumeAll bool
 		hashes    bool
@@ -23,9 +23,8 @@ func RunResume() *cobra.Command {
 
 	var command = &cobra.Command{
 		Use:   "resume",
-		Short: "resume specified torrents",
-		Long: `resumes torrents indicated by hash, name or a prefix of either; 
-				whitespace indicates next prefix unless argument is surrounded by quotes`,
+		Short: "Resume specified torrent(s)",
+		Long:  `Resumes torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
 	command.Flags().BoolVar(&resumeAll, "all", false, "resumes all torrents")

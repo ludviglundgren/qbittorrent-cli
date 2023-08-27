@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunRemove cmd to remove torrents
-func RunRemove() *cobra.Command {
+// RunTorrentRemove cmd to remove torrents
+func RunTorrentRemove() *cobra.Command {
 	var (
 		removeAll    bool
 		removePaused bool
@@ -26,9 +26,8 @@ func RunRemove() *cobra.Command {
 
 	var command = &cobra.Command{
 		Use:   "remove",
-		Short: "Removes specified torrents",
-		Long: `Removes torrents indicated by hash, name or a prefix of either; 
-				whitespace indicates next prefix unless argument is surrounded by quotes`,
+		Short: "Removes specified torrent(s)",
+		Long:  `Removes torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes`,
 	}
 
 	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")

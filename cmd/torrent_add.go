@@ -17,10 +17,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunAdd cmd to add torrents
-func RunAdd() *cobra.Command {
+// RunTorrentAdd cmd to add torrents
+func RunTorrentAdd() *cobra.Command {
 	var (
-		magnet        bool
 		dry           bool
 		paused        bool
 		skipHashCheck bool
@@ -37,15 +36,18 @@ func RunAdd() *cobra.Command {
 		Use:   "add",
 		Short: "Add torrent(s)",
 		Long:  `Add new torrent(s) to qBittorrent from file or magnet. Supports glob pattern for files like: ./files/*.torrent`,
+		Example: `  qbt torrent add my-file.torrent --category test --tags tag1
+  qbt torrent add ./files/*.torrent --paused --skip-hash-check
+  qbt torrent add magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcad53426&dn=download`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
-				return errors.New("requires a torrent file as first argument")
+				return errors.New("requires a torrent file, glob or magnet as first argument")
 			}
 
 			return nil
 		},
 	}
-	command.Flags().BoolVar(&magnet, "magnet", false, "Add magnet link instead of torrent file")
+
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 	command.Flags().BoolVar(&paused, "paused", false, "Add torrent in paused state")
 	command.Flags().BoolVar(&skipHashCheck, "skip-hash-check", false, "Skip hash check")
@@ -118,7 +120,7 @@ func RunAdd() *cobra.Command {
 			options["dlLimit"] = strconv.FormatUint(uploadLimit, 10)
 		}
 
-		if magnet || strings.HasPrefix(filePath, "magnet:") {
+		if strings.HasPrefix(filePath, "magnet:") {
 			if dry {
 				log.Printf("dry-run: successfully added torrent from magnet %s!\n", filePath)
 
@@ -132,64 +134,69 @@ func RunAdd() *cobra.Command {
 
 			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 			if config.Reannounce.Enabled && !paused {
-				if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
-					log.Fatalf("could not get tracker status for torrent: %q\n", err)
-				}
+				go func() {
+					if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
+						log.Fatalf("could not get tracker status for torrent: %q\n", err)
+					}
+				}()
 			}
 
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
 			return
-		}
-
-		files, err := filepath.Glob(filePath)
-		if err != nil {
-			log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
-		}
-
-		if len(files) == 0 {
-			log.Printf("found 0 torrents matching %s\n", filePath)
-			return
-		}
-
-		log.Printf("found (%d) torrent(s) to add\n", len(files))
-
-		success := 0
-		for _, file := range files {
-			if dry {
-				log.Printf("dry-run: torrent %s successfully added!\n", file)
-
-				continue
-			}
-
-			// set savePath again
-			options["savepath"] = savePath
-
-			hash, err := qb.AddTorrentFromFile(ctx, file, options)
+		} else {
+			files, err := filepath.Glob(filePath)
 			if err != nil {
-				log.Fatalf("adding torrent failed: %q\n", err)
+				log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
 			}
 
-			// some trackers are bugged or slow, so we need to re-announce the torrent until it works
-			if config.Reannounce.Enabled && !paused {
-				if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
-					log.Printf("could not get tracker status for torrent: %s err: %q\n", hash, err)
+			if len(files) == 0 {
+				log.Printf("found 0 torrents matching %s\n", filePath)
+				return
+			}
+
+			log.Printf("found (%d) torrent(s) to add\n", len(files))
+
+			success := 0
+			for _, file := range files {
+				if dry {
+					log.Printf("dry-run: torrent %s successfully added!\n", file)
+
+					continue
 				}
+
+				// set savePath again
+				options["savepath"] = savePath
+
+				hash, err := qb.AddTorrentFromFile(ctx, file, options)
+				if err != nil {
+					log.Fatalf("adding torrent failed: %q\n", err)
+				}
+
+				// some trackers are bugged or slow, so we need to re-announce the torrent until it works
+				if config.Reannounce.Enabled && !paused {
+					go func() {
+						if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
+							log.Printf("could not get tracker status for torrent: %s err: %q\n", hash, err)
+						}
+					}()
+				}
+
+				success++
+
+				log.Printf("successfully added torrent: %s\n", hash)
+
+				if len(files) > 1 {
+					log.Println("sleeping 2 seconds before adding next torrent...")
+
+					time.Sleep(2 * time.Second)
+
+					continue
+				}
+
 			}
 
-			success++
-
-			log.Printf("successfully added torrent: %s\n", hash)
-
-			if len(files) > 1 {
-				log.Println("sleeping 2 seconds before adding next torrent...")
-
-				time.Sleep(2 * time.Second)
-
-				continue
-			}
+			log.Printf("successfully added %d torrent(s)\n", success)
 		}
-
-		log.Printf("successfully added %d torrent(s)\n", success)
 	}
 
 	return command

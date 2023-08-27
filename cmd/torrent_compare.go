@@ -13,8 +13,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// RunCompare cmd to compare torrents between clients
-func RunCompare() *cobra.Command {
+// RunTorrentCompare cmd to compare torrents between clients
+func RunTorrentCompare() *cobra.Command {
 	var (
 		dry           bool
 		tagDuplicates bool
@@ -34,9 +34,10 @@ func RunCompare() *cobra.Command {
 	)
 
 	var command = &cobra.Command{
-		Use:   "compare",
-		Short: "Compare torrents",
-		Long:  `Compare torrents between clients`,
+		Use:     "compare",
+		Short:   "Compare torrents",
+		Long:    `Compare torrents between clients`,
+		Example: `  qbt torrent compare --addr http://localhost:10000 --user u --pass p --compare-addr http://url.com:10000 --compare-user u --compare-pass p`,
 		//Args: func(cmd *cobra.Command, args []string) error {
 		//	if len(args) < 1 {
 		//		return errors.New("requires a torrent file as first argument")
