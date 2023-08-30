@@ -52,24 +52,38 @@ func RunTorrentResume() *cobra.Command {
 			hashes = []string{"all"}
 		}
 
-		// Split the hashes into groups of 20 to avoid flooding qbittorrent
-		batch := 20
-		for i := 0; i < len(hashes); i += batch {
-			j := i + batch
-			if j > len(hashes) {
-				j = len(hashes)
-			}
-
-			if err := qb.ResumeCtx(ctx, hashes[i:j]); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
-				os.Exit(1)
-			}
-
-			time.Sleep(time.Second * 1)
+		err := batchRequests(hashes, func(start, end int) error {
+			return qb.ResumeCtx(ctx, hashes[start:end])
+		})
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
+			os.Exit(1)
+			return
 		}
 
 		log.Printf("torrent(s) successfully resumed")
 	}
 
 	return command
+}
+
+// batchRequests split into multiple requests because qbit uses application/x-www-form-urlencoded
+// which might lead to too big requests
+func batchRequests(hashes []string, fn func(start, end int) error) error {
+	// Split the hashes into groups of 20 to avoid flooding qbittorrent
+	batch := 25
+	for i := 0; i < len(hashes); i += batch {
+		j := i + batch
+		if j > len(hashes) {
+			j = len(hashes)
+		}
+
+		if err := fn(i, j); err != nil {
+			return err
+		}
+
+		time.Sleep(time.Second * 1)
+	}
+
+	return nil
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
@@ -94,20 +93,13 @@ func RunTorrentRemove() *cobra.Command {
 				log.Printf("dry-run: (%d) torrents to be removed\n", len(hashes))
 			}
 
-			// Split the hashes into groups of 20 to avoid flooding qbittorrent
-			batch := 20
-			for i := 0; i < len(hashes); i += batch {
-				j := i + batch
-				if j > len(hashes) {
-					j = len(hashes)
-				}
-
-				if err := qb.DeleteTorrentsCtx(ctx, hashes[i:j], deleteFiles); err != nil {
-					fmt.Fprintf(os.Stderr, "could not delete torrents: %v\n", err)
-					os.Exit(1)
-				}
-
-				time.Sleep(time.Second * 1)
+			err := batchRequests(hashes, func(start, end int) error {
+				return qb.DeleteTorrentsCtx(ctx, hashes[start:end], deleteFiles)
+			})
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "could not delete torrents: %v\n", err)
+				os.Exit(1)
+				return
 			}
 
 			if hashes[0] == "all" {
