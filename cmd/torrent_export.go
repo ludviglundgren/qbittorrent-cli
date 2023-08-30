@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"log"
@@ -33,22 +34,27 @@ func RunTorrentExport() *cobra.Command {
 		excludeCategory: nil,
 		includeTag:      nil,
 		excludeTag:      nil,
-		hashes:          map[string]struct{}{},
+		tags:            map[string]struct{}{},
+		category:        map[string]qbittorrent.Category{},
+		hashes:          map[string]qbittorrent.Torrent{},
 	}
+	var skipManifest bool
 
 	command.Flags().BoolVar(&f.dry, "dry-run", false, "dry run")
 	command.Flags().BoolVarP(&f.verbose, "verbose", "v", false, "verbose output")
+	command.Flags().BoolVar(&skipManifest, "skip-manifest", false, "Do not export all used tags and categories into manifest")
+
 	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files (required)")
 	command.Flags().StringVar(&f.exportDir, "export-dir", "", "Dir to export files to (required)")
-	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Export torrents from these categories. Comma separated")
 
-	command.MarkFlagRequired("categories")
+	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Export torrents from these categories. Comma separated")
+	command.Flags().StringSliceVar(&f.excludeCategory, "exclude-category", []string{}, "Exclude categories. Comma separated")
+
+	command.Flags().StringSliceVar(&f.includeTag, "include-tag", []string{}, "Include tags. Comma separated")
+	command.Flags().StringSliceVar(&f.excludeTag, "exclude-tag", []string{}, "Exclude tags. Comma separated")
+
 	command.MarkFlagRequired("source")
 	command.MarkFlagRequired("export-dir")
-
-	//command.Flags().StringSliceVar(&f.excludeCategory, "exclude-category", []string{}, "Exclude categories. Comma separated")
-	//command.Flags().StringSliceVar(&f.includeTag, "include-tag", []string{}, "Include tags. Comma separated")
-	//command.Flags().StringSliceVar(&f.excludeTag, "exclude-tag", []string{}, "Exclude tags. Comma separated")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		// get torrents from client by categories
@@ -86,16 +92,42 @@ func RunTorrentExport() *cobra.Command {
 					return errors.Wrapf(err, "could not get torrents for category: %s", category)
 				}
 
-				for _, t := range torrents {
+				for _, tor := range torrents {
 					// only grab completed torrents
-					if t.Progress != 1 {
-						continue
+					//if tor.Progress != 1 {
+					//	continue
+					//}
+
+					if tor.Tags != "" {
+						tags := strings.Split(tor.Tags, ", ")
+
+						// check tags and exclude categories
+						if len(f.includeTag) > 0 && !containsTag(f.includeTag, tags) {
+							continue
+						}
+
+						if len(f.excludeTag) > 0 && containsTag(f.excludeTag, tags) {
+							continue
+						}
+
+						for _, tag := range tags {
+							_, ok := f.tags[tag]
+							if !ok {
+								f.tags[tag] = struct{}{}
+							}
+						}
+
 					}
 
-					// todo check tags
+					if tor.Category != "" {
+						f.category[tor.Category] = qbittorrent.Category{
+							Name:     tor.Category,
+							SavePath: "",
+						}
+					}
 
 					// append hash to map of hashes to gather
-					f.hashes[strings.ToLower(t.Hash)] = struct{}{}
+					f.hashes[strings.ToLower(tor.Hash)] = tor
 				}
 			}
 
@@ -105,18 +137,46 @@ func RunTorrentExport() *cobra.Command {
 				return errors.Wrap(err, "could not get torrents")
 			}
 
-			for _, t := range torrents {
+			for _, tor := range torrents {
 				// only grab completed torrents
-				if t.Progress != 1 {
+				//if tor.Progress != 1 {
+				//	continue
+				//}
+
+				if len(f.excludeCategory) > 0 && containsCategory(f.excludeCategory, tor.Category) {
 					continue
 				}
 
-				// todo check tags and exclude categories
+				if tor.Tags != "" {
+					tags := strings.Split(tor.Tags, ", ")
+
+					// check tags and exclude categories
+					if len(f.includeTag) > 0 && !containsTag(f.includeTag, tags) {
+						continue
+					}
+
+					if len(f.excludeTag) > 0 && containsTag(f.excludeTag, tags) {
+						continue
+					}
+
+					for _, tag := range tags {
+						_, ok := f.tags[tag]
+						if !ok {
+							f.tags[tag] = struct{}{}
+						}
+					}
+				}
+
+				if tor.Category != "" {
+					f.category[tor.Category] = qbittorrent.Category{
+						Name:     tor.Category,
+						SavePath: "",
+					}
+				}
 
 				// append hash to map of hashes to gather
-				f.hashes[strings.ToLower(t.Hash)] = struct{}{}
+				f.hashes[strings.ToLower(tor.Hash)] = tor
 			}
-
 		}
 
 		if len(f.hashes) == 0 {
@@ -130,6 +190,38 @@ func RunTorrentExport() *cobra.Command {
 			return errors.Wrapf(err, "could not process torrents")
 		}
 
+		// write export manifest with categories and tags
+		// can be used for import later on
+		if !skipManifest {
+			// get categories
+			if len(f.category) > 0 {
+				cats, err := qb.GetCategoriesCtx(ctx)
+				if err != nil {
+					return errors.Wrapf(err, "could not get categories from qbit")
+				}
+
+				for name, category := range cats {
+					_, ok := f.category[name]
+					if !ok {
+						continue
+					}
+
+					f.category[name] = category
+				}
+			}
+
+			if f.dry {
+				fmt.Println("dry-run: successfully wrote manifest to file")
+			} else {
+				if err := exportManifest(f.hashes, f.tags, f.category); err != nil {
+					fmt.Printf("could not export manifest: %q\n", err)
+					os.Exit(1)
+				}
+
+				fmt.Println("successfully wrote manifest to file")
+			}
+		}
+
 		fmt.Println("Successfully exported torrents!")
 
 		return nil
@@ -138,7 +230,60 @@ func RunTorrentExport() *cobra.Command {
 	return command
 }
 
-func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry, verbose bool) error {
+func exportManifest(hashes map[string]qbittorrent.Torrent, tags map[string]struct{}, categories map[string]qbittorrent.Category) error {
+	data := Manifest{
+		Tags:       make([]string, 0),
+		Categories: []qbittorrent.Category{},
+		Torrents:   make([]basicTorrent, 0),
+	}
+
+	for tag, _ := range tags {
+		data.Tags = append(data.Tags, tag)
+	}
+
+	for _, category := range categories {
+		data.Categories = append(data.Categories, category)
+	}
+
+	for _, torrent := range hashes {
+		data.Torrents = append(data.Torrents, basicTorrent{
+			Hash:     torrent.Hash,
+			Name:     torrent.Name,
+			Tags:     torrent.Tags,
+			Category: torrent.Category,
+			Tracker:  torrent.Tracker,
+		})
+	}
+
+	res, err := json.Marshal(data)
+	if err != nil {
+		return errors.Wrap(err, "could not marshal manifest to json")
+	}
+
+	currentWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	// Create a new file in the current working directory.
+	fileName := "export-manifest.json"
+
+	file, err := os.Create(filepath.Join(currentWorkingDirectory, fileName))
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	// Write the string to the file.
+	_, err = file.WriteString(string(res))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.Torrent, dry, verbose bool) error {
 	exportCount := 0
 	exportTorrentCount := 0
 	exportFastresumeCount := 0
@@ -186,10 +331,10 @@ func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry,
 			switch ext {
 			case ".torrent":
 				exportTorrentCount++
-				fmt.Printf("dry-run: (%d/%d) torrent exported: %s '%s'\n", exportTorrentCount, len(hashes), torrentHash, fileName)
+				fmt.Printf("dry-run: (%d/%d) exported: %s\n", exportTorrentCount, len(hashes), fileName)
 			case ".fastresume":
 				exportFastresumeCount++
-				fmt.Printf("dry-run: (%d/%d) fastresume exported: %s '%s'\n", exportFastresumeCount, len(hashes), torrentHash, fileName)
+				fmt.Printf("dry-run: (%d/%d) exported: %s\n", exportFastresumeCount, len(hashes), fileName)
 			}
 
 		} else {
@@ -207,10 +352,10 @@ func processExport(sourceDir, exportDir string, hashes map[string]struct{}, dry,
 			switch ext {
 			case ".torrent":
 				exportTorrentCount++
-				fmt.Printf("(%d/%d) torrent exported: %s '%s'\n", exportTorrentCount, len(hashes), torrentHash, fileName)
+				fmt.Printf("(%d/%d) exported: %s\n", exportTorrentCount, len(hashes), fileName)
 			case ".fastresume":
 				exportFastresumeCount++
-				fmt.Printf("(%d/%d) fastresume exported: %s '%s'\n", exportFastresumeCount, len(hashes), torrentHash, fileName)
+				fmt.Printf("(%d/%d) exported: %s\n", exportFastresumeCount, len(hashes), fileName)
 			}
 
 			//fmt.Printf("(%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
@@ -276,5 +421,45 @@ type export struct {
 	includeTag      []string
 	excludeTag      []string
 
-	hashes map[string]struct{}
+	tags     map[string]struct{}
+	category map[string]qbittorrent.Category
+
+	hashes map[string]qbittorrent.Torrent
+}
+
+func containsTag(contains []string, tags []string) bool {
+	for _, s := range tags {
+		s = strings.ToLower(s)
+		for _, contain := range contains {
+			if s == strings.ToLower(contain) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+func containsCategory(contains []string, category string) bool {
+	for _, cat := range contains {
+		if strings.ToLower(category) == strings.ToLower(cat) {
+			return true
+		}
+	}
+
+	return false
+}
+
+type basicTorrent struct {
+	Hash     string `json:"hash"`
+	Name     string `json:"name"`
+	Tags     string `json:"tags"`
+	Category string `json:"category"`
+	Tracker  string `json:"tracker"`
+}
+
+type Manifest struct {
+	Tags       []string               `json:"tags"`
+	Categories []qbittorrent.Category `json:"categories"`
+	Torrents   []basicTorrent         `json:"torrents"`
 }
