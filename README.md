@@ -59,10 +59,11 @@ A bare minimum config. Check [full example config](.qbt.toml.example).
 
 ```toml
 [qbittorrent]
-host     = "127.0.0.1" # qbittorrent webui-api hostname/ip
-port     = 6776        # qbittorrent webui-api port
-login    = "user"      # qbittorrent webui-api user
-password = "password"  # qbittorrent webui-api password
+addr       = "http://127.0.0.1:6776" # qbittorrent webui-api hostname/ip
+login      = "user"                  # qbittorrent webui-api user
+password   = "password"              # qbittorrent webui-api password
+#basicUser = "user"                  # qbittorrent webui-api basic auth user
+#basicPass = "password"              # qbittorrent webui-api basic auth password
 
 [rules]
 enabled              = true   # enable or disable rules
@@ -71,6 +72,9 @@ max_active_downloads = 2      # set max active downloads
 
 * If running on HDDs and 1Gbit - `max_active_downloads = 2` is a good setting to not overload the disks and gives as much bandwidth as possible to the torrents.
 * For SSDs and 1Gbit+ you can increase this value.
+
+<details>
+<summary>autodl-irssi setup</summary>
 
 ### autodl-irssi setup
 
@@ -105,6 +109,8 @@ Choose .torrent action: Run Program
 Command: /usr/bin/qbt
 Arguments: add "$(TorrentPathName)"
 ```
+
+</details>
 
 ## Usage
 
