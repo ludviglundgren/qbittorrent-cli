@@ -186,9 +186,10 @@ func RunCategoryDelete() *cobra.Command {
 	)
 
 	var command = &cobra.Command{
-		Use:   "delete",
-		Short: "Delete category",
-		Long:  "Delete category",
+		Use:     "delete",
+		Short:   "Delete category",
+		Long:    "Delete category",
+		Example: `  qbt category delete test-category`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a category as first argument")
@@ -200,7 +201,42 @@ func RunCategoryDelete() *cobra.Command {
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		fmt.Println("run torrent delete")
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
+
+		// args
+		// first arg is path to torrent file
+		category := args[0]
+
+		if dry {
+			log.Printf("dry-run: successfully deleted category: %s\n", category)
+
+			return nil
+
+		} else {
+			if err := qb.RemoveCategoriesCtx(ctx, []string{category}); err != nil {
+				log.Fatal("could not delete category")
+			}
+
+			log.Printf("successfully deleted category: %s\n", category)
+		}
+
 		return nil
 	}
 
