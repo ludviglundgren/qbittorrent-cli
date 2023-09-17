@@ -8,7 +8,7 @@ import (
 func RunTorrent() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "torrent",
-		Short: "torrent subcommand",
+		Short: "Torrent subcommand",
 		Long:  `Do various torrent operations`,
 	}
 

@@ -176,6 +176,8 @@ Flags:
 ### Bencode
 
 ```
+Do various bencode operations
+
 Usage:
   qbt bencode [command]
 
@@ -184,6 +186,9 @@ Available Commands:
 
 Flags:
   -h, --help   help for bencode
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### Edit
@@ -194,7 +199,7 @@ Edit bencode files like .fastresume. Shut down client and make a backup of data 
 Usage:
   qbt bencode edit [flags]
 
-Examples
+Examples:
   qbt bencode edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'
 
 Flags:
@@ -222,11 +227,16 @@ Usage:
 Available Commands:
   add         Add category
   delete      Delete category
-  edit        edit category
+  edit        Edit category
   list        List categories
 
 Flags:
   -h, --help   help for category
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt category [command] --help" for more information about a command.
 ```
 
 #### Add
@@ -237,9 +247,17 @@ Add new category
 Usage:
   qbt category add [flags]
 
+Examples:
+  qbt category add test-category
+  qbt category add test-category --save-path "/home/user/torrents/test-category"
+
 Flags:
-      --dry-run   Run without doing anything
-  -h, --help      help for add
+      --dry-run            Run without doing anything
+  -h, --help               help for add
+      --save-path string   Category default save-path. Optional. Defaults to dir in default save dir.
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### Delete
@@ -250,9 +268,15 @@ Delete category
 Usage:
   qbt category delete [flags]
 
+Examples:
+  qbt category delete test-category
+
 Flags:
       --dry-run   Run without doing anything
   -h, --help      help for delete
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### Edit
@@ -263,9 +287,17 @@ Edit category
 Usage:
   qbt category edit [flags]
 
+Examples:
+  qbt category edit test-category --save-path "/home/user/new/path"
+  qbt category edit test-category --save-path ""
+
 Flags:
-      --dry-run   Run without doing anything
-  -h, --help      help for edit
+      --dry-run            Run without doing anything
+  -h, --help               help for edit
+      --save-path string   Edit category save-path
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### List
@@ -277,7 +309,11 @@ Usage:
   qbt category list [flags]
 
 Flags:
-  -h, --help   help for list
+  -h, --help            help for list
+      --output string   Print as [formatted text (default), json]
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ## Tag
@@ -295,6 +331,9 @@ Available Commands:
 
 Flags:
   -h, --help   help for tag
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### Add
@@ -305,34 +344,48 @@ Add new tag
 Usage:
   qbt tag add [flags]
 
+Examples:
+  qbt tag add tag1
+
 Flags:
       --dry-run   Run without doing anything
   -h, --help      help for add
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### Delete
 
 ```
-Delete tag
-
 Usage:
   qbt tag delete [flags]
+
+Examples:
+  qbt tag delete tag1
 
 Flags:
       --dry-run   Run without doing anything
   -h, --help      help for delete
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 #### List
 
 ```
-List tags
+List tags.
 
 Usage:
   qbt tag list [flags]
 
 Flags:
-  -h, --help   help for list
+  -h, --help            help for list
+      --output string   Print as [formatted text (default), json]
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ## Torrent
@@ -345,10 +398,10 @@ Usage:
 
 Available Commands:
   add         Add torrent(s)
-  category    torrent category subcommand
+  category    Torrent category subcommand
   compare     Compare torrents
   export      Export torrents
-  hash        Print the hash of a torrent/magnet
+  hash        Print the hash of a torrent file or magnet
   import      Import torrents
   list        List torrents
   pause       Pause specified torrent(s)
@@ -358,6 +411,11 @@ Available Commands:
 
 Flags:
   -h, --help   help for torrent
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt torrent [command] --help" for more information about a command.
 ```
 
 ### Add
@@ -385,6 +443,9 @@ Flags:
       --save-path string   Add torrent to the specified path
       --skip-hash-check    Skip hash check
       --tags stringArray   Add tags to torrent
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ### Category
@@ -398,10 +459,15 @@ Usage:
 Available Commands:
   move        move torrents between categories
   set         Set torrent category
-  unset       unset torrent category
+  unset       Unset torrent category
 
 Flags:
   -h, --help   help for category
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt torrent category [command] --help" for more information about a command.
 ```
 
 #### Move
@@ -423,6 +489,9 @@ Flags:
       --include-tags strings   Include torrents with provided tags
       --min-seed-time int      Minimum seed time in MINUTES before moving.
       --to string              Move to the specified category (required)
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 Move torrents from one or multiple categories to some other category.
@@ -441,6 +510,46 @@ Usable with cron as well. Run every 15 min.
 
 ```cronexp
 */15 * * * * /usr/bin/qbt move --from nvme --to hdd --min-seed-time 30
+```
+
+#### Set
+
+```text
+Set category for torrents via hashes
+
+Usage:
+  qbt torrent category set [flags]
+
+Examples:
+  qbt torrent category set test-category --hashes hash1,hash2
+
+Flags:
+      --dry-run          Run without doing anything
+      --hashes strings   Torrent hashes, as comma separated list
+  -h, --help             help for set
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Unset
+
+```text
+Unset category for torrents via hashes
+
+Usage:
+  qbt torrent category unset [flags]
+
+Examples:
+  qbt torrent category unset --hashes hash1,hash2
+
+Flags:
+      --dry-run          Run without doing anything
+      --hashes strings   Torrent hashes, as comma separated list
+  -h, --help             help for unset
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ### Compare
@@ -469,6 +578,9 @@ Flags:
       --tag string                  set a custom tag for duplicates on compare. default: compare-dupe (default "compare-dupe")
       --tag-duplicates              tag duplicates on compare
       --user string                 Source user
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 Compare torrents between two instances. Source instance and `compare` instance.
@@ -527,6 +639,9 @@ Examples:
 
 Flags:
   -h, --help   help for hash
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ### Import
@@ -577,7 +692,7 @@ Torrents imported into qBittorrent does not have automatic management enabled, b
 
 ### List
 
-```list
+```text
 List all torrents, or torrents with a specific filters. Get by filter, category, tag and hashes. Can be combined
 
 Usage:
@@ -590,7 +705,7 @@ Flags:
   -c, --category string   Filter by category. All categories by default.
   -f, --filter string     Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, 
                           stalled, stalled_uploading, stalled_downloading, errored (default "all")
-      --hashes string     Filter by hashes. Separated by | pipe: "hash1|hash2".
+      --hashes strings    Filter by hashes. Separated by comma: "hash1,hash2".
   -h, --help              help for list
       --output string     Print as [formatted text (default), json]
   -t, --tag string        Filter by tag. Single tag: tag1
@@ -608,10 +723,10 @@ Usage:
   qbt torrent pause [flags]
 
 Flags:
-      --all      Pauses all torrents
-      --hashes   Provided arguments will be read as torrent hashes
-  -h, --help     help for pause
-      --names    Provided arguments will be read as torrent names
+      --all              Pauses all torrents
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for pause
+      --names            Provided arguments will be read as torrent names
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
@@ -647,13 +762,12 @@ Usage:
   qbt torrent remove [flags]
 
 Flags:
-      --all            Removes all torrents
-      --delete-files   Also delete downloaded files from torrent(s)
-      --dry-run        Display what would be done without actually doing it
-      --hashes         Provided arguments will be read as torrent hashes
-  -h, --help           help for remove
-      --names          Provided arguments will be read as torrent names
-      --paused         Removes all paused torrents
+      --all              Removes all torrents
+      --delete-files     Also delete downloaded files from torrent(s)
+      --dry-run          Display what would be done without actually doing it
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for remove
+      --paused           Removes all paused torrents
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
@@ -668,13 +782,13 @@ Usage:
   qbt torrent resume [flags]
 
 Flags:
-      --all      resumes all torrents
-      --hashes   Provided arguments will be read as torrent hashes
-  -h, --help     help for resume
-      --names    Provided arguments will be read as torrent names
+      --all              resumes all torrents
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for resume
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
 ```
 
 ## Version
@@ -692,5 +806,8 @@ Examples:
 Flags:
   -h, --help            help for version
       --output string   Print as [text, json] (default "text")
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 

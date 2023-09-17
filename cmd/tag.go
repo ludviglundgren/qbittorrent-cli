@@ -18,7 +18,7 @@ import (
 func RunTag() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "tag",
-		Short: "tag subcommand",
+		Short: "Tag subcommand",
 		Long:  `Do various tag actions`,
 	}
 

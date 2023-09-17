@@ -100,7 +100,7 @@ func RunTorrentCategorySet() *cobra.Command {
 func RunTorrentCategoryUnSet() *cobra.Command {
 	var command = &cobra.Command{
 		Use:     "unset",
-		Short:   "unset torrent category",
+		Short:   "Unset torrent category",
 		Long:    `Unset category for torrents via hashes`,
 		Example: `  qbt torrent category unset --hashes hash1,hash2`,
 	}

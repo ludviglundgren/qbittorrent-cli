@@ -8,19 +8,18 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/zeebo/bencode"
-
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 )
 
 // RunBencode cmd for bencode operations
 func RunBencode() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "bencode",
-		Short: "bencode subcommand",
+		Short: "Bencode subcommand",
 		Long:  `Do various bencode operations`,
 	}
 

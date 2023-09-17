@@ -18,7 +18,7 @@ import (
 func RunCategory() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "category",
-		Short: "category subcommand",
+		Short: "Category subcommand",
 		Long:  `Do various category actions`,
 	}
 

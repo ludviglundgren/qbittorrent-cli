@@ -15,7 +15,7 @@ import (
 func RunApp() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "app",
-		Short: "app subcommand",
+		Short: "App subcommand",
 		Long:  "Do various app actions",
 	}
 
