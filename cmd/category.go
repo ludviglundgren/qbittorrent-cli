@@ -115,13 +115,16 @@ func printCategoryList(categories map[string]qbittorrent.Category) {
 // RunCategoryAdd cmd to add categories
 func RunCategoryAdd() *cobra.Command {
 	var (
-		dry bool
+		dry      bool
+		savePath string
 	)
 
 	var command = &cobra.Command{
 		Use:   "add",
 		Short: "Add category",
 		Long:  "Add new category",
+		Example: `  qbt category add test-category
+  qbt category add test-category --save-path "/home/user/torrents/test-category"`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a category as first argument")
@@ -131,9 +134,45 @@ func RunCategoryAdd() *cobra.Command {
 		},
 	}
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+	command.Flags().StringVar(&savePath, "save-path", "", "Category default save-path. Optional. Defaults to dir in default save dir.")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		fmt.Println("run category add")
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
+
+		// args
+		// first arg is path to torrent file
+		category := args[0]
+
+		if dry {
+			log.Printf("dry-run: successfully added category: %s\n", category)
+
+			return nil
+
+		} else {
+			if err := qb.CreateCategoryCtx(ctx, category, savePath); err != nil {
+				log.Fatal("could not create category")
+			}
+
+			log.Printf("successfully added category: %s\n", category)
+		}
+
 		return nil
 	}
 
