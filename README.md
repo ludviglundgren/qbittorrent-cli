@@ -2,7 +2,7 @@
 
 [![goreleaser](https://github.com/ludviglundgren/qbittorrent-cli/actions/workflows/release.yml/badge.svg)](https://github.com/ludviglundgren/qbittorrent-cli/actions/workflows/release.yml)
 
-A cli to manage qBittorrent. Add torrents, reannounce and import from other clients.
+A cli to manage qBittorrent. Add torrents, categories, tags, reannounce and import from other clients.
 
 ## Features
 
@@ -10,6 +10,9 @@ A cli to manage qBittorrent. Add torrents, reannounce and import from other clie
 * Reannounce torrents for troublesome trackers
 * Set limits on how many simultaneously active downloads are allowed
 * Import torrents with state from Deluge and rTorrent
+* Manage categories
+* Manage tags
+* Self updater
 
 ## Install
 
@@ -128,6 +131,7 @@ Available Commands:
   help        Help about any command
   tag         tag subcommand
   torrent     torrent subcommand
+  update      Update qbittorrent-cli to latest version
   version     Print the version
 
 Flags:
@@ -144,6 +148,7 @@ Commands:
 - help
 - tag
 - torrent
+- update
 - version
 
 ### App
@@ -811,3 +816,18 @@ Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
+## Update
+
+```text
+Update qbittorrent-cli to latest version
+
+Usage:
+  qbt update [flags]
+
+Examples:
+  qbt update
+
+Flags:
+  -h, --help      help for update
+      --verbose   Verbose output: Print changelog
+```
