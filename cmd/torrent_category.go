@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -30,12 +32,64 @@ func RunTorrentCategory() *cobra.Command {
 // RunTorrentCategorySet cmd for torrent category operations
 func RunTorrentCategorySet() *cobra.Command {
 	var command = &cobra.Command{
-		Use:   "set",
-		Short: "Set torrent category",
-		Long:  `Do various torrent category operations`,
+		Use:     "set",
+		Short:   "Set torrent category",
+		Long:    `Set category for torrents via hashes`,
+		Example: `  qbt torrent category set test-category --hashes hash1,hash2`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("requires a category as first argument")
+			}
+
+			return nil
+		},
 	}
 
+	var (
+		dry    bool
+		hashes []string
+	)
+
+	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Torrent hashes, as comma separated list")
+
 	command.RunE = func(cmd *cobra.Command, args []string) error {
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
+
+		// args
+		// first arg is path to torrent file
+		category := args[0]
+
+		if dry {
+			log.Printf("dry-run: successfully set category %s on torrents: %v\n", category, hashes)
+
+			return nil
+
+		} else {
+			if err := qb.SetCategoryCtx(ctx, hashes, category); err != nil {
+				log.Fatal("could not set category on torrents")
+			}
+
+			log.Printf("successfully set category %s on torrents: %v\n", category, hashes)
+		}
+
 		return nil
 	}
 
@@ -45,12 +99,53 @@ func RunTorrentCategorySet() *cobra.Command {
 // RunTorrentCategoryUnSet cmd for torrent category operations
 func RunTorrentCategoryUnSet() *cobra.Command {
 	var command = &cobra.Command{
-		Use:   "unset",
-		Short: "unset torrent category",
-		Long:  `Do various torrent category operations`,
+		Use:     "unset",
+		Short:   "unset torrent category",
+		Long:    `Unset category for torrents via hashes`,
+		Example: `  qbt torrent category unset --hashes hash1,hash2`,
 	}
 
+	var (
+		dry    bool
+		hashes []string
+	)
+
+	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Torrent hashes, as comma separated list")
+
 	command.RunE = func(cmd *cobra.Command, args []string) error {
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
+
+		if dry {
+			log.Printf("dry-run: successfully unset category on torrents: %v\n", hashes)
+
+			return nil
+
+		} else {
+			if err := qb.SetCategoryCtx(ctx, hashes, ""); err != nil {
+				log.Fatal("could not unset category on torrents")
+			}
+
+			log.Printf("successfully unset category on torrents: %v\n", hashes)
+		}
+
 		return nil
 	}
 
