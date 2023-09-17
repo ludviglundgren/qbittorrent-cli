@@ -1,8 +1,15 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
+	"text/template"
 
+	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -31,12 +38,78 @@ func RunCategoryList() *cobra.Command {
 		Long:  `List categories`,
 	}
 
+	var (
+		output string
+	)
+
+	command.Flags().StringVar(&output, "output", "", "Print as [formatted text (default), json]")
+
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		fmt.Println("list categories")
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
+
+		cats, err := qb.GetCategoriesCtx(ctx)
+		if err != nil {
+			log.Fatal("could not get categories")
+		}
+
+		if len(cats) == 0 {
+			fmt.Println("No categories found")
+			return nil
+		}
+
+		switch output {
+		case "json":
+			res, err := json.Marshal(cats)
+			if err != nil {
+				log.Fatalf("could not marshal categories, err: %q", err)
+			}
+
+			fmt.Println(string(res))
+
+		default:
+			printCategoryList(cats)
+
+		}
+
 		return nil
 	}
 
 	return command
+}
+
+var categoryItemTemplate = `{{ range .}}
+Name: {{.Name}}
+Save path: {{.SavePath}}
+{{end}}
+`
+
+func printCategoryList(categories map[string]qbittorrent.Category) {
+	tmpl, err := template.New("category-list").Parse(categoryItemTemplate)
+	if err != nil {
+		log.Fatalf("error: %q", err)
+	}
+
+	err = tmpl.Execute(os.Stdout, categories)
+	if err != nil {
+		log.Fatalf("could not generate template: %q", err)
+	}
 }
 
 // RunCategoryAdd cmd to add categories
