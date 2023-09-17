@@ -3,11 +3,10 @@ package importer
 import (
 	"log"
 	"os"
-	"path"
 	"path/filepath"
 
+	"github.com/ludviglundgren/qbittorrent-cli/internal/fs"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/pkg/errors"
@@ -15,10 +14,9 @@ import (
 )
 
 type Options struct {
-	SourceDir   string
-	QbitDir     string
-	RTorrentDir string
-	DryRun      bool
+	SourceDir string
+	QbitDir   string
+	DryRun    bool
 }
 
 type Importer interface {
@@ -34,38 +32,47 @@ func NewDelugeImporter() Importer {
 func (di *DelugeImport) Import(opts Options) error {
 	sourceDir := opts.SourceDir
 
-	info, err := os.Stat(sourceDir)
-	if os.IsNotExist(err) {
-		return errors.Wrapf(err, "Directory does not exist: %s\n", sourceDir)
-	}
+	sourceDirInfo, err := os.Stat(sourceDir)
 	if err != nil {
-		return errors.Wrapf(err, "Directory error: %s\n", sourceDir)
+		if os.IsNotExist(err) {
+			return errors.Errorf("source directory does not exist: %s", sourceDir)
+		}
 
-	}
-	if !info.IsDir() {
-		return errors.Errorf("Directory is a file, not a directory: %s\n", sourceDir)
+		return errors.Wrapf(err, "source directory error: %s\n", sourceDir)
 	}
 
-	resumeFilePath := path.Join(sourceDir, "torrents.fastresume")
+	if !sourceDirInfo.IsDir() {
+		return errors.Errorf("source is a file, not a directory: %s\n", sourceDir)
+	}
+
+	if err := fs.MkDirIfNotExists(opts.QbitDir); err != nil {
+		return errors.Wrapf(err, "qbit directory error: %s\n", opts.QbitDir)
+	}
+
+	resumeFilePath := filepath.Join(sourceDir, "torrents.fastresume")
 	if _, err := os.Stat(resumeFilePath); os.IsNotExist(err) {
-		log.Println("Could not find deluge fastresume file")
+		log.Printf("Could not find deluge fastresume file: %s\n", resumeFilePath)
 		return err
 	}
 
 	fastresumeFile, err := decodeFastresumeFile(resumeFilePath)
 	if err != nil {
-		log.Println("Could not decode deluge fastresume file")
+		log.Printf("Could not decode deluge fastresume file: %s\n", resumeFilePath)
 		return err
 	}
 
-	matches, _ := filepath.Glob(path.Join(sourceDir, "*.torrent"))
+	matches, err := filepath.Glob(filepath.Join(sourceDir, "*.torrent"))
+	if err != nil {
+		return errors.Wrapf(err, "glob error: %s", matches)
+	}
 
 	totalJobs := len(matches)
+
 	log.Printf("Total torrents to process: %d\n", totalJobs)
 
 	positionNum := 0
 	for torrentID, value := range fastresumeFile {
-		torrentNamePath := path.Join(sourceDir, torrentID+".torrent")
+		torrentNamePath := filepath.Join(sourceDir, torrentID+".torrent")
 
 		// If a file exist in fastresume data but no .torrent file, skip
 		if _, err = os.Stat(torrentNamePath); os.IsNotExist(err) {
@@ -74,24 +81,29 @@ func (di *DelugeImport) Import(opts Options) error {
 
 		positionNum++
 
-		torrentOutFile := path.Join(opts.QbitDir, torrentID+".torrent")
+		if opts.DryRun {
+			log.Printf("dry-run: (%d/%d) successfully imported: %s\n", positionNum, totalJobs, torrentID)
+			continue
+		}
+
+		torrentOutFile := filepath.Join(opts.QbitDir, torrentID+".torrent")
 
 		// If file already exists, skip
 		if _, err = os.Stat(torrentOutFile); err == nil {
-			log.Printf("%d/%d %s Torrent already exists, skipping", positionNum, totalJobs, torrentID)
+			log.Printf("(%d/%d) %s Torrent already exists, skipping\n", positionNum, totalJobs, torrentID)
 			continue
 		}
 
 		var fastResume qbittorrent.Fastresume
 
 		if err := bencode.DecodeString(value.(string), &fastResume); err != nil {
-			log.Printf("Could not decode row %s. Continue", torrentID)
+			log.Printf("Could not decode row %s. Continue\n", torrentID)
 			continue
 		}
 
 		fastResume.TorrentFilePath = torrentNamePath
 		if _, err = os.Stat(fastResume.TorrentFilePath); os.IsNotExist(err) {
-			log.Printf("Could not find torrent file %s for %s", fastResume.TorrentFilePath, torrentID)
+			log.Printf("Could not find torrent file %s for %s\n", fastResume.TorrentFilePath, torrentID)
 			return err
 		}
 
@@ -134,21 +146,21 @@ func (di *DelugeImport) Import(opts Options) error {
 
 		// TODO handle replace paths
 
-		if opts.DryRun != true {
-			fastResumeOutFile := path.Join(opts.QbitDir, torrentID+".fastresume")
-			if err = fastResume.Encode(fastResumeOutFile); err != nil {
-				log.Printf("Could not create qBittorrent fastresume file %s error: %q", fastResumeOutFile, err)
-				return err
-			}
-
-			if err = torrent.CopyFile(fastResume.TorrentFilePath, torrentOutFile); err != nil {
-				log.Printf("Could not copy qBittorrent torrent file %s error %q", torrentOutFile, err)
-				return err
-			}
+		fastResumeOutFile := filepath.Join(opts.QbitDir, torrentID+".fastresume")
+		if err = fastResume.Encode(fastResumeOutFile); err != nil {
+			log.Printf("Could not create qBittorrent fastresume file %s error: %q\n", fastResumeOutFile, err)
+			return err
 		}
 
-		log.Printf("%d/%d %s Successfully imported: %s", positionNum, totalJobs, torrentID, metaInfo.Name)
+		if err = fs.CopyFile(fastResume.TorrentFilePath, torrentOutFile); err != nil {
+			log.Printf("Could not copy qBittorrent torrent file %s error %q\n", torrentOutFile, err)
+			return err
+		}
+
+		log.Printf("(%d/%d) successfully imported: %s %s\n", positionNum, totalJobs, torrentID, metaInfo.Name)
 	}
+
+	log.Printf("(%d/%d) successfully imported torrents!\n", positionNum, totalJobs)
 
 	return nil
 }
@@ -159,10 +171,10 @@ func decodeFastresumeFile(path string) (map[string]interface{}, error) {
 		return nil, err
 	}
 
-	var torrent map[string]interface{}
-	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
+	var fastresumeFile map[string]interface{}
+	if err := bencode.DecodeBytes(dat, &fastresumeFile); err != nil {
 		return nil, err
 	}
 
-	return torrent, nil
+	return fastresumeFile, nil
 }

@@ -59,10 +59,11 @@ A bare minimum config. Check [full example config](.qbt.toml.example).
 
 ```toml
 [qbittorrent]
-host     = "127.0.0.1" # qbittorrent webui-api hostname/ip
-port     = 6776        # qbittorrent webui-api port
-login    = "user"      # qbittorrent webui-api user
-password = "password"  # qbittorrent webui-api password
+addr       = "http://127.0.0.1:6776" # qbittorrent webui-api hostname/ip
+login      = "user"                  # qbittorrent webui-api user
+password   = "password"              # qbittorrent webui-api password
+#basicUser = "user"                  # qbittorrent webui-api basic auth user
+#basicPass = "password"              # qbittorrent webui-api basic auth password
 
 [rules]
 enabled              = true   # enable or disable rules
@@ -71,6 +72,9 @@ max_active_downloads = 2      # set max active downloads
 
 * If running on HDDs and 1Gbit - `max_active_downloads = 2` is a good setting to not overload the disks and gives as much bandwidth as possible to the torrents.
 * For SSDs and 1Gbit+ you can increase this value.
+
+<details>
+<summary>autodl-irssi setup</summary>
 
 ### autodl-irssi setup
 
@@ -106,51 +110,395 @@ Command: /usr/bin/qbt
 Arguments: add "$(TorrentPathName)"
 ```
 
+</details>
+
 ## Usage
 
 Use `qbt help` to find out more about how to use.
 
-Commands:
-  - add
-  - list
-  - version
-  - help
-  - move
-  - compare
-  - edit
-  - reannounce
-  - export
+```text
+Usage:
+  qbt [command]
 
-Global flags:
-  * `--config` - override config file
-  
+Available Commands:
+  app         app subcommand
+  bencode     bencode subcommand
+  category    category subcommand
+  completion  Generate the autocompletion script for the specified shell
+  help        Help about any command
+  tag         tag subcommand
+  torrent     torrent subcommand
+  version     Print the version
+
+Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+  -h, --help            help for qbt
+
 Use "qbt [command] --help" for more information about a command.
+```
+
+Commands:
+- app
+- bencode
+- category
+- help
+- tag
+- torrent
+- version
+
+### App
+
+```
+Get qBittorrent info
+
+Usage:
+  qbt app [command]
+
+Available Commands:
+  version     Get application version
+
+Flags:
+  -h, --help   help for app
+```
+
+#### Version
+
+```
+Get qBittorrent version info
+
+Usage:
+  qbt app version [flags]
+
+Flags:
+  -h, --help   help for version
+```
+
+### Bencode
+
+```
+Do various bencode operations
+
+Usage:
+  qbt bencode [command]
+
+Available Commands:
+  edit        edit bencode data
+
+Flags:
+  -h, --help   help for bencode
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Edit
+
+```
+Edit bencode files like .fastresume. Shut down client and make a backup of data before.
+
+Usage:
+  qbt bencode edit [flags]
+
+Examples:
+  qbt bencode edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'
+
+Flags:
+      --dir string       Dir with fast-resume files (required)
+      --dry-run          Dry run, don't write changes
+  -h, --help             help for edit
+      --pattern string   Pattern to change (required)
+      --replace string   Text to replace pattern with (required)
+  -v, --verbose          Verbose output
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+Edit fastresume data like save-path. Make sure to shut down the client and backup the data before running this.
+
+## Category
+
+```
+Do various category actions
+
+Usage:
+  qbt category [command]
+
+Available Commands:
+  add         Add category
+  delete      Delete category
+  edit        Edit category
+  list        List categories
+
+Flags:
+  -h, --help   help for category
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt category [command] --help" for more information about a command.
+```
+
+#### Add
+
+```
+Add new category
+
+Usage:
+  qbt category add [flags]
+
+Examples:
+  qbt category add test-category
+  qbt category add test-category --save-path "/home/user/torrents/test-category"
+
+Flags:
+      --dry-run            Run without doing anything
+  -h, --help               help for add
+      --save-path string   Category default save-path. Optional. Defaults to dir in default save dir.
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Delete
+
+```
+Delete category
+
+Usage:
+  qbt category delete [flags]
+
+Examples:
+  qbt category delete test-category
+
+Flags:
+      --dry-run   Run without doing anything
+  -h, --help      help for delete
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Edit
+
+```
+Edit category
+
+Usage:
+  qbt category edit [flags]
+
+Examples:
+  qbt category edit test-category --save-path "/home/user/new/path"
+  qbt category edit test-category --save-path ""
+
+Flags:
+      --dry-run            Run without doing anything
+  -h, --help               help for edit
+      --save-path string   Edit category save-path
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### List
+
+```
+List categories
+
+Usage:
+  qbt category list [flags]
+
+Flags:
+  -h, --help            help for list
+      --output string   Print as [formatted text (default), json]
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+## Tag
+
+```
+Do various tag actions
+
+Usage:
+  qbt tag [command]
+
+Available Commands:
+  add         Add tags
+  delete      Delete tags
+  list        List tags
+
+Flags:
+  -h, --help   help for tag
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Add
+
+```
+Add new tag
+
+Usage:
+  qbt tag add [flags]
+
+Examples:
+  qbt tag add tag1
+
+Flags:
+      --dry-run   Run without doing anything
+  -h, --help      help for add
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Delete
+
+```
+Usage:
+  qbt tag delete [flags]
+
+Examples:
+  qbt tag delete tag1
+
+Flags:
+      --dry-run   Run without doing anything
+  -h, --help      help for delete
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### List
+
+```
+List tags.
+
+Usage:
+  qbt tag list [flags]
+
+Flags:
+  -h, --help            help for list
+      --output string   Print as [formatted text (default), json]
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+## Torrent
+
+```text
+Do various torrent operations
+
+Usage:
+  qbt torrent [command]
+
+Available Commands:
+  add         Add torrent(s)
+  category    Torrent category subcommand
+  compare     Compare torrents
+  export      Export torrents
+  hash        Print the hash of a torrent file or magnet
+  import      Import torrents
+  list        List torrents
+  pause       Pause specified torrent(s)
+  reannounce  Reannounce torrent(s)
+  remove      Removes specified torrent(s)
+  resume      Resume specified torrent(s)
+
+Flags:
+  -h, --help   help for torrent
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt torrent [command] --help" for more information about a command.
+```
 
 ### Add
 
-Add a new torrent to qBittorrent.
+```text
+Add new torrent(s) to qBittorrent from file or magnet. Supports glob pattern for files like: ./files/*.torrent
 
-    qbt add my-torrent-file.torrent
+Usage:
+  qbt torrent add [flags]
 
-Optional flags:
-* `--dry-run` - Run without doing anything
-* `--magnet <LINK>` - Add magnet link instead of torrent file
-* `--paused` - Add torrent in paused state
-* `--skip-hash-check` - Skip hash check
-* `--save-path <PATH>` - Add torrent to the specified path
-* `--category <CATEGORY>` - Add torrent to the specified category
-* `--tags <TAG,TAG>` - Add tags to the torrent. Use multiple or comma-separate tags e.g. --tags linux,iso. Supported in 4.3.2+
-* `--ignore-rules` - Ignore rules set in config
-* `--limit-ul <SPEED>` - Set torrent upload speed limit. Unit in bytes/second
-* `--limit-dl <SPEED>` - Set torrent download speed limit. Unit in bytes/second
+Examples:
+  qbt torrent add my-file.torrent --category test --tags tag1
+  qbt torrent add ./files/*.torrent --paused --skip-hash-check
+  qbt torrent add magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcad53426&dn=download
 
-### Move
+Flags:
+      --category string    Add torrent to the specified category
+      --dry-run            Run without doing anything
+  -h, --help               help for add
+      --ignore-rules       Ignore rules from config
+      --limit-dl uint      Set torrent download speed limit. Unit in bytes/second
+      --limit-ul uint      Set torrent upload speed limit. Unit in bytes/second
+      --paused             Add torrent in paused state
+      --remove-stalled     Remove stalled torrents from re-announce
+      --save-path string   Add torrent to the specified path
+      --skip-hash-check    Skip hash check
+      --tags stringArray   Add tags to torrent
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+### Category
+
+```text
+Do various torrent category operations
+
+Usage:
+  qbt torrent category [command]
+
+Available Commands:
+  move        move torrents between categories
+  set         Set torrent category
+  unset       Unset torrent category
+
+Flags:
+  -h, --help   help for category
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt torrent category [command] --help" for more information about a command.
+```
+
+#### Move
+
+```text
+Move torrents from one category to another
+
+Usage:
+  qbt torrent category move [flags]
+
+Examples:
+  qbt torrent category move --from cat1 --to cat2
+
+Flags:
+      --dry-run                Run without doing anything
+      --exclude-tags strings   Exclude torrents with provided tags
+      --from strings           Move from categories (required)
+  -h, --help                   help for move
+      --include-tags strings   Include torrents with provided tags
+      --min-seed-time int      Minimum seed time in MINUTES before moving.
+      --to string              Move to the specified category (required)
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
 
 Move torrents from one or multiple categories to some other category.
 
 By using ATM (Automatic Torrent Mode) and the default behavior of categories mapped to folders this can be used to move from NVME to HDD storage after a `min-seed-time`.
 
-    qbt move --from categroy1 --to category2 --min-seed-time 45
+    qbt torrent category move --from categroy1 --to category2 --min-seed-time 45
 
 Optional flags:
 * `--dry-run` - Run without doing anything
@@ -160,9 +508,80 @@ Optional flags:
 
 Usable with cron as well. Run every 15 min.
 
-    */15 * * * * /usr/bin/qbt move --from nvme --to hdd --min-seed-time 30
+```cronexp
+*/15 * * * * /usr/bin/qbt move --from nvme --to hdd --min-seed-time 30
+```
+
+#### Set
+
+```text
+Set category for torrents via hashes
+
+Usage:
+  qbt torrent category set [flags]
+
+Examples:
+  qbt torrent category set test-category --hashes hash1,hash2
+
+Flags:
+      --dry-run          Run without doing anything
+      --hashes strings   Torrent hashes, as comma separated list
+  -h, --help             help for set
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Unset
+
+```text
+Unset category for torrents via hashes
+
+Usage:
+  qbt torrent category unset [flags]
+
+Examples:
+  qbt torrent category unset --hashes hash1,hash2
+
+Flags:
+      --dry-run          Run without doing anything
+      --hashes strings   Torrent hashes, as comma separated list
+  -h, --help             help for unset
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
 
 ### Compare
+
+```text
+Compare torrents between clients
+
+Usage:
+  qbt torrent compare [flags]
+
+Examples:
+  qbt torrent compare --addr http://localhost:10000 --user u --pass p --compare-addr http://url.com:10000 --compare-user u --compare-pass p
+
+Flags:
+      --basic-pass string           Source basic auth pass
+      --basic-user string           Source basic auth user
+      --compare-basic-pass string   Secondary basic auth pass
+      --compare-basic-user string   Secondary basic auth user
+      --compare-host string         Secondary host
+      --compare-pass string         Secondary pass
+      --compare-user string         Secondary user
+      --dry-run                     dry run
+  -h, --help                        help for compare
+      --host string                 Source host
+      --pass string                 Source pass
+      --tag string                  set a custom tag for duplicates on compare. default: compare-dupe (default "compare-dupe")
+      --tag-duplicates              tag duplicates on compare
+      --user string                 Source user
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
 
 Compare torrents between two instances. Source instance and `compare` instance.
 
@@ -184,49 +603,73 @@ Optional flags:
 * `--tag-duplicates` - Tag duplicates with `compare-dupe` tag, only on compare host
 * `--tag` - Override the default tag `compare-dupe`
 
-```bash
-qbt compare --addr http://url.com:10000 --user u --pass p --compare-addr http://url.com:10000 --compare-user u --compare-pass p
+### Export
+
+```text
+Export torrents and fastresume by category
+
+Usage:
+  qbt torrent export [flags]
+
+Examples:
+  qbt torrent export --source ~/.local/share/data/qBittorrent/BT_backup --export-dir ~/qbt-backup --include-category=movies,tv
+
+Flags:
+      --dry-run                    dry run
+      --export-dir string          Dir to export files to (required)
+  -h, --help                       help for export
+      --include-category strings   Export torrents from these categories. Comma separated
+      --source string              Dir with torrent and fast-resume files (required)
+  -v, --verbose                    verbose output
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
-### Edit
+### Hash
 
-Edit fastresume data like save-path. Make sure to shut down the client and backup the data before running this.
+```text
+Print the hash of a torrent file or magnet
 
-Required flags:
-* `--dir` - Dir to the fastresume data. Usually `~/.local/share/qBittorrent/BT_backup`
-* `--pattern` - The pattern to replace. Eg. `/home/user01/torrents`
-* `--replace` - The replacement text. Eg. `/home/test/torrents`
+Usage:
+  qbt torrent hash [flags]
 
-Optional flags:
-* `--dry-run` - Dry run without editing files
-* `--verbose, -v` - Verbose output
+Examples:
+  qbt torrent hash file.torrent
 
-```bash
-qbt edit --dir /home/user/.local/share/qBittorrent/BT_backup --pattern '/home/user01/torrents' --replace '/home/test/torrents'
+Flags:
+  -h, --help   help for hash
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ### Import
 
+```text
+Import torrents with state from other clients [rtorrent, deluge]
+
+Usage:
+  qbt torrent import {rtorrent | deluge} --source-dir dir --qbit-dir dir2 [--skip-backup] [--dry-run] [flags]
+
+Examples:
+  qbt torrent import deluge --source-dir ~/.config/deluge/state/ --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
+  qbt torrent import rtorrent --source-dir ~/.sessions --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
+
+Flags:
+      --dry-run             Run without importing anything
+  -h, --help                help for import
+      --qbit-dir string     qBittorrent BT_backup dir. Commonly ~/.local/share/qBittorrent/BT_backup (required)
+      --skip-backup         Skip backup before import
+      --source-dir string   source client state dir (required)
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
 Import torrents from other client into qBittorrent, and keep state. 
 
-Required flags:
-* `--source <NAME>` - Import from client [deluge, rtorrent]
-* `--source-dir <PATH>` - State/session dir for client
-* `--qbit-dir <PATH>` - qBittorrent dir (~/.local/share/data/qBittorrent/BT_backup)
-
-Supported clients:
-* Deluge
-* rTorrent
-
-Optional flags:
-* `--dry-run` - don't write anything to disk
-* `--skip-backup` - skip backup of state dirs before importing data
-
 > WARNING: Make sure to stop both the source client and qBittorrent before importing.
-
-Example with Deluge.
-
-    qbt import --source deluge --source-dir ~/.config/deluge/state/ --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
 
 After the import you will have to manually delete the torrents from the source client, but don't check the "also delete files" as currently the import DOES NOT move the actual data.
 
@@ -242,35 +685,129 @@ After the import you will have to manually delete the torrents from the source c
 Torrents imported into qBittorrent does not have automatic management enabled, because it's default behavior is to move data.
 
 1. Stop source client and qBittorrent.
-2. Start with a dry run and see what it does `qbt import ..... --dry-run`
+2. Start with a dry run and see what it does `qbt torrent import ..... --dry-run`
 3. If it looks ok, run without `--dry-run`
 4. Start clients again, go into the source client and stop everything.
 5. Set categories/tags in batches. Start to add a category, then set "Automatic torrent management" for it to automatically move the files to the categories specified directory.
 
+### List
+
+```text
+List all torrents, or torrents with a specific filters. Get by filter, category, tag and hashes. Can be combined
+
+Usage:
+  qbt torrent list [flags]
+
+Examples:
+qbt torrent list --filter=downloading --category=linux-iso
+
+Flags:
+  -c, --category string   Filter by category. All categories by default.
+  -f, --filter string     Filter by state. Available filters: all, downloading, seeding, completed, paused, active, inactive, resumed, 
+                          stalled, stalled_uploading, stalled_downloading, errored (default "all")
+      --hashes strings    Filter by hashes. Separated by comma: "hash1,hash2".
+  -h, --help              help for list
+      --output string     Print as [formatted text (default), json]
+  -t, --tag string        Filter by tag. Single tag: tag1
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+### Pause
+
+```text
+Pauses torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes
+
+Usage:
+  qbt torrent pause [flags]
+
+Flags:
+      --all              Pauses all torrents
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for pause
+      --names            Provided arguments will be read as torrent names
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
 ### Reannounce
 
-Reannounce torrents.
+```text
+Reannounce torrents with non-OK tracker status.
 
-    qbt reannounce
+Usage:
+  qbt torrent reannounce [flags]
 
-Optional flags:
-* `--dry-run` - Run without doing anything
-* `--category <CATEGORY>` - Only look for torrents with the provided category
-* `--tag <TAG>` - Only look for torrents with the provided tag
-* `--hash <HASH>` - Only look for torrents with the provided hash 
-* `--interval <INTERVAL>` - Override default interval of 7000 ms (7s)
-* `--attempts <ATTEMPTS>` - Override default attempts of 50
+Flags:
+      --attempts int      Reannounce torrents X times (default 50)
+      --category string   Reannounce torrents with category
+      --dry-run           Run without doing anything
+      --hash string       Reannounce torrent with hash
+  -h, --help              help for reannounce
+      --interval int      Reannounce torrents X times with interval Y. In MS (default 7000)
+      --tag string        Reannounce torrents with tag
 
-### Export
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
 
-Export .torrent and .fastresume file baaed on categories. 
+### Remove
 
-    qbt export
+```text
+Removes torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes
 
-Required flags:
-* `--source <PATH>` - qBittorrent state dir (~/.local/share/data/qBittorrent/BT_backup)
-* `--export-dir <PATH>` - new dir or qBittorrent state dir (~/.local/share/data/qBittorrent/BT_backup)
-* `--categories <CATEGORY,CATEGORY2>` - Only look for torrents with the provided categories. Comma separated
+Usage:
+  qbt torrent remove [flags]
 
-Optional flags:
-* `--dry-run` - Run without doing anything
+Flags:
+      --all              Removes all torrents
+      --delete-files     Also delete downloaded files from torrent(s)
+      --dry-run          Display what would be done without actually doing it
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for remove
+      --paused           Removes all paused torrents
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+### Resume
+
+```text
+Resumes torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes
+
+Usage:
+  qbt torrent resume [flags]
+
+Flags:
+      --all              resumes all torrents
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for resume
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+```
+
+## Version
+
+```text
+Print qbt version info
+
+Usage:
+  qbt version [flags]
+
+Examples:
+  qbt version
+  qbt version --output json
+
+Flags:
+  -h, --help            help for version
+      --output string   Print as [text, json] (default "text")
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+

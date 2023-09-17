@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ludviglundgren/qbittorrent-cli/internal/fs"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
 
@@ -31,22 +32,32 @@ var (
 func (i *RTorrentImport) Import(opts Options) error {
 	torrentsSessionDir := opts.SourceDir
 
-	info, err := os.Stat(torrentsSessionDir)
-	if os.IsNotExist(err) {
-		return errors.Wrapf(err, "Directory does not exist: %s", torrentsSessionDir)
-	}
+	sourceDirInfo, err := os.Stat(torrentsSessionDir)
 	if err != nil {
-		return errors.Wrapf(err, "Directory error: %s", torrentsSessionDir)
+		if os.IsNotExist(err) {
+			return errors.Errorf("source directory does not exist: %s", torrentsSessionDir)
+		}
 
-	}
-	if !info.IsDir() {
-		return errors.Errorf("Directory is a file, not a directory: %s", torrentsSessionDir)
+		return errors.Wrapf(err, "source directory error: %s", torrentsSessionDir)
 	}
 
-	matches, _ := filepath.Glob(path.Join(torrentsSessionDir, "*.torrent"))
+	if !sourceDirInfo.IsDir() {
+		return errors.Errorf("source is a file, not a directory: %s", torrentsSessionDir)
+	}
+
+	matches, err := filepath.Glob(filepath.Join(torrentsSessionDir, "*.torrent"))
+	if err != nil {
+		return errors.Wrapf(err, "glob error: %s", torrentsSessionDir)
+	}
+
+	if len(matches) == 0 {
+		log.Printf("Found 0 files to process in: %s\n", torrentsSessionDir)
+		return nil
+	}
 
 	totalJobs := len(matches)
-	log.Printf("Total torrents to process: %v", totalJobs)
+
+	log.Printf("Total torrents to process: %d\n", totalJobs)
 
 	positionNum := 0
 	for _, match := range matches {
@@ -54,17 +65,22 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 		torrentID := getTorrentFileName(match)
 
-		torrentOutFile := path.Join(opts.QbitDir, torrentID+".torrent")
+		torrentOutFile := filepath.Join(opts.QbitDir, torrentID+".torrent")
 
 		// If file already exists, skip
 		if _, err = os.Stat(torrentOutFile); err == nil {
-			log.Printf("%d/%d %s Torrent already exists, skipping", positionNum, totalJobs, torrentOutFile)
+			log.Printf("(%d/%d) %s Torrent already exists, skipping\n", positionNum, totalJobs, torrentOutFile)
+			continue
+		}
+
+		if opts.DryRun {
+			log.Printf("dry-run: (%d/%d) successfully imported: %s\n", positionNum, totalJobs, torrentID)
 			continue
 		}
 
 		torrentFile, err := torrent.OpenDecodeRaw(match)
 		if err != nil {
-			log.Printf("Could not decode torrent file %s. Could not decode string %s. Continue", match, torrentID)
+			log.Printf("Could not decode torrent file %s. Could not decode string %s. Continue\n", match, torrentID)
 			continue
 		}
 
@@ -154,7 +170,7 @@ func (i *RTorrentImport) Import(opts Options) error {
 
 			// Fix savepath for torrents with subfolder
 			// directory contains the whole torrent path, which gives error in qBit.
-			// remove file.info.name from full path in id.rtorrent directory
+			// remove file.sourceDirInfo.name from full path in id.rtorrent directory
 			newPath := strings.ReplaceAll(rtorrentFile.Directory, metaInfo.Name, "")
 
 			newFastResume.Path = newPath
@@ -179,23 +195,22 @@ func (i *RTorrentImport) Import(opts Options) error {
 		// Set 20 byte SHA1 hash
 		newFastResume.InfoHash = newFastResume.GetInfoHashSHA1()
 
-		// only run if not dry-run
-		if opts.DryRun != true {
-			// copy torrent file
-			fastResumeOutFile := path.Join(opts.QbitDir, torrentID+".fastresume")
-			if err = newFastResume.Encode(fastResumeOutFile); err != nil {
-				log.Printf("Could not create qBittorrent fastresume file %s error: %q", fastResumeOutFile, err)
-				return err
-			}
-
-			if err = torrent.CopyFile(match, torrentOutFile); err != nil {
-				log.Printf("Could copy qBittorrent torrent file %v error %v", torrentOutFile, err)
-				return err
-			}
+		// copy torrent file
+		fastResumeOutFile := filepath.Join(opts.QbitDir, torrentID+".fastresume")
+		if err = newFastResume.Encode(fastResumeOutFile); err != nil {
+			log.Printf("Could not create qBittorrent fastresume file %s error: %q\n", fastResumeOutFile, err)
+			return err
 		}
 
-		log.Printf("%d/%d %s Sucessfully imported: %s", positionNum, totalJobs, torrentID, metaInfo.Name)
+		if err = fs.CopyFile(match, torrentOutFile); err != nil {
+			log.Printf("Could copy qBittorrent torrent file %s error %q\n", torrentOutFile, err)
+			return err
+		}
+
+		log.Printf("(%d/%d) successfully imported: %s %s\n", positionNum, totalJobs, torrentID, metaInfo.Name)
 	}
+
+	log.Printf("(%d/%d) successfully imported torrents!\n", positionNum, totalJobs)
 
 	return nil
 }

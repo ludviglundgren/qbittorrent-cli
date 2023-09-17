@@ -1,8 +1,9 @@
 [qbittorrent]
-host     = "127.0.0.1" # qbittorrent webui-api hostname/ip
-port     = 6776        # qbittorrent webui-api port
-login    = "user"      # qbittorrent webui-api user
-password = "password"  # qbittorrent webui-api password
+addr       = "http://127.0.0.1:6776" # qbittorrent webui-api hostname/ip
+login      = "user"                  # qbittorrent webui-api user (optional)
+password   = "password"              # qbittorrent webui-api password (optional)
+#basicUser = "user"                  # qbittorrent webui-api basic auth user (optional)
+#basicPass = "password"              # qbittorrent webui-api basic auth password (optional)
 
 # some trackers are bugged and need to reannounce before torrent can start
 [reannounce]

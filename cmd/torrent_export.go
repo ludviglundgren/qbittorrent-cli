@@ -10,17 +10,18 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	fsutil "github.com/ludviglundgren/qbittorrent-cli/internal/fs"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
-func RunExport() *cobra.Command {
+func RunTorrentExport() *cobra.Command {
 	var command = &cobra.Command{
-		Use:   "export",
-		Short: "export torrents",
-		Long:  "Export torrents and fastresume by category",
+		Use:     "export",
+		Short:   "Export torrents",
+		Long:    "Export torrents and fastresume by category",
+		Example: `  qbt torrent export --source ~/.local/share/data/qBittorrent/BT_backup --export-dir ~/qbt-backup --include-category=movies,tv`,
 	}
 
 	f := export{
@@ -28,7 +29,6 @@ func RunExport() *cobra.Command {
 		verbose:         false,
 		sourceDir:       "",
 		exportDir:       "",
-		categories:      nil,
 		includeCategory: nil,
 		excludeCategory: nil,
 		includeTag:      nil,
@@ -38,12 +38,17 @@ func RunExport() *cobra.Command {
 
 	command.Flags().BoolVar(&f.dry, "dry-run", false, "dry run")
 	command.Flags().BoolVarP(&f.verbose, "verbose", "v", false, "verbose output")
-	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files")
-	command.Flags().StringVar(&f.exportDir, "export-dir", "", "Dir to export files to")
-	command.Flags().StringSliceVar(&f.categories, "categories", []string{}, "Export torrents from categories. Comma separated")
-	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Include categories. Comma separated")
+	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files (required)")
+	command.Flags().StringVar(&f.exportDir, "export-dir", "", "Dir to export files to (required)")
+	command.Flags().StringSliceVar(&f.includeCategory, "include-category", []string{}, "Export torrents from these categories. Comma separated")
 
 	command.MarkFlagRequired("categories")
+	command.MarkFlagRequired("source")
+	command.MarkFlagRequired("export-dir")
+
+	//command.Flags().StringSliceVar(&f.excludeCategory, "exclude-category", []string{}, "Exclude categories. Comma separated")
+	//command.Flags().StringSliceVar(&f.includeTag, "include-tag", []string{}, "Include tags. Comma separated")
+	//command.Flags().StringSliceVar(&f.excludeTag, "exclude-tag", []string{}, "Exclude tags. Comma separated")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		// get torrents from client by categories
@@ -57,10 +62,8 @@ func RunExport() *cobra.Command {
 			return err
 		}
 
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -69,14 +72,16 @@ func RunExport() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		if err := qb.Login(cmd.Context()); err != nil {
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
 			os.Exit(1)
 		}
 
 		if len(f.includeCategory) > 0 {
-			for _, category := range f.categories {
-				torrents, err := qb.GetTorrentsWithFilters(cmd.Context(), &qbittorrent.GetTorrentsRequest{Category: category})
+			for _, category := range f.includeCategory {
+				torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Category: category})
 				if err != nil {
 					return errors.Wrapf(err, "could not get torrents for category: %s", category)
 				}
@@ -95,7 +100,7 @@ func RunExport() *cobra.Command {
 			}
 
 		} else {
-			torrents, err := qb.GetTorrents(cmd.Context())
+			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 			if err != nil {
 				return errors.Wrap(err, "could not get torrents")
 			}
@@ -115,7 +120,7 @@ func RunExport() *cobra.Command {
 		}
 
 		if len(f.hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.categories, ","))
+			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.includeCategory, ","))
 			os.Exit(1)
 		}
 
@@ -266,7 +271,6 @@ type export struct {
 	verbose         bool
 	sourceDir       string
 	exportDir       string
-	categories      []string
 	includeCategory []string
 	excludeCategory []string
 	includeTag      []string
