@@ -246,13 +246,16 @@ func RunCategoryDelete() *cobra.Command {
 // RunCategoryEdit cmd to edit category
 func RunCategoryEdit() *cobra.Command {
 	var (
-		dry bool
+		dry      bool
+		savePath string
 	)
 
 	var command = &cobra.Command{
 		Use:   "edit",
 		Short: "Edit category",
 		Long:  "Edit category",
+		Example: `  qbt category edit test-category --save-path "/home/user/new/path"
+  qbt category edit test-category --save-path ""`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a category as first argument")
@@ -262,9 +265,45 @@ func RunCategoryEdit() *cobra.Command {
 		},
 	}
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+	command.Flags().StringVar(&savePath, "save-path", "", "Edit category save-path")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		fmt.Println("run torrent edit")
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
+		}
+
+		// args
+		// first arg is path to torrent file
+		category := args[0]
+
+		if dry {
+			log.Printf("dry-run: successfully edited category: %s\n", category)
+
+			return nil
+
+		} else {
+			if err := qb.EditCategoryCtx(ctx, category, savePath); err != nil {
+				log.Fatal("could not edit category")
+			}
+
+			log.Printf("successfully edited category: %s\n", category)
+		}
+
 		return nil
 	}
 
