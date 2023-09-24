@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/anacrolix/torrent v1.52.5
-	github.com/autobrr/go-qbittorrent v1.4.0
+	github.com/autobrr/go-qbittorrent v1.5.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
 	github.com/magiconair/properties v1.8.7
