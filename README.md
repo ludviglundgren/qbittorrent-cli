@@ -622,9 +622,13 @@ Examples:
 
 Flags:
       --dry-run                    dry run
+      --exclude-category strings   Exclude categories. Comma separated
+      --exclude-tag strings        Exclude tags. Comma separated
       --export-dir string          Dir to export files to (required)
   -h, --help                       help for export
       --include-category strings   Export torrents from these categories. Comma separated
+      --include-tag strings        Include tags. Comma separated
+      --skip-manifest              Do not export all used tags and categories into manifest
       --source string              Dir with torrent and fast-resume files (required)
   -v, --verbose                    verbose output
 
