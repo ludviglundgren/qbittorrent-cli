@@ -14,11 +14,14 @@ import (
 // RunTorrentRemove cmd to remove torrents
 func RunTorrentRemove() *cobra.Command {
 	var (
-		dryRun       bool
-		removeAll    bool
-		removePaused bool
-		deleteFiles  bool
-		hashes       []string
+		dryRun          bool
+		removeAll       bool
+		deleteFiles     bool
+		hashes          []string
+		includeCategory []string
+		includeTags     []string
+		excludeTags     []string
+		filter          string
 	)
 
 	var command = &cobra.Command{
@@ -29,9 +32,12 @@ func RunTorrentRemove() *cobra.Command {
 
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Display what would be done without actually doing it")
 	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")
-	command.Flags().BoolVar(&removePaused, "paused", false, "Removes all paused torrents")
 	command.Flags().BoolVar(&deleteFiles, "delete-files", false, "Also delete downloaded files from torrent(s)")
+	command.Flags().StringVar(&filter, "filter", "", "Filter by state: all, active, paused, completed, stalled, errored")
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
+	command.Flags().StringSliceVar(&includeCategory, "include-category", []string{}, "Remove torrents from these categories. Comma separated")
+	command.Flags().StringSliceVar(&includeTags, "include-tags", []string{}, "Include torrents with provided tags")
+	command.Flags().StringSliceVar(&excludeTags, "exclude-tags", []string{}, "Exclude torrents with provided tags")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
 		config.InitConfig()
@@ -57,21 +63,35 @@ func RunTorrentRemove() *cobra.Command {
 			hashes = []string{"all"}
 		}
 
-		if removePaused {
-			pausedTorrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Filter: qbittorrent.TorrentFilterPaused})
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: failed to retrieve paused torrents: %v\n", err)
-				os.Exit(1)
-			}
+		options := qbittorrent.TorrentFilterOptions{}
+		if filter != "" {
+			options.Filter = qbittorrent.TorrentFilter(filter)
+		}
 
-			for _, torrent := range pausedTorrents {
-				hashes = append(hashes, torrent.Hash)
-			}
+		if len(includeCategory) > 0 {
+			for _, category := range includeCategory {
+				options.Category = category
 
-			if dryRun {
-				log.Printf("dry-run: found (%d) paused torrents to be removed\n", len(hashes))
-			} else {
-				log.Printf("found (%d) paused torrents to be removed\n", len(hashes))
+				torrents, err := qb.GetTorrentsCtx(ctx, options)
+				if err != nil {
+					log.Fatalf("could not get torrents for category: %s err: %q\n", category, err)
+				}
+
+				for _, torrent := range torrents {
+					if len(includeTags) > 0 {
+						if _, validTag := validateTag(includeTags, torrent.Tags); !validTag {
+							continue
+						}
+					}
+
+					if len(excludeTags) > 0 {
+						if _, found := validateTag(excludeTags, torrent.Tags); found {
+							continue
+						}
+					}
+
+					hashes = append(hashes, torrent.Hash)
+				}
 			}
 		}
 
@@ -88,9 +108,9 @@ func RunTorrentRemove() *cobra.Command {
 			}
 		} else {
 			if hashes[0] == "all" {
-				log.Println("dry-run: all torrents to be removed")
+				log.Println("all torrents to be removed")
 			} else {
-				log.Printf("dry-run: (%d) torrents to be removed\n", len(hashes))
+				log.Printf("(%d) torrents to be removed\n", len(hashes))
 			}
 
 			err := batchRequests(hashes, func(start, end int) error {
