@@ -413,6 +413,7 @@ Available Commands:
   reannounce  Reannounce torrent(s)
   remove      Removes specified torrent(s)
   resume      Resume specified torrent(s)
+  tracker     Torrent tracker subcommand
 
 Flags:
   -h, --help   help for torrent
@@ -793,7 +794,47 @@ Flags:
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
 
+### Tracker
+
+```text
+Do various torrent category operations
+
+Usage:
+  qbt torrent tracker [command]
+
+Available Commands:
+  edit        Edit torrent tracker
+
+Flags:
+  -h, --help   help for tracker
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+
+Use "qbt torrent tracker [command] --help" for more information about a command.
+```
+
+#### Tracker edit
+
+```text
+Edit tracker for torrents via hashes
+
+Usage:
+  qbt torrent tracker edit [flags]
+
+Examples:
+  qbt torrent tracker edit --old url.old/test --new url.com/test
+
+Flags:
+      --dry-run          Run without doing anything
+  -h, --help             help for edit
+      --new string       New tracker URL
+      --old string       Old tracker URL to replace
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
 ```
 
 ## Version

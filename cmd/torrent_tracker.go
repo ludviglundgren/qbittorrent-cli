@@ -36,13 +36,11 @@ func RunTorrentTrackerEdit() *cobra.Command {
 
 	var (
 		dry    bool
-		hashes []string
 		oldURL string
 		newURL string
 	)
 
 	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
-	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Torrent hashes, as comma separated list")
 	command.Flags().StringVar(&oldURL, "old", "", "Old tracker URL to replace")
 	command.Flags().StringVar(&newURL, "new", "", "New tracker URL")
 
@@ -70,7 +68,6 @@ func RunTorrentTrackerEdit() *cobra.Command {
 			log.Printf("dry-run: successfully updated tracker on torrents\n")
 
 			return nil
-
 		} else {
 			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 			if err != nil {
