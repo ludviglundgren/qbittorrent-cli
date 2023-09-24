@@ -23,6 +23,7 @@ func RunTorrent() *cobra.Command {
 	command.AddCommand(RunTorrentReannounce())
 	command.AddCommand(RunTorrentRemove())
 	command.AddCommand(RunTorrentResume())
+	command.AddCommand(RunTorrentTracker())
 
 	return command
 }
