@@ -43,6 +43,7 @@ type Torrent struct {
 	Uploaded           int          `json:"uploaded"`
 	UploadedSession    int          `json:"uploaded_session"`
 	UpSpeed            int          `json:"upspeed"`
+	ContentPath        string       `json:"content_path"`
 }
 
 type TorrentBasic struct {
