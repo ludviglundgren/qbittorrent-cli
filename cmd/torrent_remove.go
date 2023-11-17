@@ -66,6 +66,9 @@ func RunTorrentRemove() *cobra.Command {
 		options := qbittorrent.TorrentFilterOptions{}
 		if filter != "" {
 			options.Filter = qbittorrent.TorrentFilter(filter)
+			if len(includeCategory) == 0 {
+				includeCategory = []string{""}
+			}
 		}
 
 		if len(includeCategory) > 0 {
