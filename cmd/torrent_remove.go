@@ -33,9 +33,9 @@ func RunTorrentRemove() *cobra.Command {
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Display what would be done without actually doing it")
 	command.Flags().BoolVar(&removeAll, "all", false, "Removes all torrents")
 	command.Flags().BoolVar(&deleteFiles, "delete-files", false, "Also delete downloaded files from torrent(s)")
-	command.Flags().StringVar(&filter, "filter", "", "Filter by state: all, active, paused, completed, stalled, errored")
+	command.Flags().StringVarP(&filter, "filter", "f", "", "Filter by state: all, active, paused, completed, stalled, errored")
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
-	command.Flags().StringSliceVar(&includeCategory, "include-category", []string{}, "Remove torrents from these categories. Comma separated")
+	command.Flags().StringSliceVarP(&includeCategory, "include-category", "c", []string{}, "Remove torrents from these categories. Comma separated")
 	command.Flags().StringSliceVar(&includeTags, "include-tags", []string{}, "Include torrents with provided tags")
 	command.Flags().StringSliceVar(&excludeTags, "exclude-tags", []string{}, "Exclude torrents with provided tags")
 
