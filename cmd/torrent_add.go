@@ -31,6 +31,7 @@ func RunTorrentAdd() *cobra.Command {
 		ignoreRules   bool
 		uploadLimit   uint64
 		downloadLimit uint64
+		sleep         time.Duration
 	)
 
 	var command = &cobra.Command{
@@ -58,6 +59,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
 	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
 	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
+	command.Flags().DurationVar(&sleep, "sleep", 200*time.Millisecond, "Set the amount of time to wait between adding torrents in seconds")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
@@ -201,9 +203,9 @@ func RunTorrentAdd() *cobra.Command {
 				log.Printf("successfully added torrent: %s\n", hash)
 
 				if len(files) > 1 {
-					log.Println("sleeping 2 seconds before adding next torrent...")
+					log.Printf("sleeping %v before adding next torrent...\n", sleep)
 
-					time.Sleep(2 * time.Second)
+					time.Sleep(sleep)
 
 					continue
 				}
