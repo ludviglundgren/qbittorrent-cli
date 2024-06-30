@@ -34,7 +34,7 @@ func RunTorrentAdd() *cobra.Command {
 		sleep         time.Duration
 	)
 
-	var command = &cobra.Command{
+	command := &cobra.Command{
 		Use:   "add",
 		Short: "Add torrent(s)",
 		Long:  `Add new torrent(s) to qBittorrent from file or magnet. Supports glob pattern for files like: ./files/*.torrent`,
@@ -105,7 +105,7 @@ func RunTorrentAdd() *cobra.Command {
 			options["skip_checking"] = "true"
 		}
 		if savePath != "" {
-			//options["savepath"] = savePath
+			// options["savepath"] = savePath
 			options["autoTMM"] = "false"
 		}
 		if category != "" {
@@ -153,9 +153,15 @@ func RunTorrentAdd() *cobra.Command {
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
 			return
 		} else {
-			files, err := filepath.Glob(filePath)
-			if err != nil {
-				log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+			var files []string
+			_, err := os.Lstat(filePath)
+			if err == nil {
+				files = []string{filePath}
+			} else {
+				files, err = filepath.Glob(filePath)
+				if err != nil {
+					log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+				}
 			}
 
 			if len(files) == 0 {
