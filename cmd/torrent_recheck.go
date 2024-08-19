@@ -21,11 +21,19 @@ func RunTorrentRecheck() *cobra.Command {
 		Use:   "recheck",
 		Short: "Recheck specified torrent(s)",
 		Long:  `Rechecks torrents indicated by hash(es).`,
+		Example: `  qbt torrent recheck --hashes HASH
+  qbt torrent recheck --hashes HASH1,HASH2
+`,
 	}
 
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		if len(hashes) == 0 {
+			log.Println("No torrents found to recheck")
+			return
+		}
+
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -43,11 +51,6 @@ func RunTorrentRecheck() *cobra.Command {
 		if err := qb.LoginCtx(ctx); err != nil {
 			fmt.Fprintf(os.Stderr, "connection failed: %v\n", err)
 			os.Exit(1)
-		}
-
-		if len(hashes) == 0 {
-			log.Println("No torrents found to recheck")
-			return
 		}
 
 		err := batchRequests(hashes, func(start, end int) error {

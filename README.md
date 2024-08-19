@@ -50,6 +50,7 @@ A cli to manage qBittorrent. Add torrents, categories, tags, reannounce and impo
     * [List](#list-2)
     * [Pause](#pause)
     * [Reannounce](#reannounce)
+    * [Recheck](#recheck)
     * [Remove](#remove)
     * [Resume](#resume)
     * [Tracker](#tracker)
@@ -801,6 +802,27 @@ Flags:
   -h, --help              help for reannounce
       --interval int      Reannounce torrents X times with interval Y. In MS (default 7000)
       --tag string        Reannounce torrents with tag
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+### Recheck
+
+```text
+Rechecks torrents indicated by hash(es).
+
+Usage:
+  qbt torrent recheck [flags]
+
+Examples:
+  qbt torrent recheck --hashes HASH
+  qbt torrent recheck --hashes HASH1,HASH2
+
+
+Flags:
+      --hashes strings   Add hashes as comma separated list
+  -h, --help             help for recheck
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
