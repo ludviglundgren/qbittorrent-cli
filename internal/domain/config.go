@@ -26,4 +26,5 @@ type AppConfig struct {
 	Qbit       QbitConfig         `mapstructure:"qbittorrent"`
 	Reannounce ReannounceSettings `mapstructure:"reannounce"`
 	Rules      Rules              `mapstructure:"rules"`
+	Compare    []QbitConfig       `mapstructure:"compare"`
 }

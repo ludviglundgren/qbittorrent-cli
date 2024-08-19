@@ -1,64 +1,53 @@
 package cmd
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
-	"strings"
-	"time"
+	"text/template"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
-	"github.com/dustin/go-humanize"
+	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 )
 
-// RunTag tag torrents
+// RunTag cmd for tag actions
 func RunTag() *cobra.Command {
-	var (
-		tagUnregistered bool
-		dryRun          bool
-	)
-
 	var command = &cobra.Command{
 		Use:   "tag",
-		Short: "tag torrents",
-		Long:  `tag torrents`,
+		Short: "Tag subcommand",
+		Long:  `Do various tag actions`,
 	}
 
-	messages := []string{
-		"unregistered",
-		"not registered",
-		"not found",
-		"not exist",
-		"unknown",
-		"uploaded",
-		"upgraded",
-		"season pack",
-		"packs are available",
-		"pack is available",
-		"internal available",
-		"season pack out",
-		"dead",
-		"dupe",
-		"complete season uploaded",
-		"problem with",
-		"specifically banned",
-		"trumped",
-		"i'm sorry dave, i can't do that", // weird stuff from racingforme
+	command.AddCommand(RunTagAdd())
+	command.AddCommand(RunTagDelete())
+	command.AddCommand(RunTagList())
+
+	return command
+}
+
+// RunTagList cmd to list tags
+func RunTagList() *cobra.Command {
+	var command = &cobra.Command{
+		Use:   "list",
+		Short: "List tags",
+		Long:  "List tags.",
 	}
 
-	command.Flags().BoolVar(&tagUnregistered, "unregistered", false, "tag unregistered")
-	command.Flags().BoolVar(&dryRun, "dry-run", false, "Dry run, do not tag torrents")
+	var (
+		output string
+	)
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.Flags().StringVar(&output, "output", "", "Print as [formatted text (default), json]")
+
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
-		qbtSettings := qbittorrent.Settings{
-			Addr:      config.Qbit.Addr,
-			Hostname:  config.Qbit.Host,
-			Port:      config.Qbit.Port,
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
@@ -67,100 +56,180 @@ func RunTag() *cobra.Command {
 
 		qb := qbittorrent.NewClient(qbtSettings)
 
-		ctx := context.Background()
+		ctx := cmd.Context()
 
-		if err := qb.Login(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
 			os.Exit(1)
 		}
 
-		sourceData, err := qb.GetTorrents(ctx)
+		tags, err := qb.GetTagsCtx(ctx)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
+			log.Fatal("could not get tags")
+		}
+
+		if len(tags) == 0 {
+			fmt.Println("No tags found")
+			return nil
+		}
+
+		switch output {
+		case "json":
+			res, err := json.Marshal(tags)
+			if err != nil {
+				log.Fatalf("could not marshal tags, err: %q", err)
+			}
+
+			fmt.Println(string(res))
+
+		default:
+			printTagsList(tags)
+
+		}
+		return nil
+	}
+
+	return command
+}
+
+var tagItemTemplate = `{{ range .}}
+Name: {{.}}
+{{end}}
+`
+
+func printTagsList(tags []string) {
+	tmpl, err := template.New("tags-list").Parse(tagItemTemplate)
+	if err != nil {
+		log.Fatalf("error: %q", err)
+	}
+
+	err = tmpl.Execute(os.Stdout, tags)
+	if err != nil {
+		log.Fatalf("could not generate template: %q", err)
+	}
+}
+
+// RunTagAdd cmd to add tags
+func RunTagAdd() *cobra.Command {
+	var (
+		dry bool
+	)
+
+	var command = &cobra.Command{
+		Use:     "add",
+		Short:   "Add tags",
+		Long:    "Add tags",
+		Example: `  qbt tag add tag1`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("requires a tag as first argument")
+			}
+
+			return nil
+		},
+	}
+	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+
+	command.RunE = func(cmd *cobra.Command, args []string) error {
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
+		}
+
+		qb := qbittorrent.NewClient(qbtSettings)
+
+		ctx := cmd.Context()
+
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
 			os.Exit(1)
 		}
 
-		unregisteredTorrentIDs := make([]string, 0)
-		var totalSize uint64
-		var unregisteredSize uint64
+		// args
+		// first arg is tag
+		tag := args[0]
 
-		lowerMessages := make([]string, len(messages))
-		for i, msg := range messages {
-			lowerMessages[i] = strings.ToLower(msg)
+		if dry {
+			log.Printf("dry-run: successfully created tag: %s\n", tag)
+
+			return nil
+
+		} else {
+			if err := qb.CreateTagsCtx(ctx, args); err != nil {
+				log.Fatal("could not create tag")
+			}
+
+			log.Printf("successfully created tag: %s\n", tag)
+		}
+		return nil
+	}
+
+	return command
+}
+
+// RunTagDelete cmd to delete tags
+func RunTagDelete() *cobra.Command {
+	var (
+		dry bool
+	)
+
+	var command = &cobra.Command{
+		Use:     "delete",
+		Short:   "Delete tags",
+		Long:    "Delete tags.",
+		Example: `  qbt tag delete tag1`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args) < 1 {
+				return errors.New("requires a tag as first argument")
+			}
+
+			return nil
+		},
+	}
+	command.Flags().BoolVar(&dry, "dry-run", false, "Run without doing anything")
+
+	command.RunE = func(cmd *cobra.Command, args []string) error {
+		config.InitConfig()
+
+		qbtSettings := qbittorrent.Config{
+			Host:      config.Qbit.Addr,
+			Username:  config.Qbit.Login,
+			Password:  config.Qbit.Password,
+			BasicUser: config.Qbit.BasicUser,
+			BasicPass: config.Qbit.BasicPass,
 		}
 
-		for _, t := range sourceData {
-			var isUnregistered bool
+		qb := qbittorrent.NewClient(qbtSettings)
 
-			if tagUnregistered && t.Tracker == "" {
-				isUnregistered = true
-			}
+		ctx := cmd.Context()
 
-			trackers, err := qb.GetTorrentTrackers(ctx, t.Hash)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get trackers for torrent %v: %v\n", t.Hash, err)
-				continue
-			}
-
-			for _, tracker := range trackers {
-				lowerTrackerMessage := strings.ToLower(tracker.Message)
-
-				for _, msg := range lowerMessages {
-					if strings.Contains(lowerTrackerMessage, msg) {
-						isUnregistered = true
-						break
-					}
-				}
-
-				if isUnregistered {
-					break
-				}
-			}
-
-			if isUnregistered {
-				unregisteredTorrentIDs = append(unregisteredTorrentIDs, t.Hash)
-				unregisteredSize += uint64(t.Size)
-			}
-
-			totalSize += uint64(t.Size)
+		if err := qb.LoginCtx(ctx); err != nil {
+			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
+			os.Exit(1)
 		}
 
-		fmt.Printf("total torrents (%d) with a total size of: %s\n", len(sourceData), humanize.Bytes(totalSize))
+		// args
+		// first arg is tag
+		tag := args[0]
 
-		// --unregistered add tag unregistered
-		if tagUnregistered {
-			fmt.Printf("reclaimable space (%s) from (%d) unregistered torrents\n", humanize.Bytes(unregisteredSize), len(unregisteredTorrentIDs))
+		if dry {
+			log.Printf("dry-run: successfully deleted tag: %s\n", tag)
 
-			if dryRun {
-				fmt.Printf("dry-run: tagging (%d) unregistered torrents\n", len(unregisteredTorrentIDs))
-				fmt.Printf("dry-run: successfully tagged (%d) unregistered torrents\n", len(unregisteredTorrentIDs))
-			} else {
-				fmt.Printf("tagging (%d) unregistered torrents\n", len(unregisteredTorrentIDs))
+			return nil
 
-				// Split the slice into batches of 20 items.
-				batch := 20
-				for i := 0; i < len(unregisteredTorrentIDs); i += batch {
-					j := i + batch
-					if j > len(unregisteredTorrentIDs) {
-						j = len(unregisteredTorrentIDs)
-					}
-
-					fmt.Printf("batch tagging (%d) unregistered torrents...\n", j)
-
-					if err := qb.SetTag(ctx, unregisteredTorrentIDs[i:j], "unregistered"); err != nil {
-						fmt.Printf("could not set tag, err: %q", err)
-					}
-
-					fmt.Printf("sleep 1 second before next...\n")
-
-					// sleep before next request
-					time.Sleep(time.Second * 1)
-				}
-
-				fmt.Printf("successfully tagged (%d) unregistered torrents\n", len(unregisteredTorrentIDs))
+		} else {
+			if err := qb.DeleteTagsCtx(ctx, []string{tag}); err != nil {
+				log.Fatal("could not delete tag")
 			}
 
+			log.Printf("successfully deleted tag: %s\n", tag)
 		}
+		return nil
 	}
 
 	return command

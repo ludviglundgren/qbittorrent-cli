@@ -4,7 +4,6 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/zeebo/bencode"
@@ -33,7 +32,7 @@ type TorrentInfoFile struct {
 }
 
 func Decode(path string) (*TorrentInfo, error) {
-	dat, err := ioutil.ReadFile(path)
+	dat, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +46,7 @@ func Decode(path string) (*TorrentInfo, error) {
 }
 
 func OpenDecodeRaw(path string) (map[string]interface{}, error) {
-	dat, err := ioutil.ReadFile(path)
+	dat, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

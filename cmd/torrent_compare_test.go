@@ -3,9 +3,8 @@ package cmd
 import (
 	"testing"
 
+	"github.com/autobrr/go-qbittorrent"
 	"github.com/magiconair/properties/assert"
-
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 )
 
 func Test_compare(t *testing.T) {
