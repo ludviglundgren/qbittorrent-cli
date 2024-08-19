@@ -1,6 +1,6 @@
 module github.com/ludviglundgren/qbittorrent-cli
 
-go 1.20
+go 1.22
 
 require (
 	github.com/anacrolix/torrent v1.52.5
