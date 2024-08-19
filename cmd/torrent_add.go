@@ -153,9 +153,15 @@ func RunTorrentAdd() *cobra.Command {
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
 			return
 		} else {
-			files, err := filepath.Glob(filePath)
-			if err != nil {
-				log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+			var files []string
+			_, err := os.Lstat(filePath)
+			if err == nil {
+				files = []string{filePath}
+			} else {
+				files, err = filepath.Glob(filePath)
+				if err != nil {
+					log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+				}
 			}
 
 			if len(files) == 0 {
