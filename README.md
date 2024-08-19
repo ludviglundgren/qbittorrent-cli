@@ -14,6 +14,50 @@ A cli to manage qBittorrent. Add torrents, categories, tags, reannounce and impo
 * Manage tags
 * Self updater
 
+## Table of contents
+
+* [Features](#features)
+* [Install](#install)
+* [Build from source](#build-from-source)
+  * [Multi-platform with `goreleaser`](#multi-platform-with-goreleaser)
+* [Configuration](#configuration)
+* [Usage](#usage)
+  * [App](#app)
+    * [Version](#version)
+  * [Bencode](#bencode)
+    * [Edit](#edit)
+  * [Category](#category)
+    * [Add](#add)
+    * [Delete](#delete)
+    * [Edit](#edit-1)
+    * [List](#list)
+  * [Tag](#tag)
+    * [Add](#add-1)
+    * [Delete](#delete-1)
+    * [List](#list-1)
+  * [Torrent](#torrent)
+    * [Add](#add-2)
+    * [Category](#category-1)
+      * [Move](#move)
+      * [Set](#set)
+      * [Unset](#unset)
+    * [Compare](#compare)
+    * [Export](#export)
+    * [Hash](#hash)
+    * [Import](#import)
+      * [Caveats](#caveats)
+      * [Workflow](#workflow)
+    * [List](#list-2)
+    * [Pause](#pause)
+    * [Reannounce](#reannounce)
+    * [Remove](#remove)
+    * [Resume](#resume)
+    * [Tracker](#tracker)
+      * [Tracker edit](#tracker-edit)
+  * [Version](#version-1)
+  * [Update](#update)
+
+
 ## Install
 
 Download the [latest binary](https://github.com/ludviglundgren/qbittorrent-cli/releases/latest) and put somewhere in $PATH.
@@ -142,14 +186,13 @@ Use "qbt [command] --help" for more information about a command.
 ```
 
 Commands:
-- app
-- bencode
-- category
-- help
-- tag
-- torrent
-- update
-- version
+* [app](#app)
+* [bencode](#bencode)
+* [category](#category)
+* [tag](#tag)
+* [torrent](#torrent)
+* [version](#version-1)
+* [update](#update)
 
 ### App
 
