@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
@@ -144,11 +145,18 @@ func RunTorrentAdd() *cobra.Command {
 
 				hash := magnet.InfoHash.String()
 
+				wg := sync.WaitGroup{}
+
+				wg.Add(1)
+
 				go func() {
+					defer wg.Done()
 					if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 						log.Fatalf("could not get tracker status for torrent: %q\n", err)
 					}
 				}()
+
+				wg.Wait()
 			}
 
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
@@ -178,6 +186,8 @@ func RunTorrentAdd() *cobra.Command {
 
 			log.Printf("found (%d) torrent(s) to add\n", len(files))
 
+			wg := sync.WaitGroup{}
+
 			success := 0
 			for _, file := range files {
 				if dry {
@@ -204,7 +214,10 @@ func RunTorrentAdd() *cobra.Command {
 
 				// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 				if config.Reannounce.Enabled && !paused {
+					wg.Add(1)
+
 					go func() {
+						defer wg.Done()
 						if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 							log.Printf("could not get tracker status for torrent: %s err: %q\n", hash, err)
 						}
@@ -224,6 +237,8 @@ func RunTorrentAdd() *cobra.Command {
 				}
 
 			}
+
+			wg.Wait()
 
 			log.Printf("successfully added %d torrent(s)\n", success)
 		}
@@ -248,7 +263,11 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 
 	time.Sleep(time.Duration(config.Reannounce.Interval) * time.Millisecond)
 
+	log.Printf("starting reannounce for %s\n", hash)
+
 	for attempts < config.Reannounce.Attempts {
+		log.Printf("[%d/%d] reannounce attempt for %s\n", attempts, config.Reannounce.Attempts, hash)
+
 		trackers, err := qb.GetTorrentTrackersCtx(ctx, hash)
 		if err != nil {
 			log.Fatalf("could not get trackers of torrent: %v %v", hash, err)
@@ -257,6 +276,7 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 		// check if status not working or something else
 		_, working := findTrackerStatus(trackers, 2)
 		if working {
+			log.Printf("[%d/%d] reannounce found working tracker for %s\n", attempts, config.Reannounce.Attempts, hash)
 			announceOK = true
 			break
 		}
