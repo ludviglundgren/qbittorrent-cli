@@ -20,7 +20,7 @@ func RunTorrentRecheck() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "recheck",
 		Short: "Recheck specified torrent(s)",
-		Long:  `Rechecks torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes`,
+		Long:  `Rechecks torrents indicated by hash(es).`,
 	}
 
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
