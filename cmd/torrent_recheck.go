@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
 	"os"
 
@@ -34,6 +35,11 @@ func RunTorrentRecheck() *cobra.Command {
 			return
 		}
 
+		err := utils.ValidateHash(hashes)
+		if err != nil {
+			log.Fatalf("Invalid hashes supplied: %v", err)
+		}
+
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -53,7 +59,7 @@ func RunTorrentRecheck() *cobra.Command {
 			os.Exit(1)
 		}
 
-		err := batchRequests(hashes, func(start, end int) error {
+		err = batchRequests(hashes, func(start, end int) error {
 			return qb.RecheckCtx(ctx, hashes[start:end])
 		})
 		if err != nil {

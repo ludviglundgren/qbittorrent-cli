@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
 	"os"
 
@@ -40,6 +41,13 @@ func RunTorrentRemove() *cobra.Command {
 	command.Flags().StringSliceVar(&excludeTags, "exclude-tags", []string{}, "Exclude torrents with provided tags")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		if len(hashes) > 0 {
+			err := utils.ValidateHash(hashes)
+			if err != nil {
+				log.Fatalf("Invalid hashes supplied: %v", err)
+			}
+		}
+
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{

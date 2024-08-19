@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
 	"os"
 
@@ -30,6 +31,13 @@ func RunTorrentPause() *cobra.Command {
 	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		if len(hashes) > 0 {
+			err := utils.ValidateHash(hashes)
+			if err != nil {
+				log.Fatalf("Invalid hashes supplied: %v", err)
+			}
+		}
+
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -54,7 +62,7 @@ func RunTorrentPause() *cobra.Command {
 		}
 
 		if len(hashes) == 0 {
-			log.Printf("No torrents found to pause with provided search terms")
+			log.Printf("No torrents found to pause with provided hashes. Use --all to pause all torrents.")
 			return
 		}
 
