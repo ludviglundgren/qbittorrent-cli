@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -153,9 +154,21 @@ func RunTorrentAdd() *cobra.Command {
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
 			return
 		} else {
-			files, err := filepath.Glob(filePath)
-			if err != nil {
-				log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+			var files []string
+			var err error
+
+			if IsGlobPattern(filePath) {
+				files, err = filepath.Glob(filePath)
+				if err != nil {
+					log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+				}
+			} else {
+				_, err := os.Lstat(filePath)
+				if err != nil {
+					log.Fatalf("could not stat file: %q\n", err)
+				}
+
+				files = []string{filePath}
 			}
 
 			if len(files) == 0 {
@@ -217,6 +230,16 @@ func RunTorrentAdd() *cobra.Command {
 	}
 
 	return command
+}
+
+// IsGlobPattern reports whether path contains any of the magic characters
+// recognized by Match.
+func IsGlobPattern(path string) bool {
+	magicChars := `*?[`
+	if runtime.GOOS != "windows" {
+		magicChars = `*?[\`
+	}
+	return strings.ContainsAny(path, magicChars)
 }
 
 func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStalled bool, hash string) error {
