@@ -44,6 +44,9 @@ func RunTorrentTrackerEdit() *cobra.Command {
 	command.Flags().StringVar(&oldURL, "old", "", "Old tracker URL to replace")
 	command.Flags().StringVar(&newURL, "new", "", "New tracker URL")
 
+	command.MarkFlagRequired("old")
+	command.MarkFlagRequired("new")
+
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
@@ -64,30 +67,38 @@ func RunTorrentTrackerEdit() *cobra.Command {
 			os.Exit(1)
 		}
 
-		if dry {
-			log.Printf("dry-run: successfully updated tracker on torrents\n")
+		torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
+		if err != nil {
+			log.Fatalf("could not get torrents err: %q\n", err)
+		}
 
-			return nil
-		} else {
-			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
-			if err != nil {
-				log.Fatalf("could not get torrents err: %q\n", err)
+		var torrentsToUpdate []qbittorrent.Torrent
+
+		for _, torrent := range torrents {
+			if strings.Contains(torrent.Tracker, oldURL) {
+				torrentsToUpdate = append(torrentsToUpdate, torrent)
 			}
+		}
 
-			matches := 0
+		if len(torrentsToUpdate) == 0 {
+			log.Printf("found no torrents with tracker %q\n", oldURL)
+			return nil
+		}
 
-			for _, torrent := range torrents {
-				if strings.Contains(torrent.Tracker, oldURL) {
-					if err := qb.EditTrackerCtx(ctx, torrent.Hash, torrent.Tracker, newURL); err != nil {
-						log.Fatalf("could not edit tracker for torrent: %s\n", torrent.Hash)
-					}
+		for i, torrent := range torrentsToUpdate {
+			if dry {
+				log.Printf("dry-run: [%d/%d] updating tracker for torrent %s %q\n", i+1, len(torrentsToUpdate), torrent.Hash, torrent.Name)
 
-					matches++
+			} else {
+				log.Printf("[%d/%d] updating tracker for torrent %s %q\n", i+1, len(torrentsToUpdate), torrent.Hash, torrent.Name)
+
+				if err := qb.EditTrackerCtx(ctx, torrent.Hash, torrent.Tracker, newURL); err != nil {
+					log.Fatalf("could not edit tracker for torrent: %s\n", torrent.Hash)
 				}
 			}
-
-			log.Printf("successfully updated tracker for (%d) torrents\n", matches)
 		}
+
+		log.Printf("successfully updated tracker for (%d) torrents\n", len(torrentsToUpdate))
 
 		return nil
 	}

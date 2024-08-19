@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
 	"os"
 	"strings"
@@ -39,6 +40,13 @@ func RunTorrentList() *cobra.Command {
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Filter by hashes. Separated by comma: \"hash1,hash2\".")
 
 	command.Run = func(cmd *cobra.Command, args []string) {
+		if len(hashes) > 0 {
+			err := utils.ValidateHash(hashes)
+			if err != nil {
+				log.Fatalf("Invalid hashes supplied: %v", err)
+			}
+		}
+
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{

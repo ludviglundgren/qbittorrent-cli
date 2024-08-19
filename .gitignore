@@ -4,3 +4,4 @@
 .qbt.toml
 dist
 bin
+testdata
