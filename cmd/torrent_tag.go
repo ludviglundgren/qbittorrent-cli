@@ -119,7 +119,7 @@ func RunTorrentTagNotWorking() *cobra.Command {
 	var command = &cobra.Command{
 		Use:     "issues",
 		Short:   "tag torrents with issues",
-		Long:    `tag torrents that may have broken trackers or be unregistered`,
+		Long:    `Tag torrents that may have broken trackers or be unregistered`,
 		Example: `  qbt torrent tag issues --unregistered --not-working`,
 	}
 
