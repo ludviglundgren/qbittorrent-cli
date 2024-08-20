@@ -24,6 +24,7 @@ func RunTorrent() *cobra.Command {
 	command.AddCommand(RunTorrentRecheck())
 	command.AddCommand(RunTorrentRemove())
 	command.AddCommand(RunTorrentResume())
+	command.AddCommand(RunTorrentTag())
 	command.AddCommand(RunTorrentTracker())
 
 	return command
