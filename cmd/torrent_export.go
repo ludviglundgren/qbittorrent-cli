@@ -11,10 +11,13 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	fsutil "github.com/ludviglundgren/qbittorrent-cli/internal/fs"
+	qbit "github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 
+	"github.com/anacrolix/torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/zeebo/bencode"
 )
 
 func RunTorrentExport() *cobra.Command {
@@ -294,6 +297,9 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 		return errors.Wrapf(err, "could not check if dir exists: %s", exportDir)
 	}
 
+	// qbittorrent from v4.5.x removes the announce-urls from the .torrent file so we need to add that back
+	needTrackerFix := false
+
 	// check BT_backup dir, pick torrent and fastresume files by id
 	err := filepath.Walk(sourceDir, func(dirPath string, info fs.FileInfo, err error) error {
 		if err != nil {
@@ -343,17 +349,75 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 			}
 
 			outFile := filepath.Join(exportDir, fileName)
-			if err := fsutil.CopyFile(dirPath, outFile); err != nil {
-				return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
-			}
 
 			exportCount++
 
 			switch ext {
 			case ".torrent":
+				if needTrackerFix {
+
+					// open file and check if announce is in there. If it's not, open .fastresume and combine before output
+					torrentFile, err := os.Open(filepath.Join(sourceDir, fileName+".torrent"))
+					if err != nil {
+						return err
+					}
+
+					defer torrentFile.Close()
+					torrentInfo, err := metainfo.Load(torrentFile)
+					if err != nil {
+						return errors.Wrapf(err, "could not open file: %s", outFile)
+					}
+
+					if torrentInfo.Announce == "" {
+						needTrackerFix = true
+
+						fastResumeFile, err := os.Open(filepath.Join(sourceDir, fileName+".fastresume"))
+						if err != nil {
+							log.Fatalf("could not open fastresume file: %s", err)
+						}
+
+						// open fastresume and get announce then // open fastresume and get announce then <INSERT_CODE_HERE>
+						var fastResume qbit.Fastresume
+						if err := bencode.NewDecoder(fastResumeFile).Decode(fastResume); err != nil {
+							return errors.Wrapf(err, "could not open file: %s", fileName+".fastresume")
+						}
+
+						if len(fastResume.Trackers) == 0 {
+							return errors.New("no trackers found in fastresume")
+						}
+
+						torrentInfo.Announce = fastResume.Trackers[0][0]
+						torrentInfo.AnnounceList = fastResume.Trackers
+
+						if len(torrentInfo.UrlList) == 0 && len(fastResume.UrlList) > 0 {
+							torrentInfo.UrlList = fastResume.UrlList
+						}
+					}
+
+					// write new torrent file to destination path
+					newTorrentFile, err := os.Create(outFile)
+					if err != nil {
+						return errors.Wrapf(err, "could not create file: %s", outFile)
+					}
+					defer newTorrentFile.Close()
+					if err := torrentInfo.Write(newTorrentFile); err != nil {
+						return errors.Wrapf(err, "could not write new torrent info file %s", outFile)
+					}
+				} else {
+					// only do this if !needTrackerFix
+					if err := fsutil.CopyFile(dirPath, outFile); err != nil {
+						return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
+					}
+				}
+
 				exportTorrentCount++
 				fmt.Printf("(%d/%d) exported: %s\n", exportTorrentCount, len(hashes), fileName)
 			case ".fastresume":
+				// only do this if !needTrackerFix
+				if err := fsutil.CopyFile(dirPath, outFile); err != nil {
+					return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
+				}
+
 				exportFastresumeCount++
 				fmt.Printf("(%d/%d) exported: %s\n", exportFastresumeCount, len(hashes), fileName)
 			}
