@@ -163,7 +163,7 @@ func (c *Client) GetTorrentTrackers(ctx context.Context, hash string) ([]Torrent
 	params := url.Values{}
 	params.Add("hash", hash)
 
-	resp, err := c.getCtx(ctx, "torrents/trackers?"+params.Encode(), nil)
+	resp, err := c.getCtx(ctx, "torrents/trackers", params)
 	if err != nil {
 		return nil, errors.Wrapf(err, "error fetching torrent trackers for: %s", hash)
 	}
