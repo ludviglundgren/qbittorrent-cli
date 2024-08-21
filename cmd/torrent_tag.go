@@ -287,6 +287,13 @@ func processTorrentTags(torrent qbittorrent.Torrent, trackers []qbittorrent.Torr
 	foundTrackerNotWorking := false
 
 	for _, tracker := range trackers {
+		if tracker.Status == qbittorrent.TrackerStatusDisabled {
+			continue
+		}
+
+		//if tracker.Url == "** [DHT] **" || tracker.Url == "** [PeX] **" || tracker.Url == "** [LSD] **" {
+		//	continue
+		//}
 		lowerTrackerMessage := strings.ToLower(tracker.Message)
 
 		if tagUnregistered {
