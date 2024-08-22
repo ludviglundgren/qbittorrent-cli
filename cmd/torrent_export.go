@@ -95,98 +95,65 @@ func RunTorrentExport() *cobra.Command {
 			return errors.Wrapf(err, "failed to login")
 		}
 
+		var torrents []qbittorrent.Torrent
+		var err error
+
 		if len(f.includeCategory) > 0 {
 			for _, category := range f.includeCategory {
-				torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Category: category})
+				torrentsByCategory, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Category: category})
 				if err != nil {
 					return errors.Wrapf(err, "could not get torrents for category: %s", category)
 				}
 
-				for _, tor := range torrents {
-					// only grab completed torrents
-					//if tor.Progress != 1 {
-					//	continue
-					//}
-
-					if tor.Tags != "" {
-						tags := strings.Split(tor.Tags, ", ")
-
-						// check tags and exclude categories
-						if len(f.includeTag) > 0 && !containsTag(f.includeTag, tags) {
-							continue
-						}
-
-						if len(f.excludeTag) > 0 && containsTag(f.excludeTag, tags) {
-							continue
-						}
-
-						for _, tag := range tags {
-							_, ok := f.tags[tag]
-							if !ok {
-								f.tags[tag] = struct{}{}
-							}
-						}
-
-					}
-
-					if tor.Category != "" {
-						f.category[tor.Category] = qbittorrent.Category{
-							Name:     tor.Category,
-							SavePath: "",
-						}
-					}
-
-					// append hash to map of hashes to gather
-					f.hashes[strings.ToLower(tor.Hash)] = tor
-				}
+				torrents = append(torrents, torrentsByCategory...)
 			}
 
 		} else {
-			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
+			torrents, err = qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 			if err != nil {
 				return errors.Wrap(err, "could not get torrents")
 			}
+		}
 
-			for _, tor := range torrents {
-				// only grab completed torrents
-				//if tor.Progress != 1 {
-				//	continue
-				//}
+		for _, tor := range torrents {
+			// only grab completed torrents
+			//if tor.Progress != 1 {
+			//	continue
+			//}
 
-				if len(f.excludeCategory) > 0 && containsCategory(f.excludeCategory, tor.Category) {
+			if len(f.excludeCategory) > 0 && containsCategory(f.excludeCategory, tor.Category) {
+				continue
+			}
+
+			if tor.Tags != "" {
+				tags := strings.Split(tor.Tags, ", ")
+
+				// check tags and exclude categories
+				if len(f.includeTag) > 0 && !containsTag(f.includeTag, tags) {
 					continue
 				}
 
-				if tor.Tags != "" {
-					tags := strings.Split(tor.Tags, ", ")
-
-					// check tags and exclude categories
-					if len(f.includeTag) > 0 && !containsTag(f.includeTag, tags) {
-						continue
-					}
-
-					if len(f.excludeTag) > 0 && containsTag(f.excludeTag, tags) {
-						continue
-					}
-
-					for _, tag := range tags {
-						_, ok := f.tags[tag]
-						if !ok {
-							f.tags[tag] = struct{}{}
-						}
-					}
+				if len(f.excludeTag) > 0 && containsTag(f.excludeTag, tags) {
+					continue
 				}
 
-				if tor.Category != "" {
-					f.category[tor.Category] = qbittorrent.Category{
-						Name:     tor.Category,
-						SavePath: "",
+				for _, tag := range tags {
+					_, ok := f.tags[tag]
+					if !ok {
+						f.tags[tag] = struct{}{}
 					}
 				}
-
-				// append hash to map of hashes to gather
-				f.hashes[strings.ToLower(tor.Hash)] = tor
 			}
+
+			if tor.Category != "" {
+				f.category[tor.Category] = qbittorrent.Category{
+					Name:     tor.Category,
+					SavePath: "",
+				}
+			}
+
+			// append hash to map of hashes to gather
+			f.hashes[strings.ToLower(tor.Hash)] = tor
 		}
 
 		if len(f.hashes) == 0 {
@@ -289,7 +256,6 @@ func exportManifest(hashes map[string]qbittorrent.Torrent, tags map[string]struc
 }
 
 func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.Torrent, dry, verbose bool) error {
-	exportCount := 0
 	exportTorrentCount := 0
 	exportFastresumeCount := 0
 
@@ -334,8 +300,6 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 		}
 
 		if dry {
-			exportCount++
-
 			exportTorrentCount++
 			log.Printf("dry-run: (%d/%d) exported: %s\n", exportTorrentCount, len(hashes), torrentHash+".torrent")
 
@@ -346,8 +310,6 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 		}
 
 		outFile := filepath.Join(exportDir, fileName)
-
-		exportCount++
 
 		// determine if this should be run on first run and the ones after
 		if (exportTorrentCount == 0 && !needTrackerFix) || needTrackerFix {
@@ -407,7 +369,7 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 				processedFastResumeHashes[torrentHash] = true
 
 				exportFastresumeCount++
-				log.Printf("[%d/%d] exported: %s\n", exportFastresumeCount, len(hashes), fileName)
+				log.Printf("[%d/%d] exported: %s\n", exportFastresumeCount, len(hashes), torrentHash+".fastresume")
 			}
 
 			// write new torrent file to destination path
@@ -456,7 +418,7 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 		return err
 	}
 
-	log.Printf("found (%d) files in total. exported fastresume: %d exported torrent %d", exportCount, exportFastresumeCount, exportTorrentCount)
+	log.Printf("found (%d) files in total. exported fastresume: %d exported torrent %d", exportFastresumeCount+exportTorrentCount, exportFastresumeCount, exportTorrentCount)
 
 	return nil
 }
