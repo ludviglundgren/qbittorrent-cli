@@ -60,8 +60,13 @@ func RunTorrentExport() *cobra.Command {
 	command.MarkFlagRequired("export-dir")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		// get torrents from client by categories
-		config.InitConfig()
+		if len(f.includeCategory) > 0 && len(f.excludeCategory) > 0 {
+			return fmt.Errorf("--include-category and --exclude-category cannot be used together")
+		}
+
+		if len(f.includeTag) > 0 && len(f.excludeTag) > 0 {
+			return fmt.Errorf("--include-tag and --exclude-tag cannot be used together")
+		}
 
 		if _, err := os.Stat(f.sourceDir); err != nil {
 			if os.IsNotExist(err) {
@@ -70,6 +75,9 @@ func RunTorrentExport() *cobra.Command {
 
 			return err
 		}
+
+		// get torrents from client by categories
+		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
 			Host:      config.Qbit.Addr,
@@ -183,11 +191,11 @@ func RunTorrentExport() *cobra.Command {
 		}
 
 		if len(f.hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.includeCategory, ","))
+			log.Printf("Could not find any matching torrents to export from (%s)\n", strings.Join(f.includeCategory, ","))
 			os.Exit(1)
 		}
 
-		fmt.Printf("Found '%d' matching torrents\n", len(f.hashes))
+		log.Printf("Found '%d' matching torrents\n", len(f.hashes))
 
 		if err := processExport(f.sourceDir, f.exportDir, f.hashes, f.dry, f.verbose); err != nil {
 			return errors.Wrapf(err, "could not process torrents")
@@ -217,7 +225,7 @@ func RunTorrentExport() *cobra.Command {
 				fmt.Println("dry-run: successfully wrote manifest to file")
 			} else {
 				if err := exportManifest(f.hashes, f.tags, f.category); err != nil {
-					fmt.Printf("could not export manifest: %q\n", err)
+					log.Printf("could not export manifest: %q\n", err)
 					os.Exit(1)
 				}
 
@@ -258,30 +266,27 @@ func exportManifest(hashes map[string]qbittorrent.Torrent, tags map[string]struc
 		})
 	}
 
-	res, err := json.Marshal(data)
-	if err != nil {
-		return errors.Wrap(err, "could not marshal manifest to json")
-	}
-
 	currentWorkingDirectory, err := os.Getwd()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "could not get current working directory")
 	}
 
-	// Create a new file in the current working directory.
-	fileName := "export-manifest.json"
+	// Create a new manifestFile in the current working directory.
+	manifestFileName := "export-manifest.json"
 
-	file, err := os.Create(filepath.Join(currentWorkingDirectory, fileName))
+	manifestFilePath := filepath.Join(currentWorkingDirectory, manifestFileName)
+
+	manifestFile, err := os.Create(manifestFilePath)
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "could not create manifestFile: %s", manifestFilePath)
 	}
-	defer file.Close()
+	defer manifestFile.Close()
 
-	// Write the string to the file.
-	_, err = file.WriteString(string(res))
-	if err != nil {
-		return err
+	if err := json.NewEncoder(manifestFile).Encode(&data); err != nil {
+		return errors.Wrap(err, "could not encode manifest to json")
 	}
+
+	log.Printf("wrote export manifest to %s", manifestFilePath)
 
 	return nil
 }
@@ -293,27 +298,30 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 
 	// check if export dir exists, if not then lets create it
 	if err := createDirIfNotExists(exportDir); err != nil {
-		fmt.Printf("could not check if dir %s exists. err: %q\n", exportDir, err)
+		log.Printf("could not check if dir %s exists. err: %q\n", exportDir, err)
 		return errors.Wrapf(err, "could not check if dir exists: %s", exportDir)
 	}
 
 	// qbittorrent from v4.5.x removes the announce-urls from the .torrent file so we need to add that back
 	needTrackerFix := false
 
-	// check BT_backup dir, pick torrent and fastresume files by id
-	err := filepath.Walk(sourceDir, func(dirPath string, info fs.FileInfo, err error) error {
+	// keep track of processed fastresume files
+	processedFastResumeHashes := map[string]bool{}
+
+	// check BT_backup dir, pick torrent and fastresume files by hash
+	err := filepath.WalkDir(sourceDir, func(dirPath string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if info.IsDir() {
+		if d.IsDir() {
 			return nil
 		}
 
-		fileName := info.Name()
+		fileName := d.Name()
 		ext := filepath.Ext(fileName)
 
-		if !isValidExt(ext) {
+		if ext != ".torrent" && ext != ".fastresume" {
 			return nil
 		}
 
@@ -327,25 +335,25 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 
 		if dry {
 			if verbose {
-				fmt.Printf("processing: %s\n", fileName)
+				log.Printf("processing: %s\n", fileName)
 			}
 
 			exportCount++
 
-			//fmt.Printf("dry-run: (%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+			//log.Printf("dry-run: (%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
 
 			switch ext {
 			case ".torrent":
 				exportTorrentCount++
-				fmt.Printf("dry-run: (%d/%d) exported: %s\n", exportTorrentCount, len(hashes), fileName)
+				log.Printf("dry-run: (%d/%d) exported: %s\n", exportTorrentCount, len(hashes), fileName)
 			case ".fastresume":
 				exportFastresumeCount++
-				fmt.Printf("dry-run: (%d/%d) exported: %s\n", exportFastresumeCount, len(hashes), fileName)
+				log.Printf("dry-run: (%d/%d) exported: %s\n", exportFastresumeCount, len(hashes), fileName)
 			}
 
 		} else {
 			if verbose {
-				fmt.Printf("processing: %s\n", fileName)
+				log.Printf("processing: %s\n", fileName)
 			}
 
 			outFile := filepath.Join(exportDir, fileName)
@@ -354,32 +362,36 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 
 			switch ext {
 			case ".torrent":
-				if needTrackerFix {
+				// determine if this should be run on first run and the ones after
+				if (exportTorrentCount == 0 && !needTrackerFix) || needTrackerFix {
 
 					// open file and check if announce is in there. If it's not, open .fastresume and combine before output
-					torrentFile, err := os.Open(filepath.Join(sourceDir, fileName+".torrent"))
+					//torrentFile, err := os.Open(filepath.Join(sourceDir, fileName+".torrent"))
+					torrentFile, err := os.Open(dirPath)
 					if err != nil {
-						return err
+						return errors.Wrapf(err, "could not open torrent file: %s", dirPath)
 					}
-
 					defer torrentFile.Close()
+
 					torrentInfo, err := metainfo.Load(torrentFile)
 					if err != nil {
-						return errors.Wrapf(err, "could not open file: %s", outFile)
+						return errors.Wrapf(err, "could not open file: %s", dirPath)
 					}
 
 					if torrentInfo.Announce == "" {
 						needTrackerFix = true
 
-						fastResumeFile, err := os.Open(filepath.Join(sourceDir, fileName+".fastresume"))
+						sourceFastResumeFilePath := filepath.Join(sourceDir, torrentHash+".fastresume")
+						fastResumeFile, err := os.Open(sourceFastResumeFilePath)
 						if err != nil {
-							log.Fatalf("could not open fastresume file: %s", err)
+							return errors.Wrapf(err, "could not open fastresume file: %s", sourceFastResumeFilePath)
 						}
+						defer fastResumeFile.Close()
 
 						// open fastresume and get announce then // open fastresume and get announce then <INSERT_CODE_HERE>
 						var fastResume qbit.Fastresume
-						if err := bencode.NewDecoder(fastResumeFile).Decode(fastResume); err != nil {
-							return errors.Wrapf(err, "could not open file: %s", fileName+".fastresume")
+						if err := bencode.NewDecoder(fastResumeFile).Decode(&fastResume); err != nil {
+							return errors.Wrapf(err, "could not open file: %s", sourceFastResumeFilePath)
 						}
 
 						if len(fastResume.Trackers) == 0 {
@@ -392,16 +404,35 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 						if len(torrentInfo.UrlList) == 0 && len(fastResume.UrlList) > 0 {
 							torrentInfo.UrlList = fastResume.UrlList
 						}
+
+						// copy .fastresume here already since we already have it open
+						fastresumeFilePath := filepath.Join(exportDir, torrentHash+".fastresume")
+						newFastResumeFile, err := os.Create(fastresumeFilePath)
+						if err != nil {
+							return errors.Wrapf(err, "could not create new fastresume file: %s", fastresumeFilePath)
+						}
+						defer newFastResumeFile.Close()
+
+						if err := bencode.NewEncoder(newFastResumeFile).Encode(&fastResume); err != nil {
+							return errors.Wrapf(err, "could not encode fastresume to file: %s", fastresumeFilePath)
+						}
+
+						// make sure the fastresume is only written once
+						processedFastResumeHashes[torrentHash] = true
+
+						exportFastresumeCount++
+						log.Printf("[%d/%d] exported: %s\n", exportFastresumeCount, len(hashes), fileName)
 					}
 
 					// write new torrent file to destination path
 					newTorrentFile, err := os.Create(outFile)
 					if err != nil {
-						return errors.Wrapf(err, "could not create file: %s", outFile)
+						return errors.Wrapf(err, "could not create new torrent file: %s", outFile)
 					}
 					defer newTorrentFile.Close()
+
 					if err := torrentInfo.Write(newTorrentFile); err != nil {
-						return errors.Wrapf(err, "could not write new torrent info file %s", outFile)
+						return errors.Wrapf(err, "could not write torrent info into file %s", outFile)
 					}
 				} else {
 					// only do this if !needTrackerFix
@@ -411,18 +442,23 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 				}
 
 				exportTorrentCount++
-				fmt.Printf("(%d/%d) exported: %s\n", exportTorrentCount, len(hashes), fileName)
+				log.Printf("[%d/%d] exported: %s\n", exportTorrentCount, len(hashes), fileName)
 			case ".fastresume":
-				// only do this if !needTrackerFix
-				if err := fsutil.CopyFile(dirPath, outFile); err != nil {
-					return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
-				}
+				// process if fastresume has not already been copied
+				_, ok := processedFastResumeHashes[torrentHash]
+				if !ok {
 
-				exportFastresumeCount++
-				fmt.Printf("(%d/%d) exported: %s\n", exportFastresumeCount, len(hashes), fileName)
+					// only do this if !needTrackerFix
+					if err := fsutil.CopyFile(dirPath, outFile); err != nil {
+						return errors.Wrapf(err, "could not copy file: %s to %s", dirPath, outFile)
+					}
+
+					exportFastresumeCount++
+					log.Printf("[%d/%d] exported: %s\n", exportFastresumeCount, len(hashes), fileName)
+				}
 			}
 
-			//fmt.Printf("(%d/%d) exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
+			//log.Printf("[%d/%d] exported: %s '%s'\n", exportCount, len(hashes), torrentHash, fileName)
 		}
 
 		return nil
@@ -432,7 +468,7 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 		return err
 	}
 
-	fmt.Printf(`
+	log.Printf(`
 found (%d) files in total
 exported fastresume: %d
 exported torrent %d
