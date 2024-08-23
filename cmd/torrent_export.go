@@ -3,6 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/archive"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"io/fs"
 	"log"
 	"os"
@@ -32,6 +34,7 @@ func RunTorrentExport() *cobra.Command {
 	f := export{
 		dry:             false,
 		verbose:         false,
+		archive:         false,
 		sourceDir:       "",
 		exportDir:       "",
 		includeCategory: nil,
@@ -46,6 +49,7 @@ func RunTorrentExport() *cobra.Command {
 
 	command.Flags().BoolVar(&f.dry, "dry-run", false, "dry run")
 	command.Flags().BoolVarP(&f.verbose, "verbose", "v", false, "verbose output")
+	command.Flags().BoolVarP(&f.archive, "archive", "a", false, "archive export dir to .tar.gz")
 	command.Flags().BoolVar(&skipManifest, "skip-manifest", false, "Do not export all used tags and categories into manifest")
 
 	command.Flags().StringVar(&f.sourceDir, "source", "", "Dir with torrent and fast-resume files (required)")
@@ -60,13 +64,20 @@ func RunTorrentExport() *cobra.Command {
 	command.MarkFlagRequired("source")
 	command.MarkFlagRequired("export-dir")
 
+	command.MarkFlagsMutuallyExclusive("include-category", "exclude-category")
+	command.MarkFlagsMutuallyExclusive("include-tag", "exclude-tag")
+
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		if len(f.includeCategory) > 0 && len(f.excludeCategory) > 0 {
-			return fmt.Errorf("--include-category and --exclude-category cannot be used together")
+		var err error
+
+		f.sourceDir, err = utils.ExpandTilde(f.sourceDir)
+		if err != nil {
+			return errors.Wrap(err, "could not read source-dir")
 		}
 
-		if len(f.includeTag) > 0 && len(f.excludeTag) > 0 {
-			return fmt.Errorf("--include-tag and --exclude-tag cannot be used together")
+		f.exportDir, err = utils.ExpandTilde(f.exportDir)
+		if err != nil {
+			return errors.Wrap(err, "could not read export-dir")
 		}
 
 		if _, err := os.Stat(f.sourceDir); err != nil {
@@ -99,7 +110,6 @@ func RunTorrentExport() *cobra.Command {
 		}
 
 		var torrents []qbittorrent.Torrent
-		var err error
 
 		if len(f.includeCategory) > 0 {
 			for _, category := range f.includeCategory {
@@ -199,6 +209,27 @@ func RunTorrentExport() *cobra.Command {
 		}
 
 		log.Println("Successfully exported torrents!")
+
+		if f.archive {
+			currentWorkingDirectory, err := os.Getwd()
+			if err != nil {
+				return errors.Wrap(err, "could not get current working directory")
+			}
+
+			archiveFilename := filepath.Join(currentWorkingDirectory, "qbittorrent-export.tar.gz")
+
+			if f.dry {
+				log.Printf("dry-run: Archive exported dir to: %s\n", archiveFilename)
+			} else {
+				log.Printf("Archive exported dir to: %s\n", archiveFilename)
+
+				if err := archive.TarGzDirectory(f.exportDir, archiveFilename); err != nil {
+					return errors.Wrapf(err, "could not archive exported torrents")
+				}
+			}
+
+			log.Println("Successfully archived exported torrents!")
+		}
 
 		return nil
 	}
@@ -468,6 +499,7 @@ func createDirIfNotExists(dir string) error {
 type export struct {
 	dry             bool
 	verbose         bool
+	archive         bool
 	sourceDir       string
 	exportDir       string
 	includeCategory []string
