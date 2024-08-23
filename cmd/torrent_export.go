@@ -246,11 +246,15 @@ func exportManifest(hashes map[string]qbittorrent.Torrent, tags map[string]struc
 	}
 	defer manifestFile.Close()
 
-	if err := json.NewEncoder(manifestFile).Encode(&data); err != nil {
+	// create new encoder with pretty print
+	encoder := json.NewEncoder(manifestFile)
+	encoder.SetIndent("", "  ")
+
+	if err := encoder.Encode(&data); err != nil {
 		return errors.Wrap(err, "could not encode manifest to json")
 	}
 
-	log.Printf("wrote export manifest to %s", manifestFilePath)
+	log.Printf("wrote export manifest to %s\n", manifestFilePath)
 
 	return nil
 }
@@ -418,7 +422,7 @@ func processExport(sourceDir, exportDir string, hashes map[string]qbittorrent.To
 		return err
 	}
 
-	log.Printf("found (%d) files in total. exported fastresume: %d exported torrent %d", exportFastresumeCount+exportTorrentCount, exportFastresumeCount, exportTorrentCount)
+	log.Printf("exported (%d) files in total: fastresume (%d) torrents (%d)\n", exportFastresumeCount+exportTorrentCount, exportFastresumeCount, exportTorrentCount)
 
 	return nil
 }
