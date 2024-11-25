@@ -53,6 +53,8 @@ A cli to manage qBittorrent. Add torrents, categories, tags, reannounce and impo
     * [Recheck](#recheck)
     * [Remove](#remove)
     * [Resume](#resume)
+    * [Tag](#tag-1)
+      * [Issues](#issues)
     * [Tracker](#tracker)
       * [Tracker edit](#tracker-edit)
   * [Version](#version-1)
@@ -860,6 +862,47 @@ Flags:
       --all              resumes all torrents
       --hashes strings   Add hashes as comma separated list
   -h, --help             help for resume
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+### Tag
+
+Tag torrents.
+
+```text
+Do various torrent tag operations
+
+Usage:
+  qbt torrent tag [command]
+
+Available Commands:
+  issues      tag torrents with issues
+
+Flags:
+  -h, --help   help for tag
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+#### Issues
+
+```text
+Tag torrents that may have broken trackers or be unregistered
+
+Usage:
+  qbt torrent tag issues [flags]
+
+Examples:
+  qbt torrent tag issues --unregistered --not-working
+
+Flags:
+      --dry-run        Dry run, do not tag torrents
+  -h, --help           help for issues
+      --not-working    tag not working torrents
+      --unregistered   tag unregistered
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
