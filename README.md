@@ -6,6 +6,7 @@ A cli to manage qBittorrent. Add torrents, categories, tags, reannounce and impo
 
 ## Features
 
+* qBittorrent v5 compatible as of version v2.1.0
 * Add torrents to qBittorrent from file or magnet link. Useful in combination with autodl-irssi
 * Reannounce torrents for troublesome trackers
 * Set limits on how many simultaneously active downloads are allowed
