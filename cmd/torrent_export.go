@@ -3,8 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/archive"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"io/fs"
 	"log"
 	"os"
@@ -14,7 +12,9 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 	fsutil "github.com/ludviglundgren/qbittorrent-cli/internal/fs"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/archive"
 	qbit "github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
