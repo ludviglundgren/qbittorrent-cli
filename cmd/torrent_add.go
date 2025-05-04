@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -36,7 +38,7 @@ func RunTorrentAdd() *cobra.Command {
 		sleep         time.Duration
 	)
 
-	var command = &cobra.Command{
+	command := &cobra.Command{
 		Use:   "add",
 		Short: "Add torrent(s)",
 		Long:  `Add new torrent(s) to qBittorrent from file or magnet. Supports glob pattern for files like: ./files/*.torrent`,
@@ -108,7 +110,7 @@ func RunTorrentAdd() *cobra.Command {
 			options["skip_checking"] = "true"
 		}
 		if savePath != "" {
-			//options["savepath"] = savePath
+			// options["savepath"] = savePath
 			options["autoTMM"] = "false"
 		}
 		if category != "" {
@@ -166,7 +168,39 @@ func RunTorrentAdd() *cobra.Command {
 			var files []string
 			var err error
 
-			if IsGlobPattern(filePath) {
+			var tempFile *os.File
+
+			defer func() {
+				if tempFile != nil {
+					os.Remove(tempFile.Name())
+					tempFile.Close()
+				}
+			}()
+
+			if strings.HasPrefix(filePath, "https://") || strings.HasPrefix(filePath, "http://") {
+				tempFile, err = os.CreateTemp("", "qbt-torrent-dl")
+				if err != nil {
+					log.Fatalf("error creating temp file: %q\n", err)
+				}
+
+				response, err := http.Get(filePath)
+				if err != nil {
+					log.Fatalf("could not download file: %s err : %q\n", filePath, err)
+				}
+
+				defer response.Body.Close()
+
+				if response.StatusCode != http.StatusOK {
+					log.Fatalf("bad status: %s\n", response.Status)
+				}
+
+				_, err = io.Copy(tempFile, response.Body)
+				if err != nil {
+					log.Fatalf("could not write download locally: %q\n", err)
+				}
+
+				files = []string{tempFile.Name()}
+			} else if IsGlobPattern(filePath) {
 				files, err = filepath.Glob(filePath)
 				if err != nil {
 					log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)

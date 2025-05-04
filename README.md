@@ -482,6 +482,7 @@ Usage:
 Examples:
   qbt torrent add my-file.torrent --category test --tags tag1
   qbt torrent add ./files/*.torrent --paused --skip-hash-check
+  qbt torrent add https://website.com/tor/download/5dee65101db281ac9c46344cd6b175cdcad53426
   qbt torrent add magnet:?xt=urn:btih:5dee65101db281ac9c46344cd6b175cdcad53426&dn=download
 
 Flags:
