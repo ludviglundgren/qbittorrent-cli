@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
-	"os"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -40,11 +39,10 @@ func RunTorrentRemove() *cobra.Command {
 	command.Flags().StringSliceVar(&includeTags, "include-tags", []string{}, "Include torrents with provided tags")
 	command.Flags().StringSliceVar(&excludeTags, "exclude-tags", []string{}, "Exclude torrents with provided tags")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(hashes) > 0 {
-			err := utils.ValidateHash(hashes)
-			if err != nil {
-				log.Fatalf("Invalid hashes supplied: %v", err)
+			if err := utils.ValidateHash(hashes); err != nil {
+				return errors.Wrap(err, "invalid hashes supplied")
 			}
 		}
 
@@ -63,8 +61,7 @@ func RunTorrentRemove() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		if removeAll {
@@ -85,7 +82,7 @@ func RunTorrentRemove() *cobra.Command {
 
 				torrents, err := qb.GetTorrentsCtx(ctx, options)
 				if err != nil {
-					log.Fatalf("could not get torrents for category: %s err: %q\n", category, err)
+					return errors.Wrapf(err, "could not get torrents for category: %s", category)
 				}
 
 				for _, torrent := range torrents {
@@ -108,7 +105,7 @@ func RunTorrentRemove() *cobra.Command {
 
 		if len(hashes) == 0 {
 			log.Println("No torrents found to remove")
-			return
+			return nil
 		}
 
 		if dryRun {
@@ -128,9 +125,7 @@ func RunTorrentRemove() *cobra.Command {
 				return qb.DeleteTorrentsCtx(ctx, hashes[start:end], deleteFiles)
 			})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "could not delete torrents: %v\n", err)
-				os.Exit(1)
-				return
+				return errors.Wrap(err, "could not delete torrents")
 			}
 
 			if hashes[0] == "all" {
@@ -141,6 +136,8 @@ func RunTorrentRemove() *cobra.Command {
 		}
 
 		log.Printf("torrent(s) successfully deleted\n")
+
+		return nil
 	}
 
 	return command

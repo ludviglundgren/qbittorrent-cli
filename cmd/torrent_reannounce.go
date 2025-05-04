@@ -2,15 +2,13 @@ package cmd
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +36,7 @@ func RunTorrentReannounce() *cobra.Command {
 	command.Flags().IntVar(&attempts, "attempts", 50, "Reannounce torrents X times")
 	command.Flags().IntVar(&interval, "interval", 7000, "Reannounce torrents X times with interval Y. In MS")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -54,8 +52,7 @@ func RunTorrentReannounce() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		req := qbittorrent.TorrentFilterOptions{
@@ -67,10 +64,11 @@ func RunTorrentReannounce() *cobra.Command {
 
 		activeDownloads, err := qb.GetTorrentsCtx(ctx, req)
 		if err != nil {
-			log.Fatalf("could not fetch torrents: err: %q", err)
+			return errors.Wrap(err, "could not fetch torrents")
 		}
+
 		if hash != "" && len(activeDownloads) != 1 {
-			log.Fatalf("torrent not found: %s", hash)
+			return errors.Errorf("torrent not found: %s", hash)
 		}
 
 		if dry {
@@ -95,6 +93,8 @@ func RunTorrentReannounce() *cobra.Command {
 
 			log.Println("torrents successfully re-announced")
 		}
+
+		return nil
 	}
 
 	return command

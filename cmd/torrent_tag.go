@@ -2,15 +2,14 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/dustin/go-humanize"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -128,7 +127,7 @@ func RunTorrentTagNotWorking() *cobra.Command {
 	command.Flags().BoolVar(&tagNotWorking, "not-working", false, "tag not working torrents")
 	//command.Flags().BoolVar(&size, "size", false, "collect size per tag")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -144,14 +143,12 @@ func RunTorrentTagNotWorking() *cobra.Command {
 		ctx := context.Background()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not get torrents")
 		}
 
 		var totalSize uint64
@@ -181,8 +178,8 @@ func RunTorrentTagNotWorking() *cobra.Command {
 
 			trackers, err := qb.GetTorrentTrackersCtx(ctx, torrent.Hash)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get trackers for torrent %v: %v\n", torrent.Hash, err)
-				continue
+
+				return errors.Wrapf(err, "could not get trackers for torrent: %s", torrent.Hash)
 			}
 
 			processTorrentTags(torrent, trackers, removeTaggedTorrents, unregisteredTorrents, notWorkingTorrents, tagUnregistered, tagUnregistered)
@@ -201,9 +198,7 @@ func RunTorrentTagNotWorking() *cobra.Command {
 					return qb.RemoveTagsCtx(ctx, hashes[start:end], tag)
 				})
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "could remove tag %s from torrents %+v: %v\n", tag, hashes, err)
-					os.Exit(1)
-					return
+					return errors.Wrapf(err, "could not remove tag %s from torrents %v", tag, hashes)
 				}
 
 				log.Printf("successfully cleared tags from (%d) torrents\n", len(hashes))
@@ -226,9 +221,8 @@ func RunTorrentTagNotWorking() *cobra.Command {
 					return qb.AddTagsCtx(ctx, unregisteredTorrents.Hashes[start:end], DefaultTagUnregistered.String())
 				})
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "could not tag torrents: %v\n", err)
-					os.Exit(1)
-					return
+
+					return errors.Wrapf(err, "could not add tag %s to torrents %v", DefaultTagUnregistered, unregisteredTorrents.Hashes)
 				}
 
 				log.Printf("successfully tagged (%d) unregistered torrents\n", countUnregisteredTorrents)
@@ -250,14 +244,14 @@ func RunTorrentTagNotWorking() *cobra.Command {
 					return qb.AddTagsCtx(ctx, notWorkingTorrents.Hashes[start:end], DefaultTagNotWorking.String())
 				})
 				if err != nil {
-					fmt.Fprintf(os.Stderr, "could not tag torrents: %v\n", err)
-					os.Exit(1)
-					return
+					return errors.Wrapf(err, "could not add tag %s to torrents %v", DefaultTagNotWorking, notWorkingTorrents.Hashes)
 				}
 
 				log.Printf("successfully tagged (%d) not working torrents\n", countNotWorkingTorrents)
 			}
 		}
+
+		return nil
 	}
 
 	return command

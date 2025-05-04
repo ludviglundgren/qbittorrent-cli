@@ -60,17 +60,16 @@ func RunCategoryList() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		cats, err := qb.GetCategoriesCtx(ctx)
 		if err != nil {
-			log.Fatal("could not get categories")
+			return errors.Wrap(err, "could not get categories")
 		}
 
 		if len(cats) == 0 {
-			fmt.Println("No categories found")
+			log.Println("No categories found")
 			return nil
 		}
 
@@ -78,14 +77,15 @@ func RunCategoryList() *cobra.Command {
 		case "json":
 			res, err := json.Marshal(cats)
 			if err != nil {
-				log.Fatalf("could not marshal categories, err: %q", err)
+				return errors.Wrap(err, "could not marshal categories")
 			}
 
 			fmt.Println(string(res))
 
 		default:
-			printCategoryList(cats)
-
+			if err := printCategoryList(cats); err != nil {
+				return errors.Wrap(err, "could not print category list")
+			}
 		}
 
 		return nil
@@ -100,16 +100,18 @@ Save path: {{.SavePath}}
 {{end}}
 `
 
-func printCategoryList(categories map[string]qbittorrent.Category) {
+func printCategoryList(categories map[string]qbittorrent.Category) error {
 	tmpl, err := template.New("category-list").Parse(categoryItemTemplate)
 	if err != nil {
-		log.Fatalf("error: %q", err)
+		return err
 	}
 
 	err = tmpl.Execute(os.Stdout, categories)
 	if err != nil {
-		log.Fatalf("could not generate template: %q", err)
+		return errors.Wrap(err, "could not generate template")
 	}
+
+	return nil
 }
 
 // RunCategoryAdd cmd to add categories
@@ -152,8 +154,7 @@ func RunCategoryAdd() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		// args
@@ -167,7 +168,7 @@ func RunCategoryAdd() *cobra.Command {
 
 		} else {
 			if err := qb.CreateCategoryCtx(ctx, category, savePath); err != nil {
-				log.Fatal("could not create category")
+				return errors.Wrap(err, "could not create category")
 			}
 
 			log.Printf("successfully added category: %s\n", category)
@@ -216,8 +217,7 @@ func RunCategoryDelete() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		// args
@@ -231,7 +231,7 @@ func RunCategoryDelete() *cobra.Command {
 
 		} else {
 			if err := qb.RemoveCategoriesCtx(ctx, []string{category}); err != nil {
-				log.Fatal("could not delete category")
+				return errors.Wrap(err, "could not delete category")
 			}
 
 			log.Printf("successfully deleted category: %s\n", category)
@@ -283,8 +283,7 @@ func RunCategoryEdit() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		// args
@@ -298,7 +297,7 @@ func RunCategoryEdit() *cobra.Command {
 
 		} else {
 			if err := qb.EditCategoryCtx(ctx, category, savePath); err != nil {
-				log.Fatal("could not edit category")
+				return errors.Wrap(err, "could not edit category")
 			}
 
 			log.Printf("successfully edited category: %s\n", category)

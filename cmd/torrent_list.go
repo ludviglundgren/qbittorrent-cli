@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
 	"os"
 	"strings"
@@ -11,8 +10,10 @@ import (
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-qbittorrent/errors"
 	"github.com/dustin/go-humanize"
 	"github.com/spf13/cobra"
 )
@@ -39,11 +40,10 @@ func RunTorrentList() *cobra.Command {
 	command.Flags().StringVarP(&tag, "tag", "t", "", "Filter by tag. Single tag: tag1")
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Filter by hashes. Separated by comma: \"hash1,hash2\".")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(hashes) > 0 {
-			err := utils.ValidateHash(hashes)
-			if err != nil {
-				log.Fatalf("Invalid hashes supplied: %v", err)
+			if err := utils.ValidateHash(hashes); err != nil {
+				return errors.Wrap(err, "invalid hashes supplied")
 			}
 		}
 
@@ -62,8 +62,7 @@ func RunTorrentList() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		req := qbittorrent.TorrentFilterOptions{
@@ -76,28 +75,29 @@ func RunTorrentList() *cobra.Command {
 		// get torrent list with default filter of all
 		torrents, err := qb.GetTorrentsCtx(ctx, req)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not get torrents")
 		}
 
 		if len(torrents) == 0 {
-			fmt.Printf("No torrents found with filter: %s\n", filter)
-			return
+			log.Printf("No torrents found with filter: %s\n", filter)
+			return nil
 		}
 
 		switch output {
 		case "json":
 			res, err := json.Marshal(torrents)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not marshal torrents to json %v\n", err)
-				os.Exit(1)
+				return errors.Wrap(err, "could not marshal torrents list to json")
 			}
 			fmt.Println(string(res))
 
 		default:
-			printList(torrents)
+			if err := printList(torrents); err != nil {
+				return errors.Wrap(err, "could not print torrent list")
+			}
 		}
 
+		return nil
 	}
 
 	return command
@@ -128,10 +128,10 @@ type ItemData struct {
 	Uploaded   string
 }
 
-func printList(torrents []qbittorrent.Torrent) {
+func printList(torrents []qbittorrent.Torrent) error {
 	tmpl, err := template.New("item").Parse(torrentItemTemplate)
 	if err != nil {
-		fmt.Errorf("error")
+		return err
 	}
 
 	var data []ItemData
@@ -172,6 +172,8 @@ func printList(torrents []qbittorrent.Torrent) {
 
 	err = tmpl.Execute(os.Stdout, data)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
+
+	return nil
 }

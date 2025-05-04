@@ -2,7 +2,7 @@ package config
 
 import (
 	"errors"
-	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 
@@ -30,8 +30,7 @@ func InitConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println("Could not read home dir:", err)
-			os.Exit(1)
+			log.Fatal("could not read home dir: %w", err)
 		}
 
 		viper.SetConfigName(".qbt")
@@ -46,9 +45,9 @@ func InitConfig() {
 	if err := viper.ReadInConfig(); err != nil {
 		var ferr *viper.ConfigFileNotFoundError
 		if errors.As(err, &ferr) {
-			fmt.Printf("config file not found: err %q\n", ferr)
+			log.Printf("config file not found: err %q\n", ferr)
 		} else {
-			fmt.Printf("could not read config: err %q\n", err)
+			log.Printf("could not read config: err %q\n", err)
 		}
 		os.Exit(1)
 	}

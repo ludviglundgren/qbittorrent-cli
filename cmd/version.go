@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +20,7 @@ func RunVersion(version, commit, date string) *cobra.Command {
 
 	command.Flags().StringVar(&output, "output", "text", "Print as [text, json]")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		switch output {
 		case "text":
 			fmt.Printf(`qbt - qbitttorrent cli
@@ -28,17 +28,19 @@ Version: %s
 Commit: %s
 Date: %s
 `, version, commit, date)
-			return
+			return nil
 
 		case "json":
 			res, err := json.Marshal(versionInfo{Version: version, Commit: commit, Date: date})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not marshal version info to json %v\n", err)
-				os.Exit(1)
+
+				return errors.Wrap(err, "could not marshal version info to json")
 			}
 			fmt.Println(string(res))
 
 		}
+
+		return nil
 	}
 
 	return command

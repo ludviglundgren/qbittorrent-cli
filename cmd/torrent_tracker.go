@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -63,13 +62,12 @@ func RunTorrentTrackerEdit() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 		if err != nil {
-			log.Fatalf("could not get torrents err: %q\n", err)
+			errors.Wrap(err, "could not get torrents")
 		}
 
 		var torrentsToUpdate []qbittorrent.Torrent
@@ -93,7 +91,7 @@ func RunTorrentTrackerEdit() *cobra.Command {
 				log.Printf("[%d/%d] updating tracker for torrent %s %q\n", i+1, len(torrentsToUpdate), torrent.Hash, torrent.Name)
 
 				if err := qb.EditTrackerCtx(ctx, torrent.Hash, torrent.Tracker, newURL); err != nil {
-					log.Fatalf("could not edit tracker for torrent: %s\n", torrent.Hash)
+					return errors.Wrapf(err, "could not edit tracker for torrent: %s", torrent.Hash)
 				}
 			}
 		}

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"io/fs"
 	"log"
 	"os"
@@ -80,24 +79,24 @@ func RunBencodeEdit() *cobra.Command {
 
 			matched, err := filepath.Match("*.fastresume", info.Name())
 			if err != nil {
-				log.Fatalf("error matching files: %v", err)
+				return errors.Wrap(err, "error matching files")
 			}
 
 			if matched {
 				matchedFiles++
 
 				if err := processFastResume(path, pattern, replace, verbose, dry); err != nil {
-					log.Fatalf("error processing file: %v", err)
+					return errors.Wrapf(err, "error processing file: %s", path)
 				}
 			}
 
 			return nil
 		})
 		if err != nil {
-			log.Fatalf("error reading files: %v", err)
+			return errors.Wrap(err, "error reading files")
 		}
 
-		fmt.Printf("Found, matched and replaced in '%d' files\n", matchedFiles)
+		log.Printf("Found, matched and replaced in '%d' files\n", matchedFiles)
 
 		return nil
 	}
@@ -108,28 +107,27 @@ func RunBencodeEdit() *cobra.Command {
 func processFastResume(path, pattern, replace string, verbose, dry bool) error {
 	if dry {
 		if verbose {
-			fmt.Printf("dry-run: replaced: '%s' with '%s' in %s\n", pattern, replace, path)
+			log.Printf("dry-run: replaced: '%s' with '%s' in %s\n", pattern, replace, path)
 		}
 	} else {
 		read, err := os.ReadFile(path)
 		if err != nil {
-			log.Fatalf("error reading file: %v - %v", path, err)
+			return errors.Wrapf(err, "error reading file: %s", path)
 		}
 
 		var fastResume qbittorrent.Fastresume
 		if err := bencode.DecodeString(string(read), &fastResume); err != nil {
-			log.Printf("could not decode fastresume %v", path)
+			return errors.Wrapf(err, "could not decode fastresume: %s", path)
 		}
 
 		fastResume.SavePath = strings.Replace(fastResume.SavePath, pattern, replace, -1)
 
 		if err = fastResume.Encode(path); err != nil {
-			log.Printf("could not create qBittorrent fastresume file %s error: %q", path, err)
-			return err
+			return errors.Wrapf(err, "could not create qBittorrent fastresume file: %s", path)
 		}
 
 		if verbose {
-			fmt.Printf("Replaced: '%s' with '%s' in %s\n", pattern, replace, path)
+			log.Printf("Replaced: '%s' with '%s' in %s\n", pattern, replace, path)
 		}
 	}
 

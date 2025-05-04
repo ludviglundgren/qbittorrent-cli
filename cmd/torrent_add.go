@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -19,6 +17,7 @@ import (
 
 	"github.com/anacrolix/torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -76,7 +75,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().DurationVar(&sleep, "sleep", 200*time.Millisecond, "Set the amount of time to wait between adding torrents in seconds")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 		// args
 		// first arg is path to torrent file
@@ -95,19 +94,18 @@ func RunTorrentAdd() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		if config.Rules.Enabled && !ignoreRules {
 			activeDownloads, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Filter: qbittorrent.TorrentFilterDownloading})
 			if err != nil {
-				log.Fatalf("could not fetch torrents: %q\n", err)
+				return errors.Wrap(err, "could not fetch torrents")
 			}
 
 			if len(activeDownloads) >= config.Rules.MaxActiveDownloads {
 				log.Printf("max active downloads of (%d) reached, skip adding\n", config.Rules.MaxActiveDownloads)
-				return
+				return nil
 			}
 		}
 
@@ -143,11 +141,11 @@ func RunTorrentAdd() *cobra.Command {
 			if dry {
 				log.Printf("dry-run: successfully added torrent from magnet %s!\n", filePath)
 
-				return
+				return nil
 			}
 
 			if err := qb.AddTorrentFromUrlCtx(ctx, filePath, options); err != nil {
-				log.Fatalf("adding torrent failed: %q\n", err)
+				return errors.Wrapf(err, "adding torrent %s failed", filePath)
 			}
 
 			hash := ""
@@ -156,7 +154,7 @@ func RunTorrentAdd() *cobra.Command {
 			if config.Reannounce.Enabled && !paused {
 				magnet, err := metainfo.ParseMagnetUri(filePath)
 				if err != nil {
-					fmt.Printf("could not parse magnet URI: %s\n", filePath)
+					return errors.Wrapf(err, "could not parse magnet URI: %s", filePath)
 				}
 
 				hash := magnet.InfoHash.String()
@@ -176,7 +174,7 @@ func RunTorrentAdd() *cobra.Command {
 			}
 
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
-			return
+			return nil
 		} else {
 			var files []string
 			var err error
@@ -193,35 +191,35 @@ func RunTorrentAdd() *cobra.Command {
 			if strings.HasPrefix(filePath, "https://") || strings.HasPrefix(filePath, "http://") {
 				tempFile, err = os.CreateTemp("", "qbt-torrent-dl")
 				if err != nil {
-					log.Fatalf("error creating temp file: %q\n", err)
+					return errors.Wrap(err, "could not create tmp file")
 				}
 
 				response, err := http.Get(filePath)
 				if err != nil {
-					log.Fatalf("could not download file: %s err : %q\n", filePath, err)
+					return errors.Wrapf(err, "could not download file: %s", filePath)
 				}
 
 				defer response.Body.Close()
 
-				if response.StatusCode != http.StatusOK {
-					log.Fatalf("bad status: %s\n", response.Status)
+				if response.StatusCode != http.StatusOK || response.StatusCode != http.StatusCreated || response.StatusCode != http.StatusNoContent {
+					return errors.Errorf("unexpected status: %d", response.StatusCode)
 				}
 
 				_, err = io.Copy(tempFile, response.Body)
 				if err != nil {
-					log.Fatalf("could not write download locally: %q\n", err)
+					return errors.Wrap(err, "could not write download locally")
 				}
 
 				files = []string{tempFile.Name()}
 			} else if IsGlobPattern(filePath) {
 				files, err = filepath.Glob(filePath)
 				if err != nil {
-					log.Fatalf("could not find files matching: %s err: %q\n", filePath, err)
+					return errors.Wrapf(err, "could not find files matching: %s", filePath)
 				}
 			} else {
 				_, err := os.Lstat(filePath)
 				if err != nil {
-					log.Fatalf("could not stat file: %q\n", err)
+					return errors.Wrapf(err, "could not find file: %s", filePath)
 				}
 
 				files = []string{filePath}
@@ -229,7 +227,7 @@ func RunTorrentAdd() *cobra.Command {
 
 			if len(files) == 0 {
 				log.Printf("found 0 torrents matching %s\n", filePath)
-				return
+				return nil
 			}
 
 			log.Printf("found (%d) torrent(s) to add\n", len(files))
@@ -248,13 +246,13 @@ func RunTorrentAdd() *cobra.Command {
 				options["savepath"] = savePath
 
 				if err := qb.AddTorrentFromFileCtx(ctx, file, options); err != nil {
-					log.Fatalf("adding torrent failed: %q\n", err)
+					return errors.Wrapf(err, "could not add torrent: %s", file)
 				}
 
 				// Get meta info from file to find out the hash for later use
 				t, err := metainfo.LoadFromFile(file)
 				if err != nil {
-					fmt.Printf("could not open file: %s", file)
+					log.Printf("could not open file: %s", file)
 					continue
 				}
 
@@ -290,6 +288,8 @@ func RunTorrentAdd() *cobra.Command {
 
 			log.Printf("successfully added %d torrent(s)\n", success)
 		}
+
+		return nil
 	}
 
 	return command

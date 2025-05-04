@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
-	"os"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -30,14 +29,12 @@ func RunTorrentPause() *cobra.Command {
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
 	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(hashes) > 0 {
-			err := utils.ValidateHash(hashes)
-			if err != nil {
-				log.Fatalf("Invalid hashes supplied: %v", err)
+			if err := utils.ValidateHash(hashes); err != nil {
+				return errors.Wrap(err, "invalid hashes supplied")
 			}
 		}
-
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -53,8 +50,7 @@ func RunTorrentPause() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		if pauseAll {
@@ -63,19 +59,19 @@ func RunTorrentPause() *cobra.Command {
 
 		if len(hashes) == 0 {
 			log.Printf("No torrents found to pause with provided hashes. Use --all to pause all torrents.")
-			return
+			return nil
 		}
 
 		err := batchRequests(hashes, func(start, end int) error {
 			return qb.PauseCtx(ctx, hashes[start:end])
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "could not pause torrents: %v\n", err)
-			os.Exit(1)
-			return
+			return errors.Wrap(err, "could not pause torrents")
 		}
 
 		log.Printf("torrent(s) successfully paused")
+
+		return nil
 	}
 
 	return command

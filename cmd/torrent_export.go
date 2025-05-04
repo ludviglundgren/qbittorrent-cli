@@ -528,7 +528,7 @@ func containsTag(contains []string, tags []string) bool {
 
 func containsCategory(contains []string, category string) bool {
 	for _, cat := range contains {
-		if strings.ToLower(category) == strings.ToLower(cat) {
+		if strings.EqualFold(category, cat) {
 			return true
 		}
 	}

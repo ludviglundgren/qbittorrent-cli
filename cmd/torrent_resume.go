@@ -1,13 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
-	"os"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
+	"github.com/pkg/errors"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/spf13/cobra"
@@ -29,11 +28,10 @@ func RunTorrentResume() *cobra.Command {
 	command.Flags().BoolVar(&resumeAll, "all", false, "resumes all torrents")
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(hashes) > 0 {
-			err := utils.ValidateHash(hashes)
-			if err != nil {
-				log.Fatalf("Invalid hashes supplied: %v", err)
+			if err := utils.ValidateHash(hashes); err != nil {
+				return errors.Wrap(err, "invalid hashes supplied")
 			}
 		}
 
@@ -52,8 +50,7 @@ func RunTorrentResume() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		if resumeAll {
@@ -64,12 +61,12 @@ func RunTorrentResume() *cobra.Command {
 			return qb.ResumeCtx(ctx, hashes[start:end])
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not resume torrents: %v\n", err)
-			os.Exit(1)
-			return
+			return errors.Wrap(err, "could not resume torrents")
 		}
 
 		log.Printf("torrent(s) successfully resumed")
+
+		return nil
 	}
 
 	return command
