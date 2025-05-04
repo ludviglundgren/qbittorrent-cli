@@ -22,6 +22,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
+type QBitStopCondition string
+
+const (
+	QBitStopConditionNone             QBitStopCondition = "None"
+	QbitStopConditionMetadataReceived QBitStopCondition = "MetadataReceived"
+	QbitStopConditionFilesChecked     QBitStopCondition = "FilesChecked"
+)
+
 // RunTorrentAdd cmd to add torrents
 func RunTorrentAdd() *cobra.Command {
 	var (
@@ -35,6 +43,7 @@ func RunTorrentAdd() *cobra.Command {
 		ignoreRules   bool
 		uploadLimit   uint64
 		downloadLimit uint64
+		stopCondition string
 		sleep         time.Duration
 	)
 
@@ -61,6 +70,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().BoolVar(&removeStalled, "remove-stalled", false, "Remove stalled torrents from re-announce")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
+	command.Flags().StringVar(&stopCondition, "stop-condition", "", "Add torrent with the specified stop condition. Possible values: None, MetadataReceived, FilesChecked. Default: None. Example: --stop-condition MetadataReceived")
 	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
 	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().DurationVar(&sleep, "sleep", 200*time.Millisecond, "Set the amount of time to wait between adding torrents in seconds")
@@ -118,6 +128,9 @@ func RunTorrentAdd() *cobra.Command {
 		}
 		if tags != nil {
 			options["tags"] = strings.Join(tags, ",")
+		}
+		if stopCondition != "" && (stopCondition == string(QBitStopConditionNone) || stopCondition == string(QbitStopConditionMetadataReceived) || stopCondition == string(QbitStopConditionFilesChecked)) {
+			options["stop_condition"] = stopCondition
 		}
 		if uploadLimit > 0 {
 			options["upLimit"] = strconv.FormatUint(uploadLimit, 10)
