@@ -9,7 +9,7 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/importer"
 
-	"github.com/mholt/archiver/v3"
+	"github.com/mholt/archives"
 	"github.com/mitchellh/go-homedir"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -61,7 +61,7 @@ func RunTorrentImport() *cobra.Command {
 			imp = importer.NewRTorrentImporter()
 
 		default:
-			return fmt.Errorf("error: unsupported client: %s\n", source)
+			return fmt.Errorf("error: unsupported client: %s", source)
 		}
 
 		// TODO check if program is running, if true exit
@@ -86,7 +86,29 @@ func RunTorrentImport() *cobra.Command {
 			} else {
 				fmt.Printf("creating %s backup of directory: %s to %s ...\n", source, sourceDir, sourceBackupArchive)
 
-				if err := archiver.Archive([]string{sourceDir}, sourceBackupArchive); err != nil {
+				// map files on disk to their paths in the archive using default settings (second arg)
+				files, err := archives.FilesFromDisk(cmd.Context(), nil, map[string]string{
+					sourceDir: "",
+				})
+				if err != nil {
+					return err
+				}
+
+				// create the output file we'll write to
+				out, err := os.Create(sourceBackupArchive)
+				if err != nil {
+					return err
+				}
+				defer out.Close()
+
+				format := archives.CompressedArchive{
+					Compression: archives.Gz{},
+					Archival:    archives.Tar{},
+				}
+
+				// create the archive
+				err = format.Archive(cmd.Context(), out, files)
+				if err != nil {
 					log.Printf("could not backup directory: %q", err)
 					return err
 				}
@@ -97,7 +119,29 @@ func RunTorrentImport() *cobra.Command {
 			} else {
 				fmt.Printf("creating qBittorrent backup of directory: %s to %s ...\n", qbitDir, qbitBackupArchive)
 
-				if err := archiver.Archive([]string{qbitDir}, qbitBackupArchive); err != nil {
+				// map files on disk to their paths in the archive using default settings (second arg)
+				files, err := archives.FilesFromDisk(cmd.Context(), nil, map[string]string{
+					qbitDir: "",
+				})
+				if err != nil {
+					return err
+				}
+
+				// create the output file we'll write to
+				out, err := os.Create(qbitBackupArchive)
+				if err != nil {
+					return err
+				}
+				defer out.Close()
+
+				format := archives.CompressedArchive{
+					Compression: archives.Gz{},
+					Archival:    archives.Tar{},
+				}
+
+				// create the archive
+				err = format.Archive(cmd.Context(), out, files)
+				if err != nil {
 					log.Printf("could not backup directory: %q", err)
 					return err
 				}
