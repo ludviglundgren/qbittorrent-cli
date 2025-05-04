@@ -69,6 +69,9 @@ func RunTorrentReannounce() *cobra.Command {
 		if err != nil {
 			log.Fatalf("could not fetch torrents: err: %q", err)
 		}
+		if hash != "" && len(activeDownloads) != 1 {
+			log.Fatalf("torrent not found: %s", hash)
+		}
 
 		if dry {
 			log.Println("dry-run: torrents successfully re-announced!")
