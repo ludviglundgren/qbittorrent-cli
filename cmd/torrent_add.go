@@ -102,6 +102,7 @@ func RunTorrentAdd() *cobra.Command {
 		options := map[string]string{}
 		if paused {
 			options["paused"] = "true"
+			options["stopped"] = "true"
 		}
 		if skipHashCheck {
 			options["skip_checking"] = "true"
