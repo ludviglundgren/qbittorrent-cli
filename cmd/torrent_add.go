@@ -70,7 +70,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().BoolVar(&removeStalled, "remove-stalled", false, "Remove stalled torrents from re-announce")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
-	command.Flags().StringVar(&stopCondition, "stop-condition", "", "Add torrent with the specified stop condition. Possible values: None, MetadataReceived, FilesChecked. Default: None. Example: --stop-condition MetadataReceived")
+	command.Flags().StringVar(&stopCondition, "stop-condition", "", "Add torrent with the specified stop condition. Possible values: None, MetadataReceived, FilesChecked. Example: --stop-condition MetadataReceived")
 	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
 	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().DurationVar(&sleep, "sleep", 200*time.Millisecond, "Set the amount of time to wait between adding torrents in seconds")
