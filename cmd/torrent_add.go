@@ -201,7 +201,7 @@ func RunTorrentAdd() *cobra.Command {
 
 				defer response.Body.Close()
 
-				if response.StatusCode != http.StatusOK || response.StatusCode != http.StatusCreated || response.StatusCode != http.StatusNoContent {
+				if response.StatusCode != http.StatusOK && response.StatusCode != http.StatusCreated && response.StatusCode != http.StatusNoContent {
 					return errors.Errorf("unexpected status: %d", response.StatusCode)
 				}
 
