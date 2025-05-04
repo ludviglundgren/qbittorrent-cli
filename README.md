@@ -739,7 +739,7 @@ After the import you will have to manually delete the torrents from the source c
 
 #### Workflow
 
-Torrents imported into qBittorrent does not have automatic management enabled, because it's default behavior is to move data.
+Torrents imported into qBittorrent do not have automatic management enabled, because its default behavior is to move data.
 
 1. Stop source client and qBittorrent.
 2. Start with a dry run and see what it does `qbt torrent import ..... --dry-run`

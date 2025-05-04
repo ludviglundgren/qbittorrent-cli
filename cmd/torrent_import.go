@@ -34,7 +34,6 @@ func RunTorrentImport() *cobra.Command {
 	}
 
 	var (
-		//source     string
 		sourceDir  string
 		qbitDir    string
 		dryRun     bool
@@ -42,12 +41,10 @@ func RunTorrentImport() *cobra.Command {
 	)
 
 	command.Flags().BoolVar(&dryRun, "dry-run", false, "Run without importing anything")
-	//command.Flags().StringVar(&source, "source", "", "source client [deluge, rtorrent] (required)")
 	command.Flags().StringVar(&sourceDir, "source-dir", "", "source client state dir (required)")
 	command.Flags().StringVar(&qbitDir, "qbit-dir", "", "qBittorrent BT_backup dir. Commonly ~/.local/share/qBittorrent/BT_backup (required)")
 	command.Flags().BoolVar(&skipBackup, "skip-backup", false, "Skip backup before import")
 
-	//command.MarkFlagRequired("source")
 	command.MarkFlagRequired("source-dir")
 	command.MarkFlagRequired("qbit-dir")
 

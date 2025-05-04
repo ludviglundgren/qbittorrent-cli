@@ -76,15 +76,11 @@ func (di *DelugeImport) Import(opts Options) error {
 
 		// If a file exist in fastresume data but no .torrent file, skip
 		if _, err = os.Stat(torrentNamePath); os.IsNotExist(err) {
+			log.Printf("%s: skipping because %s not found in source directory\n", torrentID, torrentNamePath)
 			continue
 		}
 
 		positionNum++
-
-		if opts.DryRun {
-			log.Printf("dry-run: (%d/%d) successfully imported: %s\n", positionNum, totalJobs, torrentID)
-			continue
-		}
 
 		torrentOutFile := filepath.Join(opts.QbitDir, torrentID+".torrent")
 
@@ -145,6 +141,11 @@ func (di *DelugeImport) Import(opts Options) error {
 		fastResume.FillPieces()
 
 		// TODO handle replace paths
+
+		if opts.DryRun {
+			log.Printf("dry-run: (%d/%d) successfully imported: %s\n", positionNum, totalJobs, torrentID)
+			continue
+		}
 
 		fastResumeOutFile := filepath.Join(opts.QbitDir, torrentID+".fastresume")
 		if err = fastResume.Encode(fastResumeOutFile); err != nil {
