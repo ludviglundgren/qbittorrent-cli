@@ -2,12 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -53,18 +52,17 @@ func RunAppVersion() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		appVersion, err := qb.GetAppVersionCtx(ctx)
 		if err != nil {
-			log.Fatal("could not get app version")
+			return errors.Wrap(err, "could not get app version")
 		}
 
 		webapiVersion, err := qb.GetWebAPIVersionCtx(ctx)
 		if err != nil {
-			log.Fatal("could not get web api version")
+			return errors.Wrap(err, "could not get web api version")
 		}
 
 		switch output {

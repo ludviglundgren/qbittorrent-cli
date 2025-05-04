@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/anacrolix/torrent/metainfo"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -25,14 +24,14 @@ func RunTorrentHash() *cobra.Command {
 		},
 	}
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		filePath := args[0]
 		hash := ""
 
 		if strings.HasPrefix(filePath, "magnet:") {
 			metadata, err := metainfo.ParseMagnetUri(filePath)
 			if err != nil {
-				log.Fatalf("could not parse magnet URI. error: %v", err)
+				return errors.Wrapf(err, "could not parse magnet URI: %s", filePath)
 			}
 
 			hash = metadata.InfoHash.HexString()
@@ -40,13 +39,16 @@ func RunTorrentHash() *cobra.Command {
 		} else {
 			metadata, err := metainfo.LoadFromFile(filePath)
 			if err != nil {
-				log.Fatalf("could not parse torrent file. error: %v", err)
+				return errors.Wrapf(err, "could not parse torrent file: %s", filePath)
 			}
 
 			hash = metadata.HashInfoBytes().HexString()
 		}
 
 		fmt.Println(hash)
+
+		return nil
 	}
+
 	return command
 }

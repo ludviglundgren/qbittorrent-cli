@@ -59,17 +59,16 @@ func RunTagList() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		tags, err := qb.GetTagsCtx(ctx)
 		if err != nil {
-			log.Fatal("could not get tags")
+			return errors.Wrap(err, "could not get tags")
 		}
 
 		if len(tags) == 0 {
-			fmt.Println("No tags found")
+			log.Println("No tags found")
 			return nil
 		}
 
@@ -77,15 +76,17 @@ func RunTagList() *cobra.Command {
 		case "json":
 			res, err := json.Marshal(tags)
 			if err != nil {
-				log.Fatalf("could not marshal tags, err: %q", err)
+				return errors.Wrap(err, "could not parshal tags")
 			}
 
 			fmt.Println(string(res))
 
 		default:
-			printTagsList(tags)
-
+			if err := printTagsList(tags); err != nil {
+				return err
+			}
 		}
+
 		return nil
 	}
 
@@ -97,16 +98,18 @@ Name: {{.}}
 {{end}}
 `
 
-func printTagsList(tags []string) {
+func printTagsList(tags []string) error {
 	tmpl, err := template.New("tags-list").Parse(tagItemTemplate)
 	if err != nil {
-		log.Fatalf("error: %q", err)
+		return errors.Wrap(err, "could not create template")
 	}
 
 	err = tmpl.Execute(os.Stdout, tags)
 	if err != nil {
-		log.Fatalf("could not generate template: %q", err)
+		return errors.Wrap(err, "could not generate tags list template")
 	}
+
+	return nil
 }
 
 // RunTagAdd cmd to add tags
@@ -146,8 +149,7 @@ func RunTagAdd() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		// args
@@ -161,7 +163,7 @@ func RunTagAdd() *cobra.Command {
 
 		} else {
 			if err := qb.CreateTagsCtx(ctx, args); err != nil {
-				log.Fatal("could not create tag")
+				return errors.Wrapf(err, "could not create tag: %s", tag)
 			}
 
 			log.Printf("successfully created tag: %s\n", tag)
@@ -209,8 +211,7 @@ func RunTagDelete() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		// args
@@ -224,7 +225,7 @@ func RunTagDelete() *cobra.Command {
 
 		} else {
 			if err := qb.DeleteTagsCtx(ctx, []string{tag}); err != nil {
-				log.Fatal("could not delete tag")
+				return errors.Wrapf(err, "could not delete tag: %s", tag)
 			}
 
 			log.Printf("successfully deleted tag: %s\n", tag)

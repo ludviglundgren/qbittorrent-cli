@@ -1,14 +1,12 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
-	"os"
 	"strings"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
@@ -56,12 +54,12 @@ func RunTorrentCategorySet() *cobra.Command {
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(hashes) == 0 {
-			log.Println("No hashes supplied!")
+			return errors.New("no hashes supplied!")
 		}
 
 		err := utils.ValidateHash(hashes)
 		if err != nil {
-			log.Fatalf("Invalid hashes supplied: %v", err)
+			return errors.Wrap(err, "invalid hashes supplied")
 		}
 
 		config.InitConfig()
@@ -79,8 +77,7 @@ func RunTorrentCategorySet() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		// args
@@ -94,7 +91,7 @@ func RunTorrentCategorySet() *cobra.Command {
 
 		} else {
 			if err := qb.SetCategoryCtx(ctx, hashes, category); err != nil {
-				log.Fatal("could not set category on torrents")
+				return errors.Wrapf(err, "could not set category %s on torrents %v", category, hashes)
 			}
 
 			log.Printf("successfully set category %s on torrents: %v\n", category, hashes)
@@ -139,8 +136,7 @@ func RunTorrentCategoryUnSet() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "could not login to qbit: %q\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		if dry {
@@ -150,7 +146,7 @@ func RunTorrentCategoryUnSet() *cobra.Command {
 
 		} else {
 			if err := qb.SetCategoryCtx(ctx, hashes, ""); err != nil {
-				log.Fatal("could not unset category on torrents")
+				return errors.Wrapf(err, "could not unset category on torrents %v", hashes)
 			}
 
 			log.Printf("successfully unset category on torrents: %v\n", hashes)
@@ -190,7 +186,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 	command.MarkFlagRequired("from")
 	command.MarkFlagRequired("to")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -206,8 +202,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		var hashes []string
@@ -215,8 +210,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 		for _, cat := range fromCategories {
 			torrents, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{Category: cat})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents by category %v\n", err)
-				os.Exit(1)
+				return errors.Wrapf(err, "could not get torrents by category: %s", cat)
 			}
 
 			for _, torrent := range torrents {
@@ -233,7 +227,7 @@ func RunTorrentCategoryChange() *cobra.Command {
 
 				if len(excludeTags) > 0 {
 					if tag, found := validateTag(excludeTags, torrent.Tags); found {
-						fmt.Printf("ignoring torrent %s %s containng tag: %s of tags: %s", torrent.Name, torrent.Hash, tag, excludeTags)
+						log.Printf("ignoring torrent %s %s containng tag: %s of tags: %s", torrent.Name, torrent.Hash, tag, excludeTags)
 						continue
 					}
 				}
@@ -255,23 +249,24 @@ func RunTorrentCategoryChange() *cobra.Command {
 		}
 
 		if len(hashes) == 0 {
-			fmt.Printf("Could not find any matching torrents to move from (%s) to (%s) with tags (%s) and min-seed-time %d minutes\n", strings.Join(fromCategories, ","), targetCategory, strings.Join(includeTags, ","), minSeedTime)
-			os.Exit(0)
+			log.Printf("Could not find any matching torrents to move from (%s) to (%s) with tags (%s) and min-seed-time %d minutes\n", strings.Join(fromCategories, ","), targetCategory, strings.Join(includeTags, ","), minSeedTime)
+			return nil
 		}
 
 		if dry {
-			fmt.Printf("dry-run: Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
-			fmt.Printf("dry-run: Successfully moved %d torrents from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			log.Printf("dry-run: Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			log.Printf("dry-run: Successfully moved %d torrents from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 		} else {
-			fmt.Printf("Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			log.Printf("Found %d matching torrents to move from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 
 			if err := qb.SetCategoryCtx(ctx, hashes, targetCategory); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not pause torrents %v\n", err)
-				os.Exit(1)
+				return errors.Wrapf(err, "could not pause torrents: %v", hashes)
 			}
 
-			fmt.Printf("Successfully moved %d torrents from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
+			log.Printf("Successfully moved %d torrents from (%s) to (%s)\n", len(hashes), strings.Join(fromCategories, ","), targetCategory)
 		}
+
+		return nil
 	}
 
 	return command

@@ -1,14 +1,14 @@
 package cmd
 
 import (
-	"fmt"
-	"os"
+	"log"
 	"time"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/dustin/go-humanize"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -61,7 +61,7 @@ func RunTorrentCompare() *cobra.Command {
 	command.Flags().StringVar(&compareBasicUser, "compare-basic-user", "", "Secondary basic auth user")
 	command.Flags().StringVar(&compareBasicPass, "compare-basic-pass", "", "Secondary basic auth pass")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
 		if sourceAddr == "" {
@@ -92,17 +92,15 @@ func RunTorrentCompare() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		sourceData, err := qb.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not get torrents %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not get torrents")
 		}
 
-		fmt.Printf("Found: %d torrents on source\n", len(sourceData))
+		log.Printf("Found: %d torrents on source\n", len(sourceData))
 
 		// Start comparison
 		for _, compareConfig := range config.Compare {
@@ -122,27 +120,25 @@ func RunTorrentCompare() *cobra.Command {
 			qbCompare := qbittorrent.NewClient(qbtSettingsCompare)
 
 			if err = qbCompare.LoginCtx(ctx); err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: connection failed to compare: %v\n", err)
-				os.Exit(1)
+				return errors.Wrapf(err, "could not login to qbit: %s", compareAddr)
 			}
 
 			compareData, err := qbCompare.GetTorrentsCtx(ctx, qbittorrent.TorrentFilterOptions{})
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "ERROR: could not get torrents from compare: %v\n", err)
-				os.Exit(1)
+				return errors.Wrapf(err, "could not get torrents from compare client")
 			}
 
-			fmt.Printf("Found: %d torrents on compare\n", len(compareData))
+			log.Printf("Found: %d torrents on compare\n", len(compareData))
 
 			duplicateTorrents, err := compare(sourceData, compareData)
 			if err != nil {
-				os.Exit(1)
+				return err
 			}
 
 			// Process duplicate torrents
 			if tagDuplicates {
 				if !dry {
-					fmt.Printf("found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
+					log.Printf("found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
 
 					batch := 20
 					for i := 0; i < len(duplicateTorrents); i += batch {
@@ -152,14 +148,14 @@ func RunTorrentCompare() *cobra.Command {
 						}
 
 						if err := qbCompare.AddTagsCtx(ctx, duplicateTorrents[i:j], tag); err != nil {
-							fmt.Printf("ERROR: Failed to set tag: %v\n", err)
+							return errors.Wrapf(err, "could not set tag: %s", tag)
 						}
 
 						// sleep before next request
 						time.Sleep(time.Second * 1)
 					}
 				} else {
-					fmt.Printf("dry-run: found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
+					log.Printf("dry-run: found: %d duplicate torrents from compare %s\n", len(duplicateTorrents), compareAddr)
 				}
 			}
 
@@ -167,6 +163,8 @@ func RunTorrentCompare() *cobra.Command {
 
 			// --save save to file
 		}
+
+		return nil
 	}
 
 	return command
@@ -219,9 +217,9 @@ func compare(source, compare []qbittorrent.Torrent) ([]string, error) {
 	}
 
 	// print duplicates
-	fmt.Printf("Found: %d duplicate torrents\n", len(duplicateTorrentsSlice))
+	log.Printf("Found: %d duplicate torrents\n", len(duplicateTorrentsSlice))
 
-	fmt.Printf("Total reclaimable space: %v\n", humanize.Bytes(totalSize))
+	log.Printf("Total reclaimable space: %v\n", humanize.Bytes(totalSize))
 
 	return duplicateTorrentIDs, nil
 }

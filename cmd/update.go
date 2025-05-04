@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/blang/semver"
+	"github.com/pkg/errors"
 	"github.com/rhysd/go-github-selfupdate/selfupdate"
 	"github.com/spf13/cobra"
 )
@@ -20,17 +21,15 @@ func RunUpdate(version string) *cobra.Command {
 
 	command.Flags().BoolVar(&verbose, "verbose", false, "Verbose output: Print changelog")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		v, err := semver.ParseTolerant(version)
 		if err != nil {
-			log.Println("could not parse version:", err)
-			return
+			return errors.Wrapf(err, "could not parse version string: %s", version)
 		}
 
 		latest, err := selfupdate.UpdateSelf(v, "ludviglundgren/qbittorrent-cli")
 		if err != nil {
-			log.Println("Binary update failed:", err)
-			return
+			return errors.Wrap(err, "binary update failed")
 		}
 
 		if latest.Version.Equals(v) {
@@ -44,7 +43,7 @@ func RunUpdate(version string) *cobra.Command {
 			}
 		}
 
-		return
+		return nil
 	}
 
 	return command

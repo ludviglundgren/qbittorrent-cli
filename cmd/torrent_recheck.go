@@ -1,14 +1,13 @@
 package cmd
 
 import (
-	"fmt"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 	"log"
-	"os"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
 
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -29,15 +28,14 @@ func RunTorrentRecheck() *cobra.Command {
 
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
 
-	command.Run = func(cmd *cobra.Command, args []string) {
+	command.RunE = func(cmd *cobra.Command, args []string) error {
 		if len(hashes) == 0 {
-			log.Println("No torrents found to recheck")
-			return
+			return errors.Errorf("no hashes supplied to recheck")
 		}
 
 		err := utils.ValidateHash(hashes)
 		if err != nil {
-			log.Fatalf("Invalid hashes supplied: %v", err)
+			return errors.Wrap(err, "invalid hashes supplied")
 		}
 
 		config.InitConfig()
@@ -55,20 +53,19 @@ func RunTorrentRecheck() *cobra.Command {
 		ctx := cmd.Context()
 
 		if err := qb.LoginCtx(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "connection failed: %v\n", err)
-			os.Exit(1)
+			return errors.Wrap(err, "could not login to qbit")
 		}
 
 		err = batchRequests(hashes, func(start, end int) error {
 			return qb.RecheckCtx(ctx, hashes[start:end])
 		})
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "ERROR: could not recheck torrents: %v\n", err)
-			os.Exit(1)
-			return
+			return errors.Wrap(err, "could not reched torrents")
 		}
 
 		log.Printf("torrent(s) successfully recheckd")
+
+		return nil
 	}
 
 	return command
