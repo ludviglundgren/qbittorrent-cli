@@ -75,7 +75,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().DurationVar(&sleep, "sleep", 200*time.Millisecond, "Set the amount of time to wait between adding torrents in seconds")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
-	command.Flags().BoolVar(&recheck, "recheck", false, "Force recheck after adding (only with --paused)")
+	command.Flags().BoolVar(&recheck, "recheck", false, "Force recheck after adding (useful when using --paused)")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
