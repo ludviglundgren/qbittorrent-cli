@@ -44,6 +44,7 @@ func RunTorrentAdd() *cobra.Command {
 		downloadLimit uint64
 		stopCondition string
 		sleep         time.Duration
+		recheck       bool
 	)
 
 	command := &cobra.Command{
@@ -74,6 +75,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
 	command.Flags().DurationVar(&sleep, "sleep", 200*time.Millisecond, "Set the amount of time to wait between adding torrents in seconds")
 	command.Flags().StringArrayVar(&tags, "tags", []string{}, "Add tags to torrent")
+	command.Flags().BoolVar(&recheck, "recheck", false, "Force recheck after adding (useful when using --paused)")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
@@ -173,6 +175,18 @@ func RunTorrentAdd() *cobra.Command {
 				wg.Wait()
 			}
 
+			if paused && recheck {
+				magnet, err := metainfo.ParseMagnetUri(filePath)
+				if err == nil {
+					hash = magnet.InfoHash.String()
+					if err := qb.RecheckCtx(ctx, []string{hash}); err != nil {
+						log.Printf("could not recheck torrent: %s err: %q\n", hash, err)
+					} else {
+						log.Printf("rechecked torrent: %s\n", hash)
+					}
+				}
+			}
+
 			log.Printf("successfully added torrent from magnet: %s %s\n", filePath, hash)
 			return nil
 		} else {
@@ -257,6 +271,14 @@ func RunTorrentAdd() *cobra.Command {
 				}
 
 				hash := t.HashInfoBytes().String()
+
+				if paused && recheck {
+					if err := qb.RecheckCtx(ctx, []string{hash}); err != nil {
+						log.Printf("could not recheck torrent: %s err: %q\n", hash, err)
+					} else {
+						log.Printf("rechecked torrent: %s\n", hash)
+					}
+				}
 
 				// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 				if config.Reannounce.Enabled && !paused {
