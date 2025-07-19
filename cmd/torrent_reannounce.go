@@ -2,14 +2,20 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"log"
-	"time"
+	"strings"
+	"sync"
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+)
+
+var (
+	words = []string{"unregistered", "not registered", "not found", "not exist"}
 )
 
 // RunTorrentReannounce cmd to reannounce torrents
@@ -21,6 +27,7 @@ func RunTorrentReannounce() *cobra.Command {
 		tag      string
 		attempts int
 		interval int
+		maxAge   int64
 	)
 
 	var command = &cobra.Command{
@@ -35,6 +42,7 @@ func RunTorrentReannounce() *cobra.Command {
 	command.Flags().StringVar(&tag, "tag", "", "Reannounce torrents with tag")
 	command.Flags().IntVar(&attempts, "attempts", 50, "Reannounce torrents X times")
 	command.Flags().IntVar(&interval, "interval", 7000, "Reannounce torrents X times with interval Y. In MS")
+	command.Flags().Int64Var(&maxAge, "max-age", 120, "Reannounce torrents up to X seconds old")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
@@ -73,23 +81,30 @@ func RunTorrentReannounce() *cobra.Command {
 
 		if dry {
 			log.Println("dry-run: torrents successfully re-announced!")
-
 		} else {
+			var wg sync.WaitGroup
+
+			reannounceOptions := qbittorrent.ReannounceOptions{
+				Interval:        interval,
+				MaxAttempts:     attempts,
+				DeleteOnFailure: false,
+			}
+
 			for _, torrent := range activeDownloads {
-				if torrent.Progress == 0 && torrent.TimeActive < 120 {
-					go func(torrent qbittorrent.Torrent) {
-						log.Printf("torrent %s %s not working, active for %ds, re-announcing...\n", torrent.Hash, torrent.Name, torrent.TimeActive)
-
-						// some trackers are bugged or slow, so we need to re-announce the torrent until it works
-						if err = reannounceTorrent(ctx, qb, interval, attempts, torrent.Hash); err != nil {
-							log.Printf("could not re-announce torrent: %s %s err: %q\n", torrent.Hash, torrent.Name, err)
+				if shouldReannounce(torrent, maxAge) {
+					wg.Add(1)
+					go func(t qbittorrent.Torrent) {
+						defer wg.Done()
+						if err := reannounceWithRetry(ctx, qb, t, &reannounceOptions); err != nil {
+							log.Printf("Failed to reannounce torrent: %s %s err: %q\n", t.Hash, t.Name, err)
+						} else {
+							log.Printf("successfully re-announced torrent: %s %s\n", t.Hash, t.Name)
 						}
-
-						log.Printf("successfully re-announced torrent: %s %s err: %q\n", torrent.Hash, torrent.Name, err)
-
 					}(torrent)
 				}
 			}
+
+			wg.Wait()
 
 			log.Println("torrents successfully re-announced")
 		}
@@ -100,37 +115,55 @@ func RunTorrentReannounce() *cobra.Command {
 	return command
 }
 
-func reannounceTorrent(ctx context.Context, qb *qbittorrent.Client, interval, attempts int, hash string) error {
-	announceOK := false
-	attempt := 0
-
-	time.Sleep(time.Duration(interval) * time.Millisecond)
-
-	for attempt < attempts {
-		trackers, err := qb.GetTorrentTrackersCtx(ctx, hash)
-		if err != nil {
-			log.Fatalf("could not get trackers of torrent: %s err: %q", hash, err)
-		}
-
-		// check if status not working or something else
-		_, working := findTrackerStatus(trackers, 2)
-		if working {
-			announceOK = true
-			break
-		}
-
-		if err = qb.ReAnnounceTorrentsCtx(ctx, []string{hash}); err != nil {
-			return err
-		}
-
-		time.Sleep(time.Duration(interval) * time.Millisecond)
-		attempt++
-		continue
+func shouldReannounce(torrent qbittorrent.Torrent, maxAge int64) bool {
+	if torrent.TimeActive > maxAge {
+		return false
 	}
 
-	if !announceOK {
-		log.Println("announce still not ok")
-		return errors.New("announce still not ok")
+	if torrent.NumSeeds > 0 || torrent.NumLeechs > 0 {
+		return false
+	}
+
+	return !isTrackerStatusOK(torrent.Trackers)
+}
+
+func isTrackerStatusOK(trackers []qbittorrent.TorrentTracker) bool {
+	for _, tracker := range trackers {
+		if tracker.Status == qbittorrent.TrackerStatusDisabled {
+			continue
+		}
+
+		// check for certain messages before the tracker status to catch ok status with unreg msg
+		if isUnregistered(tracker.Message) {
+			return false
+		}
+
+		if tracker.Status == qbittorrent.TrackerStatusOK {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isUnregistered(msg string) bool {
+	msg = strings.ToLower(msg)
+
+	for _, v := range words {
+		if strings.Contains(msg, v) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func reannounceWithRetry(ctx context.Context, client *qbittorrent.Client, torrent qbittorrent.Torrent, opts *qbittorrent.ReannounceOptions) error {
+	if err := client.ReannounceTorrentWithRetry(ctx, torrent.Hash, opts); err != nil {
+		if errors.Is(err, qbittorrent.ErrReannounceTookTooLong) {
+			return fmt.Errorf("reannouncement timeout for torrent %s", torrent.Hash)
+		}
+		return fmt.Errorf("reannouncement failed for torrent %s: %w", torrent.Hash, err)
 	}
 
 	return nil
