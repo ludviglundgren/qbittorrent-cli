@@ -73,6 +73,7 @@ func (di *DelugeImport) Import(opts Options) error {
 	positionNum := 0
 	for torrentID, value := range fastresumeFile {
 		torrentNamePath := filepath.Join(sourceDir, torrentID+".torrent")
+		torrentNamePathBak := filepath.Join(sourceDir, torrentID+".torrent.bak")
 
 		// If a file exist in fastresume data but no .torrent file, skip
 		if _, err = os.Stat(torrentNamePath); os.IsNotExist(err) {
@@ -156,6 +157,12 @@ func (di *DelugeImport) Import(opts Options) error {
 		if err = fs.CopyFile(fastResume.TorrentFilePath, torrentOutFile); err != nil {
 			log.Printf("Could not copy qBittorrent torrent file %s error %q\n", torrentOutFile, err)
 			return err
+		}
+
+		// Renaming the torrent file to .bak causes Deluge to skip the torrent when it restarts,
+		// after which it will be removed from the .fastresume file.
+		if err = os.Rename(torrentNamePath, torrentNamePathBak); err != nil {
+			log.Printf("Could not move %s to %s error %q, continuing\n", torrentNamePath, torrentNamePathBak, err)
 		}
 
 		log.Printf("(%d/%d) successfully imported: %s %s\n", positionNum, totalJobs, torrentID, metaInfo.Name)
