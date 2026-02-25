@@ -120,7 +120,7 @@ func RunTorrentAdd() *cobra.Command {
 			options["skip_checking"] = "true"
 		}
 		if savePath != "" {
-			// options["savepath"] = savePath
+			options["savepath"] = savePath
 			options["autoTMM"] = "false"
 		}
 		if category != "" {
