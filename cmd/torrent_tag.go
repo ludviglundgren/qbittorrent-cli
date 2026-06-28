@@ -132,6 +132,7 @@ func RunTorrentTagNotWorking() *cobra.Command {
 
 		qbtSettings := qbittorrent.Config{
 			Host:      config.Qbit.Addr,
+			APIKey:    config.Qbit.APIKey,
 			Username:  config.Qbit.Login,
 			Password:  config.Qbit.Password,
 			BasicUser: config.Qbit.BasicUser,
