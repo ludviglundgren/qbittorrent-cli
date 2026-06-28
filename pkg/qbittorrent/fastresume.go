@@ -3,6 +3,7 @@ package qbittorrent
 import (
 	"bufio"
 	"crypto/sha1"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -68,7 +69,7 @@ type Fastresume struct {
 	SuperSeeding              int64                  `bencode:"super_seeding"`
 	TotalDownloaded           int64                  `bencode:"total_downloaded"`
 	TotalUploaded             int64                  `bencode:"total_uploaded"`
-	Trackers                  [][]string             `bencode:"trackers"`
+	Trackers                  TrackerTiers           `bencode:"trackers"`
 	UploadMode                int64                  `bencode:"upload_mode"`
 	UploadRateLimit           int64                  `bencode:"upload_rate_limit"`
 	UrlList                   []string               `bencode:"url-list"`
@@ -85,6 +86,52 @@ type Fastresume struct {
 	NumPieces                 int64                  `bencode:"-"`
 	PieceLength               int64                  `bencode:"-"`
 	MappedFiles               []string               `bencode:"mapped_files,omitempty"`
+}
+
+// TrackerTiers represents the libtorrent fastresume "trackers" field.
+//
+// qBittorrent/libtorrent normally writes a list of tiers, where each tier is a
+// list of tracker URLs ([][]string). Some clients and older versions instead
+// write a flat list of URLs ([]string) or even a single (whitespace separated)
+// string. The default decoder fails on those variants with
+// "Cannot store string into []string", which used to abort the whole
+// `torrent export` command. UnmarshalBencode normalizes all of these shapes into
+// the standard [][]string form so the file can still be processed.
+type TrackerTiers [][]string
+
+// UnmarshalBencode implements bencode.Unmarshaler.
+func (t *TrackerTiers) UnmarshalBencode(b []byte) error {
+	// Standard format: a list of tiers ([][]string).
+	var tiers [][]string
+	if err := bencode.DecodeBytes(b, &tiers); err == nil {
+		*t = tiers
+		return nil
+	}
+
+	// Flat format: a single list of URLs ([]string). Wrap each URL in its own tier.
+	var urls []string
+	if err := bencode.DecodeBytes(b, &urls); err == nil {
+		tiers = make([][]string, 0, len(urls))
+		for _, url := range urls {
+			tiers = append(tiers, []string{url})
+		}
+		*t = tiers
+		return nil
+	}
+
+	// Single string, possibly whitespace separated.
+	var single string
+	if err := bencode.DecodeBytes(b, &single); err == nil {
+		fields := strings.Fields(single)
+		tiers = make([][]string, 0, len(fields))
+		for _, url := range fields {
+			tiers = append(tiers, []string{url})
+		}
+		*t = tiers
+		return nil
+	}
+
+	return fmt.Errorf("could not decode trackers field: unsupported format %q", string(b))
 }
 
 // Encode qBittorrent fastresume file
