@@ -15,26 +15,38 @@ import (
 func RunTorrentPause() *cobra.Command {
 	var (
 		pauseAll bool
-		names    bool
 		hashes   []string
 	)
 
 	var command = &cobra.Command{
 		Use:   "pause",
 		Short: "Pause specified torrent(s)",
-		Long:  `Pauses torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes`,
+		Long:  `Pause the torrent(s) indicated by the supplied hash(es), or pause every torrent with --all.`,
+		Example: `  qbt torrent pause --all
+  qbt torrent pause HASH1 HASH2
+  qbt torrent pause --hashes HASH1,HASH2`,
 	}
 
 	command.Flags().BoolVar(&pauseAll, "all", false, "Pauses all torrents")
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
-	command.Flags().BoolVar(&names, "names", false, "Provided arguments will be read as torrent names")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		if len(hashes) > 0 {
+		// Treat positional arguments as hashes too, so `qbt torrent pause HASH` works
+		// alongside the --hashes flag.
+		hashes = append(hashes, args...)
+
+		if pauseAll {
+			hashes = []string{"all"}
+		} else {
+			if len(hashes) == 0 {
+				return errors.New("no torrents specified: provide hash(es) as arguments or with --hashes, or use --all")
+			}
+
 			if err := utils.ValidateHash(hashes); err != nil {
 				return errors.Wrap(err, "invalid hashes supplied")
 			}
 		}
+
 		config.InitConfig()
 
 		qbtSettings := qbittorrent.Config{
@@ -54,19 +66,9 @@ func RunTorrentPause() *cobra.Command {
 			return errors.Wrap(err, "could not login to qbit")
 		}
 
-		if pauseAll {
-			hashes = []string{"all"}
-		}
-
-		if len(hashes) == 0 {
-			log.Printf("No torrents found to pause with provided hashes. Use --all to pause all torrents.")
-			return nil
-		}
-
-		err := batchRequests(hashes, func(start, end int) error {
+		if err := batchRequests(hashes, func(start, end int) error {
 			return qb.PauseCtx(ctx, hashes[start:end])
-		})
-		if err != nil {
+		}); err != nil {
 			return errors.Wrap(err, "could not pause torrents")
 		}
 
