@@ -111,10 +111,11 @@ A bare minimum config. Check [full example config](.qbt.toml.example).
 ```toml
 [qbittorrent]
 addr       = "http://127.0.0.1:6776" # qbittorrent webui-api hostname/ip
-login      = "user"                  # qbittorrent webui-api user
-password   = "password"              # qbittorrent webui-api password
-#basicUser = "user"                  # qbittorrent webui-api basic auth user
-#basicPass = "password"              # qbittorrent webui-api basic auth password
+apikey     = "APIKEY"                # qbittorrent webui-api api key ONLY qbit 5.2.x+ (OPTIONAL)
+login      = "user"                  # qbittorrent webui-api user                     (OPTIONAL)
+password   = "password"              # qbittorrent webui-api password                 (OPTIONAL)
+#basicUser = "user"                  # qbittorrent webui-api basic auth user          (OPTIONAL)
+#basicPass = "password"              # qbittorrent webui-api basic auth password      (OPTIONAL)
 
 [rules]
 enabled              = true   # enable or disable rules
