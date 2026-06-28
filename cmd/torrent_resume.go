@@ -22,14 +22,27 @@ func RunTorrentResume() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "resume",
 		Short: "Resume specified torrent(s)",
-		Long:  `Resumes torrents indicated by hash, name or a prefix of either. Whitespace indicates next prefix unless argument is surrounded by quotes`,
+		Long:  `Resume the torrent(s) indicated by the supplied hash(es), or resume every torrent with --all.`,
+		Example: `  qbt torrent resume --all
+  qbt torrent resume HASH1 HASH2
+  qbt torrent resume --hashes HASH1,HASH2`,
 	}
 
 	command.Flags().BoolVar(&resumeAll, "all", false, "resumes all torrents")
 	command.Flags().StringSliceVar(&hashes, "hashes", []string{}, "Add hashes as comma separated list")
 
 	command.RunE = func(cmd *cobra.Command, args []string) error {
-		if len(hashes) > 0 {
+		// Treat positional arguments as hashes too, so `qbt torrent resume HASH` works
+		// alongside the --hashes flag.
+		hashes = append(hashes, args...)
+
+		if resumeAll {
+			hashes = []string{"all"}
+		} else {
+			if len(hashes) == 0 {
+				return errors.New("no torrents specified: provide hash(es) as arguments or with --hashes, or use --all")
+			}
+
 			if err := utils.ValidateHash(hashes); err != nil {
 				return errors.Wrap(err, "invalid hashes supplied")
 			}
@@ -54,14 +67,9 @@ func RunTorrentResume() *cobra.Command {
 			return errors.Wrap(err, "could not login to qbit")
 		}
 
-		if resumeAll {
-			hashes = []string{"all"}
-		}
-
-		err := batchRequests(hashes, func(start, end int) error {
+		if err := batchRequests(hashes, func(start, end int) error {
 			return qb.ResumeCtx(ctx, hashes[start:end])
-		})
-		if err != nil {
+		}); err != nil {
 			return errors.Wrap(err, "could not resume torrents")
 		}
 
