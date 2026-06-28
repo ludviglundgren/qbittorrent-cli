@@ -45,6 +45,7 @@ Documentation is available at https://github.com/ludviglundgren/qbittorrent-cli`
 	rootCmd.AddCommand(cmd.RunApp())
 	rootCmd.AddCommand(cmd.RunBencode())
 	rootCmd.AddCommand(cmd.RunTorrent())
+	rootCmd.AddCommand(cmd.RunTransfer())
 	rootCmd.AddCommand(cmd.RunCategory())
 	rootCmd.AddCommand(cmd.RunTag())
 	rootCmd.AddCommand(cmd.RunVersion(version, commit, date))
