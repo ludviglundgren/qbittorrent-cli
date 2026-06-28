@@ -23,7 +23,7 @@ func (c *Client) Login(ctx context.Context) error {
 		return errors.Wrap(err, "login error")
 	}
 
-	if resp.StatusCode != http.StatusOK { // check for correct status code
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent { // check for correct status code
 		bodyBytes, err := io.ReadAll(resp.Body)
 		if err != nil {
 			return err
