@@ -54,6 +54,8 @@ A cli to manage qBittorrent. Add torrents, categories, tags, reannounce and impo
     * [Recheck](#recheck)
     * [Remove](#remove)
     * [Resume](#resume)
+    * [Share limit](#share-limit)
+      * [Set](#set-1)
     * [Tag](#tag-1)
       * [Issues](#issues)
     * [Tracker](#tracker)
@@ -865,6 +867,62 @@ Flags:
       --all              resumes all torrents
       --hashes strings   Add hashes as comma separated list
   -h, --help             help for resume
+
+Global Flags:
+      --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
+```
+
+### Share limit
+
+Set share limits (ratio and seeding time) for torrents.
+
+Limit values use qBittorrent's special semantics:
+
+* `-2` - use the global limit (default)
+* `-1` - no limit (unlimited)
+* `>=0` - a specific value (ratio, or minutes for the seeding time limits)
+
+qBittorrent applies all three limits in a single request, so any limit you do not set is reset to the global limit (`-2`). At least one of `--ratio`, `--seeding-time` or `--inactive-seeding-time` must be set. The applied values are printed when the command runs. On qBittorrent 5.x (Web API 2.12+) this also resets each torrent's share limit action and mode to their defaults.
+
+Select torrents with `--hashes`, `--all`, or by `--include-category` / `--include-tags` / `--exclude-tags`. `--hashes` can be combined with the category/tag selectors to act on the union of both.
+
+#### Set
+
+```text
+Set share limits (ratio, seeding time, inactive seeding time) for torrents.
+
+Limit values use qBittorrent's special semantics:
+  -2   use the global limit (default)
+  -1   no limit (unlimited)
+  >=0  a specific value (ratio, or minutes for the seeding time limits)
+
+qBittorrent applies all three limits in a single request, so any limit you do not
+set is reset to the global limit (-2). The applied values are printed when the
+command runs.
+
+Note: on qBittorrent 5.x (Web API 2.12+) this also resets each torrent's share
+limit action and mode to their defaults.
+
+Usage:
+  qbt torrent share-limit set [flags]
+
+Examples:
+  qbt torrent share-limit set --hashes hash1,hash2 --ratio 2.0
+  qbt torrent share-limit set --all --seeding-time 1440
+  qbt torrent share-limit set --include-category movies --ratio 1.5 --seeding-time 10080
+  qbt torrent share-limit set --hashes hash1 --ratio -1
+
+Flags:
+      --all                         Set share limits for all torrents
+      --dry-run                     Run without doing anything
+      --exclude-tags strings        Exclude torrents with any of these tags. Comma separated
+      --hashes strings              Torrent hashes, as comma separated list
+  -h, --help                        help for set
+      --inactive-seeding-time int   Inactive seeding time limit in MINUTES. -2 = global, -1 = unlimited, >=0 = minutes (default -2)
+  -c, --include-category strings    Set share limits for torrents in these categories. Comma separated
+      --include-tags strings        Include torrents with any of these tags. Comma separated
+      --ratio float                 Ratio limit. -2 = global, -1 = unlimited, >=0 = ratio (default -2)
+      --seeding-time int            Seeding time limit in MINUTES. -2 = global, -1 = unlimited, >=0 = minutes (default -2)
 
 Global Flags:
       --config string   config file (default is $HOME/.config/qbt/.qbt.toml)
