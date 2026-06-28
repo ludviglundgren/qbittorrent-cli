@@ -20,12 +20,14 @@ func RunTorrentCompare() *cobra.Command {
 		tag           string
 
 		sourceAddr      string
+		sourceAPIKey    string
 		sourceUser      string
 		sourcePass      string
 		sourceBasicUser string
 		sourceBasicPass string
 
 		compareAddr      string
+		compareAPIKey    string
 		compareUser      string
 		comparePass      string
 		compareBasicUser string
@@ -50,12 +52,14 @@ func RunTorrentCompare() *cobra.Command {
 	command.Flags().StringVar(&tag, "tag", "compare-dupe", "set a custom tag for duplicates on compare. default: compare-dupe")
 
 	command.Flags().StringVar(&sourceAddr, "host", "", "Source host")
+	command.Flags().StringVar(&compareAPIKey, "api-key", "", "Source api key")
 	command.Flags().StringVar(&sourceUser, "user", "", "Source user")
 	command.Flags().StringVar(&sourcePass, "pass", "", "Source pass")
 	command.Flags().StringVar(&sourceBasicUser, "basic-user", "", "Source basic auth user")
 	command.Flags().StringVar(&sourceBasicPass, "basic-pass", "", "Source basic auth pass")
 
 	command.Flags().StringVar(&compareAddr, "compare-host", "", "Secondary host")
+	command.Flags().StringVar(&compareAPIKey, "compare-api-key", "", "Secondary api key")
 	command.Flags().StringVar(&compareUser, "compare-user", "", "Secondary user")
 	command.Flags().StringVar(&comparePass, "compare-pass", "", "Secondary pass")
 	command.Flags().StringVar(&compareBasicUser, "compare-basic-user", "", "Secondary basic auth user")
@@ -66,6 +70,9 @@ func RunTorrentCompare() *cobra.Command {
 
 		if sourceAddr == "" {
 			sourceAddr = config.Qbit.Host
+		}
+		if sourceAPIKey == "" {
+			sourceAPIKey = config.Qbit.APIKey
 		}
 		if sourceUser == "" {
 			sourceUser = config.Qbit.Login
@@ -82,6 +89,7 @@ func RunTorrentCompare() *cobra.Command {
 
 		qbtSettings := qbittorrent.Config{
 			Host:      sourceAddr,
+			APIKey:    sourceAPIKey,
 			Username:  sourceUser,
 			Password:  sourcePass,
 			BasicUser: sourceBasicUser,
@@ -105,6 +113,7 @@ func RunTorrentCompare() *cobra.Command {
 		// Start comparison
 		for _, compareConfig := range config.Compare {
 			compareAddr := compareConfig.Addr
+			compareAPIKey := compareConfig.APIKey
 			compareUser := compareConfig.Login
 			comparePass := compareConfig.Password
 			compareBasicUser := compareConfig.BasicUser
@@ -112,6 +121,7 @@ func RunTorrentCompare() *cobra.Command {
 
 			qbtSettingsCompare := qbittorrent.Config{
 				Host:      compareAddr,
+				APIKey:    compareAPIKey,
 				Username:  compareUser,
 				Password:  comparePass,
 				BasicUser: compareBasicUser,

@@ -6,6 +6,7 @@ type QbitConfig struct {
 	Port      uint   `mapstructure:"port"`
 	Login     string `mapstructure:"login"`
 	Password  string `mapstructure:"password"`
+	APIKey    string `mapstructure:"apikey"`
 	BasicUser string `mapstructure:"basicUser"`
 	BasicPass string `mapstructure:"basicPass"`
 }
