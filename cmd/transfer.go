@@ -25,7 +25,7 @@ func RunTransfer() *cobra.Command {
 	return command
 }
 
-// RunAppVersion cmd to view application info
+// RunTransferInfo cmd to view transfer info
 func RunTransferInfo() *cobra.Command {
 	var command = &cobra.Command{
 		Use:   "info",
