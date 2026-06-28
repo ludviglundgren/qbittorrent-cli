@@ -17,11 +17,12 @@ import (
 // RunTorrentImport cmd import torrents
 func RunTorrentImport() *cobra.Command {
 	var command = &cobra.Command{
-		Use:   "import {rtorrent | deluge} --source-dir dir --qbit-dir dir2 [--skip-backup] [--dry-run]",
+		Use:   "import {rtorrent | deluge | qbittorrent} --source-dir dir --qbit-dir dir2 [--skip-backup] [--dry-run]",
 		Short: "Import torrents",
-		Long:  `Import torrents with state from other clients [rtorrent, deluge]`,
+		Long:  `Import torrents with state from other clients [rtorrent, deluge, qbittorrent]`,
 		Example: `  qbt torrent import deluge --source-dir ~/.config/deluge/state/ --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
-  qbt torrent import rtorrent --source-dir ~/.sessions --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run`,
+  qbt torrent import rtorrent --source-dir ~/.sessions --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run
+  qbt torrent import qbittorrent --source-dir ./BT_backup --qbit-dir ~/.local/share/data/qBittorrent/BT_backup --dry-run`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 1 {
 				return errors.New("requires a source client [rtorrent, deluge] as first argument")
@@ -29,7 +30,7 @@ func RunTorrentImport() *cobra.Command {
 
 			return cobra.OnlyValidArgs(cmd, args)
 		},
-		ValidArgs: []string{"rtorrent", "deluge"},
+		ValidArgs: []string{"rtorrent", "deluge", "qbittorrent"},
 	}
 
 	var (
@@ -58,6 +59,9 @@ func RunTorrentImport() *cobra.Command {
 
 		case "rtorrent":
 			imp = importer.NewRTorrentImporter()
+
+		case "qbittorrent":
+			imp = importer.NewQbittorrentImporter()
 
 		default:
 			return errors.Errorf("error: unsupported client: %s", source)
