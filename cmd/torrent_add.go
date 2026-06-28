@@ -164,7 +164,7 @@ func RunTorrentAdd() *cobra.Command {
 				return nil
 			}
 
-			if err := qb.AddTorrentFromUrlCtx(ctx, filePath, options); err != nil {
+			if _, err := qb.AddTorrentFromUrlCtx(ctx, filePath, options); err != nil {
 				return errors.Wrapf(err, "adding torrent %s failed", filePath)
 			}
 
@@ -277,7 +277,7 @@ func RunTorrentAdd() *cobra.Command {
 				// set savePath again
 				options["savepath"] = savePath
 
-				if err := qb.AddTorrentFromFileCtx(ctx, file, options); err != nil {
+				if _, err := qb.AddTorrentFromFileCtx(ctx, file, options); err != nil {
 					return errors.Wrapf(err, "could not add torrent: %s", file)
 				}
 
