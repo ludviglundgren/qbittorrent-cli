@@ -23,7 +23,7 @@ user `$HOME/bin`:
 sudo mv qbt /usr/bin/
 ```
 
-Verify that it runs — this should print the basic usage:
+Verify that it runs - this should print the basic usage:
 
 ```shell
 qbt

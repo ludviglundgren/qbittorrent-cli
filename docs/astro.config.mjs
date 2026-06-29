@@ -11,7 +11,7 @@ export default defineConfig({
     starlight({
       title: 'qbittorrent-cli',
       description:
-        'A CLI to manage qBittorrent — add torrents, manage categories and tags, reannounce, import from other clients and more.',
+        'A CLI to manage qBittorrent - add torrents, manage categories and tags, reannounce, import from other clients and more.',
       social: [
         {
           icon: 'github',

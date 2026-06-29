@@ -1,6 +1,6 @@
 ---
 title: Configuration
-description: Configure qbittorrent-cli with a .qbt.toml file — connection, reannounce, rules, add defaults and compare instances.
+description: Configure qbittorrent-cli with a .qbt.toml file - connection, reannounce, rules, add defaults and compare instances.
 ---
 
 `qbt` is configured with a TOML file. Most commands need at least the
@@ -35,18 +35,18 @@ login    = "user"                  # qbittorrent webui-api user     (optional)
 password = "password"              # qbittorrent webui-api password (optional)
 ```
 
-## Connection — `[qbittorrent]`
+## Connection - `[qbittorrent]`
 
 | Key         | Description                                                        |
 | ----------- | ------------------------------------------------------------------ |
 | `addr`      | qBittorrent Web API URL, including scheme and port                 |
 | `login`     | Web API username (optional)                                        |
 | `password`  | Web API password (optional)                                        |
-| `apikey`    | Web API key — qBittorrent 5.2.x and newer only (optional)          |
+| `apikey`    | Web API key - qBittorrent 5.2.x and newer only (optional)          |
 | `basicUser` | HTTP basic auth username, if your Web API is behind basic auth     |
 | `basicPass` | HTTP basic auth password, if your Web API is behind basic auth     |
 
-## Reannounce — `[reannounce]`
+## Reannounce - `[reannounce]`
 
 Some trackers are buggy and need a reannounce before a torrent can start.
 These values are used by [`qbt torrent reannounce`](/qbittorrent-cli/commands/qbt_torrent_reannounce/).
@@ -58,7 +58,7 @@ attempts = 10   # number of attempts, typically 10-30
 interval = 7000 # interval between attempts, in milliseconds
 ```
 
-## Rules — `[rules]`
+## Rules - `[rules]`
 
 Limit how many torrents download simultaneously. Applied when adding torrents
 unless you pass `--ignore-rules`.
@@ -73,7 +73,7 @@ max_active_downloads = 2    # max active downloads
   overloading the disks while giving each torrent as much bandwidth as possible.
 * On SSDs and 1 Gbit+ you can increase this value.
 
-## Add defaults — `[add]`
+## Add defaults - `[add]`
 
 Defaults applied by [`qbt torrent add`](/qbittorrent-cli/commands/qbt_torrent_add/).
 
@@ -83,7 +83,7 @@ sequential       = false # download pieces in sequential order (useful for strea
 first_last_piece = false # prioritize first and last pieces for all new torrents
 ```
 
-## Compare instances — `[[compare]]`
+## Compare instances - `[[compare]]`
 
 [`qbt torrent compare`](/qbittorrent-cli/commands/qbt_torrent_compare/) can
 compare torrents against other qBittorrent instances. Add one `[[compare]]`

@@ -6,12 +6,12 @@ A CLI to manage qBittorrent. Add torrents, manage categories and tags, reannounc
 
 > [!NOTE]
 > **📖 Full documentation lives at [ludviglundgren.github.io/qbittorrent-cli](https://ludviglundgren.github.io/qbittorrent-cli/).**
-> The complete, always up-to-date command and flag reference is generated directly from the source — see [Command reference](#command-reference) below.
+> The complete, always up-to-date command and flag reference is generated directly from the source - see [Command reference](#command-reference) below.
 
 ## Features
 
 * qBittorrent v5 compatible (since v2.1.0)
-* Add torrents from file, glob pattern, URL or magnet — handy with autodl-irssi
+* Add torrents from file, glob pattern, URL or magnet - handy with autodl-irssi
 * Reannounce torrents for troublesome trackers
 * Limit how many torrents download simultaneously
 * Import torrents with state from Deluge and rTorrent
@@ -47,7 +47,7 @@ Create `.qbt.toml` in `~/.config/qbt/`:
 mkdir -p ~/.config/qbt && touch ~/.config/qbt/.qbt.toml
 ```
 
-A bare-minimum config — see the [full example](.qbt.toml.example):
+A bare-minimum config - see the [full example](.qbt.toml.example):
 
 ```toml
 [qbittorrent]
@@ -86,7 +86,7 @@ qbt torrent category move --from nvme --to hdd --min-seed-time 45
 # Set a share ratio limit on all torrents
 qbt torrent share-limit set --all --ratio 2.0
 
-# Import torrents (and their state) from Deluge — always dry-run first
+# Import torrents (and their state) from Deluge - always dry-run first
 qbt torrent import deluge \
   --source-dir ~/.config/deluge/state \
   --qbit-dir ~/.local/share/qBittorrent/BT_backup \
@@ -111,7 +111,7 @@ The full reference for every command and flag is generated from the source and p
 
 ## Contributing
 
-The command reference under `docs/src/content/docs/commands/` is generated — do not edit it by hand. After changing a command or flag, regenerate it:
+The command reference under `docs/src/content/docs/commands/` is generated - do not edit it by hand. After changing a command or flag, regenerate it:
 
 ```shell
 make docs
