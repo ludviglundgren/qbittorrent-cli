@@ -31,6 +31,32 @@ jobs:
       - name: Test
         run: go test -v ./...
 
+  docs:
+    name: Check generated docs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Generate docs
+        run: make docs
+
+      - name: Verify docs are up to date
+        run: |
+          # Use porcelain so newly added (untracked) command pages are caught too.
+          if [ -n "$(git status --porcelain -- docs/src/content/docs/commands)" ]; then
+            echo "::error::Generated command docs are out of date. Run 'make docs' and commit the result."
+            git status --porcelain -- docs/src/content/docs/commands
+            git diff -- docs/src/content/docs/commands
+            exit 1
+          fi
+
   build:
     name: Build Go binaries
     needs: [ test ]

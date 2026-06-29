@@ -1,5 +1,6 @@
 [qbittorrent]
 addr       = "http://127.0.0.1:6776" # qbittorrent webui-api hostname/ip
+#apikey    = "APIKEY"                # qbittorrent webui-api api key, qbit 5.2.x+ (optional)
 login      = "user"                  # qbittorrent webui-api user (optional)
 password   = "password"              # qbittorrent webui-api password (optional)
 #basicUser = "user"                  # qbittorrent webui-api basic auth user (optional)
