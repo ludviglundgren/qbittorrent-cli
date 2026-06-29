@@ -20,7 +20,7 @@ func RunTransfer() *cobra.Command {
 		Long:  "Get status and speed info",
 	}
 
-	command.AddCommand(RunAppVersion())
+	command.AddCommand(RunTransferInfo())
 
 	return command
 }
@@ -60,7 +60,7 @@ func RunTransferInfo() *cobra.Command {
 
 		info, err := qb.GetTransferInfo()
 		if err != nil {
-			return errors.Wrap(err, "could not get app version")
+			return errors.Wrap(err, "could not get transfer info")
 		}
 
 		switch output {

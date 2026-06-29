@@ -1,0 +1,60 @@
+---
+title: qbittorrent-cli
+description: A CLI to manage qBittorrent - add torrents, manage categories and tags, reannounce, import from other clients and more.
+template: splash
+hero:
+  tagline: Manage qBittorrent from the command line.
+  actions:
+    - text: Get started
+      link: /qbittorrent-cli/getting-started/installation/
+      icon: right-arrow
+      variant: primary
+    - text: View on GitHub
+      link: https://github.com/ludviglundgren/qbittorrent-cli
+      icon: external
+      variant: minimal
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+`qbt` is a small, fast command-line tool to manage qBittorrent over its Web API.
+It is handy for automation (autodl-irssi, cron jobs), bulk operations and
+migrating from other clients.
+
+<CardGrid stagger>
+  <Card title="Add torrents" icon="add-document">
+    Add from file, glob pattern, URL or magnet - with categories, tags, save
+    paths and rate limits. [`qbt torrent add`](/qbittorrent-cli/commands/qbt_torrent_add/)
+  </Card>
+  <Card title="Reannounce" icon="random">
+    Reannounce torrents with non-OK tracker status to get past troublesome
+    trackers. [`qbt torrent reannounce`](/qbittorrent-cli/commands/qbt_torrent_reannounce/)
+  </Card>
+  <Card title="Import from other clients" icon="download">
+    Bring torrents and their state over from Deluge and rTorrent.
+    [`qbt torrent import`](/qbittorrent-cli/commands/qbt_torrent_import/)
+  </Card>
+  <Card title="Categories & tags" icon="open-book">
+    Create, edit and manage categories and tags, and move torrents between
+    them. [`qbt category`](/qbittorrent-cli/commands/qbt_category/) ·
+    [`qbt tag`](/qbittorrent-cli/commands/qbt_tag/)
+  </Card>
+</CardGrid>
+
+## Quick start
+
+```shell
+# Install (see the Installation guide for all options)
+go install github.com/ludviglundgren/qbittorrent-cli/cmd/qbt@latest
+
+# Point it at your qBittorrent Web API
+mkdir -p ~/.config/qbt && $EDITOR ~/.config/qbt/.qbt.toml
+
+# Add a torrent
+qbt torrent add my-file.torrent --category linux-iso --tags iso
+```
+
+See the [Installation](/qbittorrent-cli/getting-started/installation/) and
+[Configuration](/qbittorrent-cli/getting-started/configuration/) guides to get
+set up, then browse the full
+[command reference](/qbittorrent-cli/commands/qbt/).

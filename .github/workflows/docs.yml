@@ -1,0 +1,53 @@
+name: Deploy docs
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+# Allow the workflow to deploy to GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment, without cancelling in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Enables GitHub Pages for the repo on first run, so no manual
+      # "Settings -> Pages -> Source: GitHub Actions" step is required.
+      - name: Setup Pages
+        uses: actions/configure-pages@v6
+        with:
+          enablement: true
+
+      - name: Build with Astro
+        uses: withastro/action@v6
+        with:
+          path: ./docs
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
