@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/zeebo/bencode"
 )

@@ -13,7 +13,7 @@ import (
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
 	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
 	"github.com/zeebo/bencode"
 )

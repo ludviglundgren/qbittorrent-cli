@@ -15,7 +15,7 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
