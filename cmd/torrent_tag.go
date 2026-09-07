@@ -190,9 +190,9 @@ func RunTorrentTagNotWorking() *cobra.Command {
 
 		// remove tags from torrents that should not have certain tags
 		if dryRun {
-			log.Printf("dry-run: clearing defualt tags from torrents\n")
+			log.Printf("dry-run: clearing default tags from torrents\n")
 		} else {
-			log.Printf("clearing defualt tags from torrents\n")
+			log.Printf("clearing default tags from torrents\n")
 
 			for tag, hashes := range removeTaggedTorrents.HashTagMap {
 				err := batchRequests(hashes, func(start, end int) error {
