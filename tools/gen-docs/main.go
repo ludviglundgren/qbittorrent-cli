@@ -10,6 +10,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -27,19 +28,19 @@ const defaultOutDir = "docs/src/content/docs/commands"
 func main() {
 	log.SetFlags(0)
 
-	outDir := defaultOutDir
-	if len(os.Args) > 2 && os.Args[1] == "-out" {
-		outDir = os.Args[2]
-	}
+	flagset := flag.NewFlagSet("gen-docs", flag.ExitOnError)
+	outDir := flagset.String("out", defaultOutDir, "output directory")
+	format := flagset.String("format", "md", "md|man")
+	flagset.Parse(os.Args[1:])
 
-	if err := run(outDir); err != nil {
+	if err := run(*outDir, *format); err != nil {
 		log.Fatalf("gen-docs: %v", err)
 	}
 
-	log.Printf("gen-docs: wrote command reference to %s", outDir)
+	log.Printf("gen-docs: wrote command reference to %s", *outDir)
 }
 
-func run(outDir string) error {
+func run(outDir string, format string) error {
 	rootCmd := cmd.NewRootCmd("dev", "none", "unknown")
 
 	// Replace the auto-generated help command with a hidden one so it does not
@@ -55,26 +56,25 @@ func run(outDir string) error {
 	// staleness check.
 	disableAutoGenTag(rootCmd)
 
+	switch format {
+	case "md":
+		return genMarkdown(rootCmd, outDir)
+	case "man":
+		return genMan(rootCmd, outDir)
+	default:
+		return fmt.Errorf("unknown format: %s", format)
+	}
+}
+
+func genMarkdown(rootCmd *cobra.Command, outDir string) error {
 	// Map each generated filename to the command's short description so the
 	// filePrepender (which only receives the filename) can emit it as
 	// frontmatter.
 	descriptions := map[string]string{}
 	collectDescriptions(rootCmd, descriptions)
 
-	if err := os.MkdirAll(outDir, 0o755); err != nil {
-		return fmt.Errorf("create output dir: %w", err)
-	}
-
-	// Remove previously generated pages so renamed or removed commands do not
-	// leave orphaned files behind.
-	stale, err := filepath.Glob(filepath.Join(outDir, "*.md"))
-	if err != nil {
-		return fmt.Errorf("list stale docs: %w", err)
-	}
-	for _, f := range stale {
-		if err := os.Remove(f); err != nil {
-			return fmt.Errorf("remove stale doc %s: %w", f, err)
-		}
+	if err := prepareOutDir(outDir, "md"); err != nil {
+		return fmt.Errorf("prepare output dir: %v", err)
 	}
 
 	filePrepender := func(filename string) string {
@@ -118,6 +118,36 @@ func run(outDir string) error {
 		}
 	}
 
+	return nil
+}
+
+func genMan(rootCmd *cobra.Command, outDir string) error {
+	section := "1"
+	if err := prepareOutDir(outDir, section); err != nil {
+		return fmt.Errorf("prepare output dir: %v", err)
+	}
+
+	hdr := &doc.GenManHeader{Title: strings.ToUpper(rootCmd.Name()), Section: section}
+	return doc.GenManTree(rootCmd, hdr, outDir)
+}
+
+// prepareOutDir creates the output directory if it does not exists and
+// removes previously generated pages so renamed or removed commands do not
+// leave orphaned files behind.
+func prepareOutDir(outDir string, fileExt string) error {
+	if err := os.MkdirAll(outDir, 0o755); err != nil {
+		return fmt.Errorf("create output dir: %w", err)
+	}
+
+	stale, err := filepath.Glob(filepath.Join(outDir, "*."+fileExt))
+	if err != nil {
+		return fmt.Errorf("list stale docs: %w", err)
+	}
+	for _, f := range stale {
+		if err := os.Remove(f); err != nil {
+			return fmt.Errorf("remove stale doc %s: %w", f, err)
+		}
+	}
 	return nil
 }
 
