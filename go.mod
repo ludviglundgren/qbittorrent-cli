@@ -1,4 +1,4 @@
-module github.com/ludviglundgren/qbittorrent-cli
+module github.com/ludviglundgren/qbittorrent-cli/v2
 
 go 1.27
 

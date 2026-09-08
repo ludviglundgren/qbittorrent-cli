@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/ludviglundgren/qbittorrent-cli/internal/importer"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/importer"
 
 	"github.com/mholt/archives"
 	"github.com/mitchellh/go-homedir"
