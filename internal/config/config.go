@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ludviglundgren/qbittorrent-cli/internal/domain"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/domain"
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"

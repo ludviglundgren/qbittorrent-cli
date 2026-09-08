@@ -16,7 +16,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ludviglundgren/qbittorrent-cli/cmd"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/cmd"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"

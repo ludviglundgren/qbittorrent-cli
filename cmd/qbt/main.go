@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ludviglundgren/qbittorrent-cli/cmd"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/cmd"
 )
 
 var (
