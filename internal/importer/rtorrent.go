@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ludviglundgren/qbittorrent-cli/internal/fs"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/torrent"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/fs"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/torrent"
 
 	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"

@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/config"
 
 	"github.com/autobrr/go-qbittorrent"
 	"github.com/pkg/errors"

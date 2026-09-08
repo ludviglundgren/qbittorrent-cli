@@ -10,11 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ludviglundgren/qbittorrent-cli/internal/config"
-	fsutil "github.com/ludviglundgren/qbittorrent-cli/internal/fs"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/archive"
-	qbit "github.com/ludviglundgren/qbittorrent-cli/pkg/qbittorrent"
-	"github.com/ludviglundgren/qbittorrent-cli/pkg/utils"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/config"
+	fsutil "github.com/ludviglundgren/qbittorrent-cli/v2/internal/fs"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/archive"
+	qbit "github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
+	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/utils"
 
 	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
