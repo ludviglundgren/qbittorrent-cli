@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/zeebo/bencode"
+	"github.com/autobrr/go-torrent/bencode"
 )
 
 // TorrentInfo torrent meta info
@@ -38,7 +38,7 @@ func Decode(path string) (*TorrentInfo, error) {
 	}
 
 	var torrent TorrentInfo
-	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
+	if err := bencode.Unmarshal(dat, &torrent); err != nil {
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func OpenDecodeRaw(path string) (map[string]interface{}, error) {
 	}
 
 	var torrent map[string]interface{}
-	if err := bencode.DecodeBytes(dat, &torrent); err != nil {
+	if err := bencode.Unmarshal(dat, &torrent); err != nil {
 		return nil, err
 	}
 
@@ -83,9 +83,9 @@ func CopyFile(src string, dst string) error {
 }
 
 func CalculateInfoHash(torrent map[string]interface{}) (hash string) {
-	t, _ := bencode.EncodeString(torrent["info"])
+	t, _ := bencode.Marshal(torrent["info"])
 	h := sha1.New()
-	io.WriteString(h, t)
+	h.Write(t)
 	hash = hex.EncodeToString(h.Sum(nil))
 	return hash
 }

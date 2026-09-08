@@ -8,9 +8,9 @@ import (
 	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/fs"
 	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
 
+	"github.com/autobrr/go-torrent/bencode"
 	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
-	"github.com/zeebo/bencode"
 )
 
 type Options struct {
@@ -93,7 +93,7 @@ func (di *DelugeImport) Import(opts Options) error {
 
 		var fastResume qbittorrent.Fastresume
 
-		if err := bencode.DecodeString(value.(string), &fastResume); err != nil {
+		if err := bencode.Unmarshal([]byte(value.(string)), &fastResume); err != nil {
 			log.Printf("Could not decode row %s. Continue\n", torrentID)
 			continue
 		}
@@ -180,7 +180,7 @@ func decodeFastresumeFile(path string) (map[string]interface{}, error) {
 	}
 
 	var fastresumeFile map[string]interface{}
-	if err := bencode.DecodeBytes(dat, &fastresumeFile); err != nil {
+	if err := bencode.Unmarshal(dat, &fastresumeFile); err != nil {
 		return nil, err
 	}
 

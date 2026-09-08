@@ -16,11 +16,11 @@ import (
 	qbit "github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
 	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/utils"
 
-	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-torrent/bencode"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/zeebo/bencode"
 )
 
 func RunTorrentExport() *cobra.Command {

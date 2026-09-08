@@ -13,9 +13,9 @@ import (
 	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
 	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/torrent"
 
+	"github.com/autobrr/go-torrent/bencode"
 	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
-	"github.com/zeebo/bencode"
 )
 
 type RTorrentImport struct{}
@@ -254,7 +254,7 @@ func decodeRTorrentLibTorrentResumeFile(path string) (*RTorrentLibTorrentResumeF
 	}
 
 	var torrentResumeFile RTorrentLibTorrentResumeFile
-	if err := bencode.DecodeBytes(dat, &torrentResumeFile); err != nil {
+	if err := bencode.Unmarshal(dat, &torrentResumeFile); err != nil {
 		return nil, err
 	}
 
@@ -268,7 +268,7 @@ func decodeRTorrentFile(path string) (*RTorrentTorrentFile, error) {
 	}
 
 	var torrentFile RTorrentTorrentFile
-	if err := bencode.DecodeBytes(dat, &torrentFile); err != nil {
+	if err := bencode.Unmarshal(dat, &torrentFile); err != nil {
 		return nil, err
 	}
 
