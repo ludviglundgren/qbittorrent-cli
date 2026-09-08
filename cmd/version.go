@@ -23,7 +23,7 @@ func RunVersion(version, commit, date string) *cobra.Command {
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		switch output {
 		case "text":
-			fmt.Printf(`qbt - qbitttorrent cli
+			fmt.Printf(`qbt - qbittorrent cli
 Version: %s
 Commit: %s
 Date: %s
