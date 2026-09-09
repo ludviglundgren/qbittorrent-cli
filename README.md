@@ -34,7 +34,7 @@ qbt   # prints usage
 Or install with Go:
 
 ```shell
-go install github.com/ludviglundgren/qbittorrent-cli/cmd/qbt@latest
+go install github.com/ludviglundgren/qbittorrent-cli/v2/cmd/qbt@latest
 ```
 
 See the [installation guide](https://ludviglundgren.github.io/qbittorrent-cli/getting-started/installation/) for building from source and other options.

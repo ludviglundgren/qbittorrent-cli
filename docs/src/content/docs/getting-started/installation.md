@@ -34,7 +34,7 @@ qbt
 If you have Go installed you can install the latest release directly:
 
 ```shell
-go install github.com/ludviglundgren/qbittorrent-cli/cmd/qbt@latest
+go install github.com/ludviglundgren/qbittorrent-cli/v2/cmd/qbt@latest
 ```
 
 ## Build from source
