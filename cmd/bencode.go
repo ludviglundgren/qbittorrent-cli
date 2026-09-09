@@ -9,9 +9,9 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/v2/pkg/qbittorrent"
 
+	"github.com/autobrr/go-torrent/bencode"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"github.com/zeebo/bencode"
 )
 
 // RunBencode cmd for bencode operations
@@ -116,7 +116,7 @@ func processFastResume(path, pattern, replace string, verbose, dry bool) error {
 		}
 
 		var fastResume qbittorrent.Fastresume
-		if err := bencode.DecodeString(string(read), &fastResume); err != nil {
+		if err := bencode.Unmarshal(read, &fastResume); err != nil {
 			return errors.Wrapf(err, "could not decode fastresume: %s", path)
 		}
 

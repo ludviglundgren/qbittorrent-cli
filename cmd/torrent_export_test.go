@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/anacrolix/torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
-	"github.com/zeebo/bencode"
+	"github.com/autobrr/go-torrent/bencode"
+	"github.com/autobrr/go-torrent/metainfo"
 )
 
 func Test_export_processHashes(t *testing.T) {
@@ -73,7 +73,7 @@ func Test_processExport_continuesOnBadFastresume(t *testing.T) {
 	writeFile(t, filepath.Join(sourceDir, badHash+".fastresume"), []byte("this is not bencode"))
 
 	// good pair: valid torrent + fastresume that stores trackers as a flat list
-	goodFastresume, err := bencode.EncodeBytes(map[string]interface{}{
+	goodFastresume, err := bencode.Marshal(map[string]interface{}{
 		"save_path": "/downloads",
 		"trackers":  []string{"https://tracker/announce"},
 	})

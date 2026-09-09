@@ -1,7 +1,6 @@
 package qbittorrent
 
 import (
-	"bufio"
 	"crypto/sha1"
 	"fmt"
 	"log"
@@ -9,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zeebo/bencode"
+	"github.com/autobrr/go-torrent/bencode"
 )
 
 // Fastresume represents a qBittorrent fastresume file
@@ -103,14 +102,14 @@ type TrackerTiers [][]string
 func (t *TrackerTiers) UnmarshalBencode(b []byte) error {
 	// Standard format: a list of tiers ([][]string).
 	var tiers [][]string
-	if err := bencode.DecodeBytes(b, &tiers); err == nil {
+	if err := bencode.Unmarshal(b, &tiers); err == nil {
 		*t = tiers
 		return nil
 	}
 
 	// Flat format: a single list of URLs ([]string). Wrap each URL in its own tier.
 	var urls []string
-	if err := bencode.DecodeBytes(b, &urls); err == nil {
+	if err := bencode.Unmarshal(b, &urls); err == nil {
 		tiers = make([][]string, 0, len(urls))
 		for _, url := range urls {
 			tiers = append(tiers, []string{url})
@@ -121,7 +120,7 @@ func (t *TrackerTiers) UnmarshalBencode(b []byte) error {
 
 	// Single string, possibly whitespace separated.
 	var single string
-	if err := bencode.DecodeBytes(b, &single); err == nil {
+	if err := bencode.Unmarshal(b, &single); err == nil {
 		fields := strings.Fields(single)
 		tiers = make([][]string, 0, len(fields))
 		for _, url := range fields {
@@ -151,14 +150,12 @@ func (fr *Fastresume) Encode(path string) error {
 
 	defer file.Close()
 
-	bufferedWriter := bufio.NewWriter(file)
-	enc := bencode.NewEncoder(bufferedWriter)
-	if err := enc.Encode(fr); err != nil {
+	// the encoder buffers and flushes on its own
+	if err := bencode.NewEncoder(file).Encode(fr); err != nil {
 		log.Printf("encode error: %v", err)
 		return err
 	}
 
-	bufferedWriter.Flush()
 	return nil
 }
 
@@ -190,9 +187,9 @@ func (fr *Fastresume) FillPieces() {
 
 // GetInfoHashSHA1 returns a 20 byte hash
 func (fr *Fastresume) GetInfoHashSHA1() (hash []byte) {
-	torInfo, _ := bencode.EncodeString(fr.TorrentFile["info"].(map[string]interface{}))
+	torInfo, _ := bencode.Marshal(fr.TorrentFile["info"].(map[string]interface{}))
 	h := sha1.New()
-	_, _ = h.Write([]byte(torInfo))
+	_, _ = h.Write(torInfo)
 
 	ab := h.Sum(nil)
 	return ab

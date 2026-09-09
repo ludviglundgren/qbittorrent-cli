@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/zeebo/bencode"
+	"github.com/autobrr/go-torrent/bencode"
 )
 
 func TestTrackerTiers_UnmarshalBencode(t *testing.T) {
@@ -41,9 +41,10 @@ func TestTrackerTiers_UnmarshalBencode(t *testing.T) {
 			want:  [][]string{{"https://a/announce"}, {"udp://b:1337"}},
 		},
 		{
+			// go-torrent decodes an empty list into an empty, non-nil slice
 			name:  "empty list",
 			input: []string{},
-			want:  nil,
+			want:  [][]string{},
 		},
 		{
 			name:    "unsupported type",
@@ -54,13 +55,13 @@ func TestTrackerTiers_UnmarshalBencode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			encoded, err := bencode.EncodeBytes(tt.input)
+			encoded, err := bencode.Marshal(tt.input)
 			if err != nil {
 				t.Fatalf("could not encode test input: %v", err)
 			}
 
 			var got TrackerTiers
-			err = bencode.DecodeBytes(encoded, &got)
+			err = bencode.Unmarshal(encoded, &got)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("UnmarshalBencode() error = %v, wantErr %v", err, tt.wantErr)
 			}
@@ -85,13 +86,13 @@ func TestFastresume_DecodeFlatTrackers(t *testing.T) {
 		"trackers":  []string{"https://a/announce", "udp://b:1337"},
 	}
 
-	encoded, err := bencode.EncodeBytes(raw)
+	encoded, err := bencode.Marshal(raw)
 	if err != nil {
 		t.Fatalf("could not encode fastresume: %v", err)
 	}
 
 	var fr Fastresume
-	if err := bencode.DecodeBytes(encoded, &fr); err != nil {
+	if err := bencode.Unmarshal(encoded, &fr); err != nil {
 		t.Fatalf("could not decode fastresume with flat trackers: %v", err)
 	}
 

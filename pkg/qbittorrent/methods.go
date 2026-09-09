@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
 	"golang.org/x/net/context"
 )

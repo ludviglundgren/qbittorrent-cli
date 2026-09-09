@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anacrolix/torrent/metainfo"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
