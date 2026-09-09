@@ -44,8 +44,7 @@ func InitConfig() {
 	}
 
 	if err := viper.ReadInConfig(); err != nil {
-		var ferr *viper.ConfigFileNotFoundError
-		if errors.As(err, &ferr) {
+		if ferr, ok := errors.AsType[*viper.ConfigFileNotFoundError](err); ok {
 			log.Printf("config file not found: err %q\n", ferr)
 		} else {
 			log.Printf("could not read config: err %q\n", err)

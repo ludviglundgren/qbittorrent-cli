@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"slices"
 	"strings"
 	"time"
 
@@ -279,10 +280,8 @@ func validateTag(includeTags []string, torrentTags string) (string, bool) {
 	tagList := strings.Split(torrentTags, ", ")
 
 	for _, includeTag := range includeTags {
-		for _, tag := range tagList {
-			if tag == includeTag {
-				return tag, true
-			}
+		if slices.Contains(tagList, includeTag) {
+			return includeTag, true
 		}
 	}
 

@@ -73,7 +73,7 @@ func Test_processExport_continuesOnBadFastresume(t *testing.T) {
 	writeFile(t, filepath.Join(sourceDir, badHash+".fastresume"), []byte("this is not bencode"))
 
 	// good pair: valid torrent + fastresume that stores trackers as a flat list
-	goodFastresume, err := bencode.Marshal(map[string]interface{}{
+	goodFastresume, err := bencode.Marshal(map[string]any{
 		"save_path": "/downloads",
 		"trackers":  []string{"https://tracker/announce"},
 	})

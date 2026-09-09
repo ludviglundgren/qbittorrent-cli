@@ -45,13 +45,13 @@ func Decode(path string) (*TorrentInfo, error) {
 	return &torrent, nil
 }
 
-func OpenDecodeRaw(path string) (map[string]interface{}, error) {
+func OpenDecodeRaw(path string) (map[string]any, error) {
 	dat, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
 
-	var torrent map[string]interface{}
+	var torrent map[string]any
 	if err := bencode.Unmarshal(dat, &torrent); err != nil {
 		return nil, err
 	}
@@ -82,7 +82,7 @@ func CopyFile(src string, dst string) error {
 	return nil
 }
 
-func CalculateInfoHash(torrent map[string]interface{}) (hash string) {
+func CalculateInfoHash(torrent map[string]any) (hash string) {
 	t, _ := bencode.Marshal(torrent["info"])
 	h := sha1.New()
 	h.Write(t)
@@ -90,8 +90,8 @@ func CalculateInfoHash(torrent map[string]interface{}) (hash string) {
 	return hash
 }
 
-func GetName(torrent map[string]interface{}) (name string) {
-	info, _ := torrent["info"].(map[string]interface{})
+func GetName(torrent map[string]any) (name string) {
+	info, _ := torrent["info"].(map[string]any)
 	//info, _ := bencode.EncodeString(torrent["info"])
 	//h := sha1.New()
 	//io.WriteString(h, t)

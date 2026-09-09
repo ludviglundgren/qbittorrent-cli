@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -15,8 +16,8 @@ import (
 
 	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/config"
 
-	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/autobrr/go-qbittorrent"
+	"github.com/autobrr/go-torrent/metainfo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -182,14 +183,11 @@ func RunTorrentAdd() *cobra.Command {
 
 				wg := sync.WaitGroup{}
 
-				wg.Add(1)
-
-				go func() {
-					defer wg.Done()
+				wg.Go(func() {
 					if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 						log.Fatalf("could not get tracker status for torrent: %q\n", err)
 					}
-				}()
+				})
 
 				wg.Wait()
 			}
@@ -301,14 +299,11 @@ func RunTorrentAdd() *cobra.Command {
 
 				// some trackers are bugged or slow, so we need to re-announce the torrent until it works
 				if config.Reannounce.Enabled && !paused {
-					wg.Add(1)
-
-					go func() {
-						defer wg.Done()
+					wg.Go(func() {
 						if err := checkTrackerStatus(ctx, qb, removeStalled, hash); err != nil {
 							log.Printf("could not get tracker status for torrent: %s err: %q\n", hash, err)
 						}
-					}()
+					})
 				}
 
 				success++
@@ -401,10 +396,8 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 //	3 Tracker is updating
 //	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 func findTrackerStatus(slice []qbittorrent.TorrentTracker, val int) (int, bool) {
-	for i, item := range slice {
-		if int(item.Status) == val {
-			return i, true
-		}
-	}
-	return -1, false
+	i := slices.IndexFunc(slice, func(item qbittorrent.TorrentTracker) bool {
+		return int(item.Status) == val
+	})
+	return i, i >= 0
 }
