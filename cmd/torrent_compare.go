@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"cmp"
 	"log"
 	"time"
 
@@ -68,24 +69,12 @@ func RunTorrentCompare() *cobra.Command {
 	command.RunE = func(cmd *cobra.Command, args []string) error {
 		config.InitConfig()
 
-		if sourceAddr == "" {
-			sourceAddr = config.Qbit.Host
-		}
-		if sourceAPIKey == "" {
-			sourceAPIKey = config.Qbit.APIKey
-		}
-		if sourceUser == "" {
-			sourceUser = config.Qbit.Login
-		}
-		if sourcePass == "" {
-			sourcePass = config.Qbit.Password
-		}
-		if sourceBasicUser == "" {
-			sourceBasicUser = config.Qbit.BasicUser
-		}
-		if sourceBasicPass == "" {
-			sourceBasicPass = config.Qbit.BasicPass
-		}
+		sourceAddr = cmp.Or(sourceAddr, config.Qbit.Host)
+		sourceAPIKey = cmp.Or(sourceAPIKey, config.Qbit.APIKey)
+		sourceUser = cmp.Or(sourceUser, config.Qbit.Login)
+		sourcePass = cmp.Or(sourcePass, config.Qbit.Password)
+		sourceBasicUser = cmp.Or(sourceBasicUser, config.Qbit.BasicUser)
+		sourceBasicPass = cmp.Or(sourceBasicPass, config.Qbit.BasicPass)
 
 		qbtSettings := qbittorrent.Config{
 			Host:      sourceAddr,

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"slices"
@@ -246,13 +247,8 @@ func exportManifest(hashes map[string]qbittorrent.Torrent, tags map[string]struc
 		Torrents:   make([]basicTorrent, 0),
 	}
 
-	for tag, _ := range tags {
-		data.Tags = append(data.Tags, tag)
-	}
-
-	for _, category := range categories {
-		data.Categories = append(data.Categories, category)
-	}
+	data.Tags = slices.AppendSeq(data.Tags, maps.Keys(tags))
+	data.Categories = slices.AppendSeq(data.Categories, maps.Values(categories))
 
 	for _, torrent := range hashes {
 		data.Torrents = append(data.Torrents, basicTorrent{
