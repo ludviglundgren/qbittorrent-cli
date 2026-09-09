@@ -87,10 +87,7 @@ func batchRequests(hashes []string, fn func(start, end int) error) error {
 	// Split the hashes into groups of 20 to avoid flooding qbittorrent
 	batch := 25
 	for i := 0; i < len(hashes); i += batch {
-		j := i + batch
-		if j > len(hashes) {
-			j = len(hashes)
-		}
+		j := min(i+batch, len(hashes))
 
 		if err := fn(i, j); err != nil {
 			return err

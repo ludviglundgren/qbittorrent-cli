@@ -152,10 +152,7 @@ func RunTorrentCompare() *cobra.Command {
 
 					batch := 20
 					for i := 0; i < len(duplicateTorrents); i += batch {
-						j := i + batch
-						if j > len(duplicateTorrents) {
-							j = len(duplicateTorrents)
-						}
+						j := min(i+batch, len(duplicateTorrents))
 
 						if err := qbCompare.AddTagsCtx(ctx, duplicateTorrents[i:j], tag); err != nil {
 							return errors.Wrapf(err, "could not set tag: %s", tag)

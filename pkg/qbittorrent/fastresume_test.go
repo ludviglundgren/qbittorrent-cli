@@ -10,7 +10,7 @@ import (
 func TestTrackerTiers_UnmarshalBencode(t *testing.T) {
 	tests := []struct {
 		name    string
-		input   interface{}
+		input   any
 		want    [][]string
 		wantErr bool
 	}{
@@ -81,7 +81,7 @@ func TestTrackerTiers_UnmarshalBencode(t *testing.T) {
 // trackers field as a flat list of strings can still be decoded. This is the
 // exact failure reported in issue #135.
 func TestFastresume_DecodeFlatTrackers(t *testing.T) {
-	raw := map[string]interface{}{
+	raw := map[string]any{
 		"save_path": "/downloads",
 		"trackers":  []string{"https://a/announce", "udp://b:1337"},
 	}

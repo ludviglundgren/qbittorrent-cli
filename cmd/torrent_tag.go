@@ -265,9 +265,7 @@ func processTorrentTags(torrent qbittorrent.Torrent, trackers []qbittorrent.Torr
 
 	// check for our default tags to first clear
 	if torrent.Tags != "" {
-		torrentTags := strings.Split(torrent.Tags, ", ")
-
-		for _, tag := range torrentTags {
+		for tag := range strings.SplitSeq(torrent.Tags, ", ") {
 			if strings.Contains(tag, DefaultTagUnregistered.String()) {
 				isUnregistered = true
 			}

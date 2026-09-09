@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"time"
 
@@ -513,15 +514,7 @@ func fileNameTrimExt(fileName string) string {
 
 // isValidExt check if the input ext is one of the ext we want
 func isValidExt(filename string) bool {
-	valid := []string{".torrent", ".fastresume"}
-
-	for _, s := range valid {
-		if s == filename {
-			return true
-		}
-	}
-
-	return false
+	return slices.Contains([]string{".torrent", ".fastresume"}, filename)
 }
 
 // createDirIfNotExists check if export dir exists, if not then lets create it
@@ -559,26 +552,17 @@ type export struct {
 }
 
 func containsTag(contains []string, tags []string) bool {
-	for _, s := range tags {
-		s = strings.ToLower(s)
-		for _, contain := range contains {
-			if s == strings.ToLower(contain) {
-				return true
-			}
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(tags, func(tag string) bool {
+		return slices.ContainsFunc(contains, func(contain string) bool {
+			return strings.EqualFold(tag, contain)
+		})
+	})
 }
 
 func containsCategory(contains []string, category string) bool {
-	for _, cat := range contains {
-		if strings.EqualFold(category, cat) {
-			return true
-		}
-	}
-
-	return false
+	return slices.ContainsFunc(contains, func(cat string) bool {
+		return strings.EqualFold(category, cat)
+	})
 }
 
 type basicTorrent struct {
