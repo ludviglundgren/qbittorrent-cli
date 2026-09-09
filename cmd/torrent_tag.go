@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"log"
+	"slices"
 	"strings"
 
 	"github.com/ludviglundgren/qbittorrent-cli/v2/internal/config"
@@ -290,22 +291,14 @@ func processTorrentTags(torrent qbittorrent.Torrent, trackers []qbittorrent.Torr
 		lowerTrackerMessage := strings.ToLower(tracker.Message)
 
 		if tagUnregistered {
-			for _, msg := range trackerMessages {
-				if strings.Contains(lowerTrackerMessage, msg) {
-					//isUnregistered = true
-					foundTrackerUnregistered = true
-					break
-				}
+			if slices.ContainsFunc(trackerMessages, func(msg string) bool { return strings.Contains(lowerTrackerMessage, msg) }) {
+				foundTrackerUnregistered = true
 			}
 		}
 
 		if tagNotWorking {
-			for _, msg := range trackerIssues {
-				if strings.Contains(lowerTrackerMessage, msg) {
-					//isNotWorking = true
-					foundTrackerNotWorking = true
-					break
-				}
+			if slices.ContainsFunc(trackerIssues, func(msg string) bool { return strings.Contains(lowerTrackerMessage, msg) }) {
+				foundTrackerNotWorking = true
 			}
 		}
 	}

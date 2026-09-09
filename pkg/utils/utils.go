@@ -28,13 +28,12 @@ func ValidateHash(hashes []string) error {
 
 // ExpandTilde expands the ~ in the file path to the home directory
 func ExpandTilde(path string) (string, error) {
-	if strings.HasPrefix(path, "~") {
+	if rest, ok := strings.CutPrefix(path, "~"); ok {
 		usr, err := user.Current()
 		if err != nil {
 			return "", err
 		}
-		homeDir := usr.HomeDir
-		return filepath.Join(homeDir, path[1:]), nil
+		return filepath.Join(usr.HomeDir, rest), nil
 	}
 	return path, nil
 }

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -395,10 +396,8 @@ func checkTrackerStatus(ctx context.Context, qb *qbittorrent.Client, removeStall
 //	3 Tracker is updating
 //	4 Tracker has been contacted, but it is not working (or doesn't send proper replies)
 func findTrackerStatus(slice []qbittorrent.TorrentTracker, val int) (int, bool) {
-	for i, item := range slice {
-		if int(item.Status) == val {
-			return i, true
-		}
-	}
-	return -1, false
+	i := slices.IndexFunc(slice, func(item qbittorrent.TorrentTracker) bool {
+		return int(item.Status) == val
+	})
+	return i, i >= 0
 }

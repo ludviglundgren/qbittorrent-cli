@@ -2,10 +2,11 @@ package qbittorrent
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
+	"slices"
 	"strings"
 
 	"github.com/autobrr/go-torrent/metainfo"
@@ -28,7 +29,7 @@ func (c *Client) Login(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		return errors.New(fmt.Sprintf("login: unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("login: unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	// place cookies in jar for future requests
@@ -128,35 +129,17 @@ func (c *Client) GetTorrentsByPrefixes(ctx context.Context, terms []string, hash
 
 	matchedTorrents := map[Torrent]bool{}
 	for _, torrent := range torrents {
-		if hashes {
-			for _, targetHash := range terms {
-				if strings.HasPrefix(torrent.Hash, targetHash) {
-					matchedTorrents[torrent] = true
-					break
-				}
-			}
-
-			if matchedTorrents[torrent] {
-				continue
-			}
+		if hashes && slices.ContainsFunc(terms, func(term string) bool { return strings.HasPrefix(torrent.Hash, term) }) {
+			matchedTorrents[torrent] = true
+			continue
 		}
 
-		if names {
-			for _, targetName := range terms {
-				if strings.HasPrefix(torrent.Name, targetName) {
-					matchedTorrents[torrent] = true
-					break
-				}
-			}
+		if names && slices.ContainsFunc(terms, func(term string) bool { return strings.HasPrefix(torrent.Name, term) }) {
+			matchedTorrents[torrent] = true
 		}
 	}
 
-	var foundTorrents []Torrent
-	for torrent := range matchedTorrents {
-		foundTorrents = append(foundTorrents, torrent)
-	}
-
-	return foundTorrents, nil
+	return slices.Collect(maps.Keys(matchedTorrents)), nil
 }
 
 func (c *Client) GetTorrentTrackers(ctx context.Context, hash string) ([]TorrentTracker, error) {
@@ -204,7 +187,7 @@ func (c *Client) AddTorrentFromFile(ctx context.Context, file string, options ma
 			return "", errors.Wrap(err, "could not read body")
 		}
 
-		return "", errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return "", errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return t.HashInfoBytes().HexString(), nil
@@ -236,7 +219,7 @@ func (c *Client) AddTorrentFromMagnet(ctx context.Context, magnetUri string, opt
 			return "", errors.Wrap(err, "could not read body")
 		}
 
-		return "", errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return "", errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return magnet.InfoHash.HexString(), nil
@@ -265,7 +248,7 @@ func (c *Client) DeleteTorrents(ctx context.Context, hashes []string, deleteFile
 			return errors.Wrap(err, "could not read body")
 		}
 
-		return errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return nil
@@ -290,7 +273,7 @@ func (c *Client) ReAnnounceTorrents(ctx context.Context, hashes []string) error 
 			return errors.Wrap(err, "could not read body")
 		}
 
-		return errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return nil
@@ -314,7 +297,7 @@ func (c *Client) Pause(ctx context.Context, hashes []string) error {
 			return errors.Wrap(err, "could not read body")
 		}
 
-		return errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return nil
@@ -338,7 +321,7 @@ func (c *Client) Resume(ctx context.Context, hashes []string) error {
 			return errors.Wrap(err, "could not read body")
 		}
 
-		return errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return nil
@@ -363,7 +346,7 @@ func (c *Client) SetCategory(ctx context.Context, hashes []string, category stri
 			return errors.Wrap(err, "could not read body")
 		}
 
-		return errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return nil
@@ -388,7 +371,7 @@ func (c *Client) SetTag(ctx context.Context, hashes []string, tag string) error 
 			return errors.Wrap(err, "could not read body")
 		}
 
-		return errors.New(fmt.Sprintf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes))
+		return errors.Errorf("unexpected response status: %d body: %s", resp.StatusCode, bodyBytes)
 	}
 
 	return nil
