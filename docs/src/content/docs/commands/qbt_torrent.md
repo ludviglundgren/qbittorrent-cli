@@ -37,6 +37,7 @@ Do various torrent operations
 * [qbt torrent reannounce](../qbt_torrent_reannounce/)	 - Reannounce torrent(s)
 * [qbt torrent recheck](../qbt_torrent_recheck/)	 - Recheck specified torrent(s)
 * [qbt torrent remove](../qbt_torrent_remove/)	 - Removes specified torrent(s)
+* [qbt torrent rename](../qbt_torrent_rename/)	 - Rename specified torrent
 * [qbt torrent resume](../qbt_torrent_resume/)	 - Resume specified torrent(s)
 * [qbt torrent share-limit](../qbt_torrent_share-limit/)	 - Torrent share limit subcommand
 * [qbt torrent tag](../qbt_torrent_tag/)	 - Torrent tag subcommand

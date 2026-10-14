@@ -32,6 +32,7 @@ qbt torrent add [flags]
       --ignore-rules            Ignore rules from config
       --limit-dl uint           Set torrent download speed limit. Unit in bytes/second
       --limit-ul uint           Set torrent upload speed limit. Unit in bytes/second
+      --name string             Set the name of the added torrent (single torrent only)
       --paused                  Add torrent in paused state
       --recheck                 Force recheck after adding (useful when using --paused)
       --remove-stalled          Remove stalled torrents from re-announce
