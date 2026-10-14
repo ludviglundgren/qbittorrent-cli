@@ -41,6 +41,7 @@ func RunTorrentAdd() *cobra.Command {
 		removeStalled  bool
 		savePath       string
 		category       string
+		name           string
 		tags           []string
 		ignoreRules    bool
 		uploadLimit    uint64
@@ -75,6 +76,7 @@ func RunTorrentAdd() *cobra.Command {
 	command.Flags().BoolVar(&removeStalled, "remove-stalled", false, "Remove stalled torrents from re-announce")
 	command.Flags().StringVar(&savePath, "save-path", "", "Add torrent to the specified path")
 	command.Flags().StringVar(&category, "category", "", "Add torrent to the specified category")
+	command.Flags().StringVar(&name, "name", "", "Set the name of the added torrent (single torrent only)")
 	command.Flags().StringVar(&stopCondition, "stop-condition", "", "Add torrent with the specified stop condition. Possible values: None, MetadataReceived, FilesChecked. Example: --stop-condition MetadataReceived")
 	command.Flags().Uint64Var(&uploadLimit, "limit-ul", 0, "Set torrent upload speed limit. Unit in bytes/second")
 	command.Flags().Uint64Var(&downloadLimit, "limit-dl", 0, "Set torrent download speed limit. Unit in bytes/second")
@@ -87,6 +89,10 @@ func RunTorrentAdd() *cobra.Command {
 		// args
 		// first arg is path to torrent file
 		filePath := args[0]
+
+		if name != "" && IsGlobPattern(filePath) {
+			return errors.New("cannot use --name with a glob pattern: a name applies to a single torrent")
+		}
 
 		qbtSettings := qbittorrent.Config{
 			Host:      config.Qbit.Addr,
@@ -145,6 +151,9 @@ func RunTorrentAdd() *cobra.Command {
 		}
 		if category != "" {
 			options["category"] = category
+		}
+		if name != "" {
+			options["rename"] = name
 		}
 		if tags != nil {
 			options["tags"] = strings.Join(tags, ",")
